@@ -1,4 +1,4 @@
-# YT Coach Backend API
+# Mintclip Backend API
 
 Python FastAPI backend for YouTube transcript extraction, AI summarization, and chat features.
 
@@ -33,7 +33,8 @@ cp .env.example .env
 
 Edit `.env` and add your API keys:
 - `GEMINI_API_KEY`: Get from [Google AI Studio](https://makersuite.google.com/app/apikey)
-- `DEEPGRAM_API_KEY`: Get from [Deepgram Console](https://console.deepgram.com/)
+- `DEEPGRAM_API_KEY`: Get from [Deepgram Console](https://console.deepgram.com/) (optional, for fallback transcription)
+- `PINECONE_API_KEY`: Get from [Pinecone](https://www.pinecone.io/) (optional, for fast semantic search in chat)
 
 ### 4. Run the Server
 
@@ -155,4 +156,4 @@ backend/
 
 ## License
 
-Private - YT Coach Project
+Private - Mintclip Project
