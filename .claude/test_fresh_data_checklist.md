@@ -16,7 +16,7 @@ Verify that newly generated summaries (after the migration fix) include the form
 
 **Test Setup:**
 - Use a YouTube video you haven't generated summaries for before
-- Open Chrome DevTools → Application → Local Storage → Filter by "yt-coach-video"
+- Open Chrome DevTools → Application → Local Storage → Filter by "video_"
 - Verify no cached data exists for this video
 
 **Steps:**
@@ -50,7 +50,7 @@ Verify that newly generated summaries (after the migration fix) include the form
 1. In DevTools Console, run:
    ```javascript
    chrome.storage.local.get(null, (data) => {
-     const videoKey = Object.keys(data).find(k => k.startsWith('yt-coach-video-'));
+     const videoKey = Object.keys(data).find(k => k.startsWith('video_'));
      if (videoKey) {
        console.log('Video cache key:', videoKey);
        console.log('Summaries data:', data[videoKey].summaries);
@@ -132,8 +132,8 @@ Verify that newly generated summaries (after the migration fix) include the form
 **Check all boolean fields:**
 ```javascript
 chrome.storage.local.get(null, (data) => {
-  const videoKey = Object.keys(data).find(k => k.startsWith('yt-coach-video-'));
-  if (videoKey && data[videoKey].summmaries) {
+  const videoKey = Object.keys(data).find(k => k.startsWith('video_'));
+  if (videoKey && data[videoKey].summaries) {
     const s = data[videoKey].summaries;
     console.log('short_is_structured:', s.short_is_structured);
     console.log('topic_is_structured:', s.topic_is_structured);
@@ -145,7 +145,7 @@ chrome.storage.local.get(null, (data) => {
 **Clear all video cache (for testing):**
 ```javascript
 chrome.storage.local.get(null, (data) => {
-  const keysToRemove = Object.keys(data).filter(k => k.startsWith('yt-coach-video-'));
+  const keysToRemove = Object.keys(data).filter(k => k.startsWith('video_'));
   chrome.storage.local.remove(keysToRemove);
   console.log('Cleared', keysToRemove.length, 'video caches');
 });

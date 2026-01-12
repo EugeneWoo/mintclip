@@ -1,4 +1,4 @@
-# YT Coach - AI-Powered YouTube Transcript Extension
+# Mintclip - AI-Powered YouTube Transcript Extension
 
 A Chrome extension with FastAPI backend that provides AI-powered transcript extraction, summarization, and chat functionality for YouTube videos.
 
@@ -12,7 +12,7 @@ A Chrome extension with FastAPI backend that provides AI-powered transcript extr
 ## 📁 Repository Structure
 
 ```
-yt-coach/
+mintclip/
 ├── backend/          # FastAPI server (Python)
 ├── extension/        # Chrome extension (React + TypeScript)
 ├── agent-os/         # Product specifications
@@ -108,8 +108,8 @@ This project uses Agent OS for structured development workflows. See the [agent-
 
 ## 🔗 Links
 
-- **GitHub**: https://github.com/EugeneWoo/yt-coach
-- **Issue Tracker**: https://github.com/EugeneWoo/yt-coach/issues
+- **GitHub**: https://github.com/EugeneWoo/mintclip
+- **Issue Tracker**: https://github.com/EugeneWoo/mintclip/issues
 
 ---
 
