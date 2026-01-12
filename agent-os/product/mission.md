@@ -2,7 +2,7 @@
 
 ## Pitch
 
-YT Coach is a Chrome browser extension that transforms how solo founders learn from YouTube. Instead of copying video links into separate tools or watching hours of content linearly, founders get instant transcripts and AI summaries directly on YouTube pages. The extension handles single videos seamlessly, while a companion web app enables batch processing of entire channels (25-50 videos at once) to extract patterns and insights across a creator's content. It eliminates the friction between discovering a valuable channel and actually extracting actionable knowledge from it.
+Mintclip is a Chrome browser extension that transforms how solo founders learn from YouTube. Instead of copying video links into separate tools or watching hours of content linearly, founders get instant transcripts and AI summaries directly on YouTube pages. The extension handles single videos seamlessly, while a companion web app enables batch processing of entire channels (25-50 videos at once) to extract patterns and insights across a creator's content. It eliminates the friction between discovering a valuable channel and actually extracting actionable knowledge from it.
 
 ## Users
 
@@ -44,19 +44,19 @@ Solo founders and entrepreneurs rely on YouTube to learn critical skills, but th
 
 ### Zero-Friction Extension Experience
 
-Unlike tools that require copying video links into separate applications, YT Coach works directly on YouTube pages. Users get instant transcripts and AI summaries with one click, eliminating the friction between discovering content and extracting knowledge. No copy-paste, no context switching.
+Unlike tools that require copying video links into separate applications, Mintclip works directly on YouTube pages. Users get instant transcripts and AI summaries with one click, eliminating the friction between discovering content and extracting knowledge. No copy-paste, no context switching.
 
 ### Batch Channel Processing
 
-Unlike existing YouTube transcript tools that process one video at a time, YT Coach's companion web app processes 25-50 videos from any channel simultaneously, providing cross-video insights and combined analysis. This allows users to identify patterns, themes, and key concepts across an entire creator's content library in minutes instead of hours.
+Unlike existing YouTube transcript tools that process one video at a time, Mintclip's companion web app processes 25-50 videos from any channel simultaneously, providing cross-video insights and combined analysis. This allows users to identify patterns, themes, and key concepts across an entire creator's content library in minutes instead of hours.
 
 ### Cross-Video Pattern Recognition
 
-By analyzing multiple videos from the same channel together, YT Coach identifies recurring themes, common concepts, and knowledge patterns that would be impossible to detect when processing videos individually. This results in deeper insights and more efficient learning.
+By analyzing multiple videos from the same channel together, Mintclip identifies recurring themes, common concepts, and knowledge patterns that would be impossible to detect when processing videos individually. This results in deeper insights and more efficient learning.
 
 ### Searchable Knowledge Base
 
-Unlike one-off transcript tools, YT Coach provides 30-day storage and search functionality in the web app, allowing users to build a searchable archive of all processed transcripts and summaries. This transforms YouTube learning from ephemeral consumption into a persistent knowledge base.
+Unlike one-off transcript tools, Mintclip provides 30-day storage and search functionality in the web app, allowing users to build a searchable archive of all processed transcripts and summaries. This transforms YouTube learning from ephemeral consumption into a persistent knowledge base.
 
 ## Key Features
 

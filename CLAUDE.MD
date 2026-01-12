@@ -1,4 +1,4 @@
-# YT Coach - Chrome Extension + FastAPI Backend
+# Mintclip - Chrome Extension + FastAPI Backend
 
 ## Architecture
 Chrome Extension (Manifest V3) + FastAPI backend + React/TypeScript UI
@@ -46,6 +46,6 @@ Chrome Extension (Manifest V3) + FastAPI backend + React/TypeScript UI
 
 ## Environment
 - Python 3.10+, Node.js 18+
-- Backend: `cd backend && uvicorn main:app --reload --port 8787`
+- Backend: `cd backend && uvicorn main:app --reload --port 8000`
 - Extension: `cd extension && npm run dev`
 - Requires GEMINI_API_KEY in environment
