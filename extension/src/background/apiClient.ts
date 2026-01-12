@@ -37,6 +37,8 @@ export interface SummaryResponse {
   success: boolean;
   summary?: string;
   is_structured?: boolean;
+  cached?: boolean;
+  format?: string;
   error?: string;
 }
 

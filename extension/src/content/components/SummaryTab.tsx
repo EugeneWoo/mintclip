@@ -302,7 +302,7 @@ export function SummaryTab({
                 return (
                   <span
                     key={i}
-                    className="yt-coach-summary-timestamp"
+                    className="mintclip-summary-timestamp"
                     onClick={() => {
                       // Extract seconds from timestamp parameter
                       if (timestamp && extractedVideoId) {

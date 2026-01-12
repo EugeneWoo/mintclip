@@ -32,14 +32,14 @@ export function YouTubeSidebar({ videoId }: YouTubeSidebarProps): React.JSX.Elem
   // Calculate dynamic width based on available space
   useEffect(() => {
     const calculateWidth = () => {
-      console.log('[YT Coach] calculateWidth() called');
+      console.log('[Mintclip] calculateWidth() called');
       // Get YouTube's video player container
       const ytdPlayer = document.querySelector('#player-container-outer, #player-container, ytd-player');
       const primaryInner = document.querySelector('#primary-inner, #primary');
-      console.log('[YT Coach] Element queries:', { ytdPlayer: !!ytdPlayer, primaryInner: !!primaryInner });
+      console.log('[Mintclip] Element queries:', { ytdPlayer: !!ytdPlayer, primaryInner: !!primaryInner });
 
       if (!ytdPlayer || !primaryInner) {
-        console.log('[YT Coach] Missing required elements, returning early');
+        console.log('[Mintclip] Missing required elements, returning early');
         return;
       }
 
@@ -52,7 +52,7 @@ export function YouTubeSidebar({ videoId }: YouTubeSidebarProps): React.JSX.Elem
 
       // Set width with constraints: min 350px, max 600px
       const newWidth = Math.max(350, Math.min(availableSpace, 600));
-      console.log('[YT Coach] Width calculation:', { playerRight: playerRect.right, viewportWidth, availableSpace, newWidth });
+      console.log('[Mintclip] Width calculation:', { playerRight: playerRect.right, viewportWidth, availableSpace, newWidth });
       setSidebarWidth(newWidth);
     };
 
@@ -681,7 +681,7 @@ export function YouTubeSidebar({ videoId }: YouTubeSidebarProps): React.JSX.Elem
 
       if (!transcript) {
         // Fetch transcript first
-        const transcriptResponse = await chrome.runtime.runtime.sendMessage({
+        const transcriptResponse = await chrome.runtime.sendMessage({
           type: 'GET_TRANSCRIPT',
           payload: { videoId },
         });
@@ -908,8 +908,10 @@ export function YouTubeSidebar({ videoId }: YouTubeSidebarProps): React.JSX.Elem
   // Detect light/dark mode
   const isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
 
-  // The sidebar should be fixed-height only when expanded and authenticated
-  const isFixedSize = isExpanded && isAuthenticated && authChecked;
+  // The sidebar should be fixed-height only when expanded, authenticated, AND has content to display
+  // Content exists if: transcript exists, or any summary exists, or chat messages exist
+  const hasContent = transcript || Object.keys(summaries).some(key => !key.endsWith('_is_structured') && summaries[key as keyof typeof summaries]) || chatMessages.length > 0;
+  const isFixedSize = isExpanded && isAuthenticated && authChecked && hasContent;
 
   return (
     <div
@@ -965,7 +967,7 @@ export function YouTubeSidebar({ videoId }: YouTubeSidebarProps): React.JSX.Elem
               letterSpacing: '-0.01em',
             }}
           >
-            YT Coach
+            Mintclip
           </h3>
         </div>
         <div
