@@ -10,7 +10,7 @@ import { getAuthState as getStorageAuthState, setAuthState } from './storage';
  */
 export async function initializeAuth(): Promise<void> {
   const authState = await getStorageAuthState();
-  console.log('[YT Coach] Auth state initialized:', authState.isAuthenticated);
+  console.log('[Mintclip] Auth state initialized:', authState.isAuthenticated);
 
   // TODO: Verify token with backend if authenticated
   // For now, just log the state

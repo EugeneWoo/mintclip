@@ -1,4 +1,4 @@
-# YT Coach Chrome Extension
+# Mintclip Chrome Extension
 
 AI-powered YouTube video transcripts, summaries, and chat extension.
 

@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "YT Coach",
+  "name": "Mintclip",
   "version": "0.1.0",
   "description": "AI-powered YouTube video transcripts, summaries, and chat - learn faster from YouTube content",
   "permissions": [

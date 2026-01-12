@@ -8,7 +8,7 @@ import { createRoot, Root } from 'react-dom/client';
 import { isYouTubePage, watchYouTubeNavigation } from './utils/youtubeDetector';
 import { YouTubeSidebar } from './components/YouTubeSidebar';
 
-console.log('YT Coach content script loaded');
+console.log('Mintclip content script loaded');
 
 let sidebarContainer: HTMLElement | null = null;
 let reactRoot: Root | null = null;
@@ -32,7 +32,7 @@ function initExtensionUI(): void {
 
   const videoId = getVideoId();
   if (!videoId) {
-    console.log('[YT Coach] No video ID found, skipping UI injection');
+    console.log('[Mintclip] No video ID found, skipping UI injection');
     cleanupExtensionUI();
     return;
   }
@@ -42,19 +42,19 @@ function initExtensionUI(): void {
     return;
   }
 
-  console.log('[YT Coach] Injecting UI for video:', videoId);
+  console.log('[Mintclip] Injecting UI for video:', videoId);
 
   // Find YouTube's secondary column (sidebar)
   const secondary = document.querySelector('#secondary');
   if (!secondary) {
-    console.log('[YT Coach] Secondary column not found, retrying...');
+    console.log('[Mintclip] Secondary column not found, retrying...');
     setTimeout(initExtensionUI, 500);
     return;
   }
 
   // Create container with Shadow DOM for style isolation
   const container = document.createElement('div');
-  container.id = 'yt-coach-sidebar';
+  container.id = 'mintclip-sidebar';
 
   // Attach shadow DOM
   const shadowRoot = container.attachShadow({ mode: 'open' });
@@ -142,7 +142,7 @@ function initExtensionUI(): void {
 
   // Create React root container
   const reactContainer = document.createElement('div');
-  reactContainer.id = 'yt-coach-root';
+  reactContainer.id = 'mintclip-root';
   shadowRoot.appendChild(reactContainer);
 
   // Insert at the top of the secondary column
@@ -152,7 +152,7 @@ function initExtensionUI(): void {
   reactRoot = createRoot(reactContainer);
   reactRoot.render(<YouTubeSidebar videoId={videoId} />);
 
-  console.log('[YT Coach] UI injected successfully');
+  console.log('[Mintclip] UI injected successfully');
 }
 
 /**

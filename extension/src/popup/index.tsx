@@ -97,7 +97,7 @@ function Popup(): React.JSX.Element {
         >
           ✨
         </div>
-        <h1 style={{ margin: '0 0 8px 0', fontSize: '24px', fontWeight: 600 }}>YT Coach</h1>
+        <h1 style={{ margin: '0 0 8px 0', fontSize: '24px', fontWeight: 600 }}>Mintclip</h1>
         <p style={{ color: '#666', fontSize: '14px', margin: 0 }}>
           AI-powered YouTube learning
         </p>

@@ -50,7 +50,7 @@ const ClickableTimestamp: React.FC<ClickableTimestampProps> = ({ timestamp, star
 
   return (
     <span
-      className="yt-coach-timestamp"
+      className="mintclip-timestamp"
       onClick={handleClick}
       title={`Jump to ${timestamp}`}
       style={{
