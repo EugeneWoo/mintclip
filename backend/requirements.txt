@@ -24,7 +24,8 @@ httpx==0.25.2
 pyjwt==2.8.0
 
 # Pinecone embeddings (free tier for semantic search)
-pinecone-client>=3.0.0
+# Note: Package renamed from pinecone-client to pinecone
+pinecone>=3.0.0
 
 # NumPy for fast similarity calculations
 numpy>=1.24.0

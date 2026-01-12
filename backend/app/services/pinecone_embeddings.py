@@ -7,6 +7,13 @@ import os
 import numpy as np
 from typing import List, Tuple, Optional
 
+try:
+    from pinecone import Pinecone
+    PINEcone_AVAILABLE = True
+except ImportError:
+    print("WARNING: pinecone package not installed. Run: pip install pinecone")
+    PINEcone_AVAILABLE = False
+
 # In-memory cache for video embeddings
 # Format: {video_id: {"chunks": [str], "embeddings": np.array}}
 _embedding_cache = {}
@@ -14,16 +21,17 @@ _embedding_cache = {}
 
 def get_pinecone_client():
     """Get Pinecone client for free embeddings"""
-    try:
-        from pinecone import Pinecone
-        api_key = os.getenv("PINECONE_API_KEY")
-        if not api_key:
-            print("WARNING: PINECONE_API_KEY not set, embeddings disabled")
-            return None
-        return Pinecone(api_key=api_key)
-    except ImportError:
-        print("WARNING: pinecone-client not installed")
+    if not PINEcone_AVAILABLE:
+        print("WARNING: pinecone package not installed")
         return None
+
+    api_key = os.getenv("PINECONE_API_KEY")
+    if not api_key:
+        print("WARNING: PINECONE_API_KEY not set, embeddings disabled")
+        return None
+
+    try:
+        return Pinecone(api_key=api_key)
     except Exception as e:
         print(f"Error initializing Pinecone: {e}")
         return None
