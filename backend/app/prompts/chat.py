@@ -35,12 +35,17 @@ def build_chat_prompt(transcript: str, question: str, chat_history: list = None)
     Build a chat prompt with transcript context and conversation history
 
     Args:
-        transcript: Full video transcript
+        transcript: Video transcript (may be full transcript or semantically retrieved excerpts)
         question: User's current question
         chat_history: List of previous messages [{"role": "user"/"assistant", "content": "..."}]
 
     Returns:
         Formatted prompt for Gemini
+
+    Note:
+        Transcript truncation is now handled at the service level via semantic retrieval
+        (see gemini_client.retrieve_relevant_context), which intelligently selects
+        relevant passages from anywhere in the video instead of arbitrary truncation.
     """
     # Build conversation history
     history_text = ""
@@ -49,13 +54,10 @@ def build_chat_prompt(transcript: str, question: str, chat_history: list = None)
             role = "User" if msg["role"] == "user" else "Assistant"
             history_text += f"\n{role}: {msg['content']}"
 
-    # Limit transcript to ~8k chars for context window
-    transcript_preview = transcript[:8000] if len(transcript) > 8000 else transcript
-
     prompt = f"""{CHAT_SYSTEM_PROMPT}
 
 Video Transcript:
-{transcript_preview}
+{transcript}
 
 {history_text}
 
