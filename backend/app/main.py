@@ -1,5 +1,5 @@
 """
-YT Coach Backend API
+Mintclip Backend API
 FastAPI server for transcript extraction, summarization, and chat
 """
 
@@ -15,7 +15,7 @@ load_dotenv()
 
 # Initialize FastAPI app
 app = FastAPI(
-    title="YT Coach API",
+    title="Mintclip API",
     description="Backend API for YouTube transcript extraction, AI summarization, and chat",
     version="0.1.0"
 )
@@ -42,7 +42,7 @@ async def root():
     """Health check endpoint"""
     return {
         "status": "ok",
-        "message": "YT Coach API is running",
+        "message": "Mintclip API is running",
         "version": "0.1.0"
     }
 

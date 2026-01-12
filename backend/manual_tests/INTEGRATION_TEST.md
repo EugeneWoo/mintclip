@@ -1,4 +1,4 @@
-# YT Coach Integration Test Guide
+# Mintclip Integration Test Guide
 
 ## Overview
 This guide walks through testing the complete integration between the Chrome extension and the FastAPI backend for transcript extraction.
@@ -42,7 +42,7 @@ npm run build
 
 ### Step 2: Check Extension Loads
 **Expected behavior:**
-- YT Coach sidebar should appear on the right side of the video
+- Mintclip sidebar should appear on the right side of the video
 - Sidebar should show "Sign In" button if not authenticated
 
 ### Step 3: Sign In (Test Mode)
@@ -105,7 +105,7 @@ Transcript fetched successfully: {entries: 61, language: "en"}
 
 ### Extension Service Worker Console
 1. Go to `chrome://extensions/`
-2. Find YT Coach extension
+2. Find Mintclip extension
 3. Click "Service Worker" link
 4. Check console for messages
 
