@@ -1,4 +1,4 @@
-# Test Commands for YT Coach Backend API
+# Test Commands for Mintclip Backend API
 
 ## Starting the Server
 

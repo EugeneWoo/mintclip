@@ -1,4 +1,4 @@
-# YT Coach API - Curl Examples
+# Mintclip API - Curl Examples
 
 Test all backend endpoints with these curl commands. Copy and paste them into your terminal.
 
