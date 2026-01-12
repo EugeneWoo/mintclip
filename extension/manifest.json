@@ -1,0 +1,48 @@
+{
+  "manifest_version": 3,
+  "name": "YT Coach",
+  "version": "0.1.0",
+  "description": "AI-powered YouTube video transcripts, summaries, and chat - learn faster from YouTube content",
+  "permissions": [
+    "activeTab",
+    "tabs",
+    "storage",
+    "identity"
+  ],
+  "host_permissions": [
+    "*://*.youtube.com/*"
+  ],
+  "background": {
+    "service_worker": "src/background/index.ts",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "*://*.youtube.com/*"
+      ],
+      "js": ["src/content/index.tsx"],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_popup": "src/popup/popup.html",
+    "default_icon": {
+      "16": "icon-grey-16.png",
+      "48": "icon-grey-48.png",
+      "128": "icon-grey-128.png"
+    }
+  },
+  "icons": {
+    "16": "icon-16.png",
+    "48": "icon-48.png",
+    "128": "icon-128.png"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["*"],
+      "matches": ["*://*.youtube.com/*"]
+    }
+  ]
+}
+
