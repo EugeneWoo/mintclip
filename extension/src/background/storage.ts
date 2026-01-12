@@ -52,6 +52,11 @@ export async function saveAuthState(authState: AuthState): Promise<void> {
 }
 
 /**
+ * Alias for saveAuthState (for backward compatibility)
+ */
+export const setAuthState = saveAuthState;
+
+/**
  * Cache transcript for a video
  */
 export async function cacheTranscript(

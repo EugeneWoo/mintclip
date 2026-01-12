@@ -8,12 +8,12 @@ import { getAuthState } from './storage';
 import { initializeAuth } from './auth';
 import type { ExtensionMessage } from './messageHandler';
 
-console.log('YT Coach background service worker loaded');
+console.log('Mintclip background service worker loaded');
 
 // Helper function to update icon for a tab
 function updateIconForTab(tabId: number, url?: string): void {
   const isYouTube = url?.includes('youtube.com');
-  console.log(`[YT Coach] Updating icon for tab ${tabId}, URL: ${url}, isYouTube: ${isYouTube}`);
+  console.log(`[Mintclip] Updating icon for tab ${tabId}, URL: ${url}, isYouTube: ${isYouTube}`);
 
   chrome.action.setIcon({
     tabId,
@@ -23,7 +23,7 @@ function updateIconForTab(tabId: number, url?: string): void {
       '128': isYouTube ? '/icon-128.png' : '/icon-grey-128.png',
     },
   }).then(() => {
-    console.log(`[YT Coach] Icon updated successfully for tab ${tabId}`);
+    console.log(`[Mintclip] Icon updated successfully for tab ${tabId}`);
 
     // Add badge for YouTube pages
     if (isYouTube) {
@@ -33,7 +33,7 @@ function updateIconForTab(tabId: number, url?: string): void {
       chrome.action.setBadgeText({ tabId, text: '' });
     }
   }).catch((error) => {
-    console.error(`[YT Coach] Failed to update icon for tab ${tabId}:`, error);
+    console.error(`[Mintclip] Failed to update icon for tab ${tabId}:`, error);
   });
 }
 
@@ -49,14 +49,14 @@ async function initializeIcons(): Promise<void> {
 
 // Service worker setup
 chrome.runtime.onInstalled.addListener(() => {
-  console.log('YT Coach extension installed');
+  console.log('Mintclip extension installed');
   initializeAuth();
   initializeIcons();
 });
 
 // Also initialize on startup
 chrome.runtime.onStartup.addListener(() => {
-  console.log('YT Coach extension starting up');
+  console.log('Mintclip extension starting up');
   initializeAuth();
   initializeIcons();
 });

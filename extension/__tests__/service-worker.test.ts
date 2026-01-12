@@ -19,7 +19,7 @@ describe('Service Worker', () => {
   });
 
   test('should handle API communication structure', () => {
-    const apiUrl = process.env.API_URL || 'https://api.ytcoach.app';
+    const apiUrl = process.env.API_URL || 'https://api.mintclip.app';
     expect(apiUrl).toBeDefined();
     expect(apiUrl.startsWith('http')).toBe(true);
   });
