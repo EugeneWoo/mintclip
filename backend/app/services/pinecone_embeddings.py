@@ -31,16 +31,21 @@ def get_pinecone_client():
 
 def chunk_transcript(
     transcript: str,
-    chunk_size: int = 500,
-    overlap: int = 50
+    chunk_size: int = 1000,
+    overlap: int = 100
 ) -> List[str]:
     """
     Split transcript into overlapping chunks
 
+    Uses industry-standard chunk size for RAG systems:
+    - 1000 characters provides good balance of context and precision
+    - 10% overlap prevents information loss at chunk boundaries
+    - Aligns with Pinecone and LangChain best practices
+
     Args:
         transcript: Full transcript text
-        chunk_size: Target chunk size in characters
-        overlap: Overlap between chunks
+        chunk_size: Target chunk size in characters (default: 1000)
+        overlap: Overlap between chunks (default: 100, 10% of chunk_size)
 
     Returns:
         List of transcript chunks
