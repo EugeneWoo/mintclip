@@ -1,6 +1,6 @@
 ## Tech stack
 
-This document defines the technical stack for YT Coach, serving as a reference for all development work and ensuring consistency across the project.
+This document defines the technical stack for Mintclip, serving as a reference for all development work and ensuring consistency across the project.
 
 ### Framework & Runtime
 - **Application Framework:** Next.js (App Router)
