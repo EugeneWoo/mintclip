@@ -51,7 +51,7 @@ class GeminiClient:
             _genai.configure(api_key=api_key)
             # Use Gemini 2.5 Flash Lite (bigger, faster, optimized for speed)
             self.model = _genai.GenerativeModel('gemini-2.5-flash-lite')
-            print("Gemini client initialized successfully with gemini-2.5-flash-lite")
+            print("Gemini client initialized successfully with gemini-2.5-flash")
         except Exception as e:
             print(f"Failed to initialize Gemini client: {e}")
             self.model = None
@@ -188,23 +188,40 @@ class GeminiClient:
         self,
         transcript: str,
         question: str,
+        video_id: str,
         chat_history: list = None
     ) -> Optional[str]:
         """
-        Generate conversational chat response (synchronous)
+        Generate conversational chat response using Pinecone embeddings
 
         Args:
             transcript: Full video transcript
             question: User's question
+            video_id: Video identifier for embedding cache
             chat_history: Previous messages [{"role": "user"/"assistant", "content": "..."}]
 
         Returns:
             Generated response or None if error
         """
         from app.prompts.chat import build_chat_prompt
+        from app.services.pinecone_embeddings import (
+            get_or_compute_embeddings,
+            find_relevant_chunks
+        )
 
         try:
-            prompt = build_chat_prompt(transcript, question, chat_history)
+            # Get or compute embeddings for this video (cached in memory)
+            chunks, embeddings = get_or_compute_embeddings(video_id, transcript)
+
+            # Find relevant chunks using semantic search via Pinecone
+            relevant_context = find_relevant_chunks(question, video_id, top_k=3)
+
+            # Fallback to simple truncation if embeddings failed
+            if not relevant_context:
+                print("Falling back to simple truncation")
+                relevant_context = transcript[:12000]
+
+            prompt = build_chat_prompt(relevant_context, question, chat_history)
 
             response_text = self.generate_content(
                 prompt=prompt,
@@ -248,6 +265,80 @@ Text to translate:
         except Exception as e:
             print(f"Error translating text: {e}")
             return None
+
+    def retrieve_relevant_context(
+        self,
+        full_transcript: str,
+        question: str,
+        max_context_length: int = 12000
+    ) -> str:
+        """
+        Intelligently retrieve relevant portions of transcript based on question
+
+        Uses semantic search to find and extract the most relevant passages
+        from the full transcript, ensuring the AI has access to information
+        wherever it appears in the video.
+
+        Args:
+            full_transcript: Complete video transcript
+            question: User's question to match against
+            max_context_length: Maximum characters to return (default 12k)
+
+        Returns:
+            Most relevant transcript passages, or fallback to first N chars
+        """
+        if not full_transcript or not question:
+            return full_transcript[:max_context_length]
+
+        # If transcript is short enough, return it all
+        if len(full_transcript) <= max_context_length:
+            return full_transcript
+
+        try:
+            # Use Gemini to find relevant passages via semantic matching
+            retrieval_prompt = f"""You are a semantic search engine. Given a transcript and a question,
+identify the MOST RELEVANT passages that would help answer the question.
+
+Extract 2-4 relevant passages from the transcript. Each passage should be:
+- Directly related to answering the question
+- 500-1500 characters long
+- Include timestamps if present
+- Sufficiently detailed to provide context
+
+CRITICAL RULES:
+- Return ONLY the extracted passages, separated by double newlines
+- Do NOT add any explanations, summaries, or commentary
+- Do NOT modify the transcript text
+- Include timestamps exactly as they appear
+- If no highly relevant passages exist, return the first 3000 characters
+
+QUESTION: {question}
+
+TRANSCRIPT:
+{full_transcript}
+
+RELEVANT PASSAGES:"""
+
+            relevant_passages = self.generate_content(
+                prompt=retrieval_prompt,
+                temperature=0.3,  # Low temperature for focused extraction
+                max_tokens=4000,
+            )
+
+            if relevant_passages and relevant_passages.strip():
+                # Validate we got meaningful content (not just an error message)
+                if len(relevant_passages) > 200 and not relevant_passages.lower().startswith("i cannot"):
+                    print(f"Retrieved {len(relevant_passages)} chars of relevant context")
+                    return relevant_passages[:max_context_length]
+
+            # Fallback: return first chunk if retrieval failed
+            print("Semantic retrieval failed, using fallback")
+            return full_transcript[:max_context_length]
+
+        except Exception as e:
+            print(f"Error in semantic retrieval: {e}")
+            # Fallback to simple truncation
+            return full_transcript[:max_context_length]
 
 
 # Global client instance

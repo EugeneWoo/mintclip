@@ -208,6 +208,7 @@ async def send_message(request: ChatMessageRequest):
         response_text = gemini_client.generate_chat_response(
             transcript=transcript_text,
             question=request.question,
+            video_id=request.video_id,
             chat_history=request.chat_history
         )
 
