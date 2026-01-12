@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Terminal Test Script for YT Coach Backend API
+Terminal Test Script for Mintclip Backend API
 Test transcript extraction, summarization, and suggested questions
 
 Usage:
@@ -251,7 +251,7 @@ def test_chat_message(transcript_data):
 def main():
     """Run all tests"""
     print("\n" + "=" * 80)
-    print("  YT COACH BACKEND API TEST SUITE")
+    print("  MINTCLIP BACKEND API TEST SUITE")
     print("=" * 80)
     print("\nTesting backend API endpoints...")
     print(f"API Base URL: {API_BASE}")

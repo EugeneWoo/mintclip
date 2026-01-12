@@ -11,8 +11,12 @@ from typing import List, Dict, Optional
 import re
 import logging
 import os
+import urllib3
 
 logger = logging.getLogger(__name__)
+
+# Disable SSL warnings if we need to bypass corporate proxies
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 
 class TranscriptExtractor:
@@ -63,14 +67,22 @@ class TranscriptExtractor:
         try:
             logger.info(f"Attempting to extract transcript for video: {video_id}")
 
-            # Instantiate the API with Webshare proxy configuration
-            api = YouTubeTranscriptApi(
-                proxy_config=WebshareProxyConfig(
-                    proxy_username=os.getenv("WS_USER"),
-                    proxy_password=os.getenv("WS_PASS"),
+            # Configure proxy - use Webshare if credentials provided, otherwise direct connection
+            ws_user = os.getenv("WS_USER")
+            ws_pass = os.getenv("WS_PASS")
+
+            if ws_user and ws_pass:
+                logger.info("Using Webshare proxy configuration")
+                proxy_config = WebshareProxyConfig(
+                    proxy_username=ws_user,
+                    proxy_password=ws_pass,
                     filter_ip_locations=["us"],
                 )
-            )
+                api = YouTubeTranscriptApi(proxy_config=proxy_config)
+            else:
+                logger.info("Using direct connection (no proxy)")
+                api = YouTubeTranscriptApi()
+
             transcript_list = api.list(video_id)
 
             # Try to find transcript in preferred languages
@@ -231,13 +243,20 @@ class TranscriptExtractor:
             Dictionary with available languages
         """
         try:
-            api = YouTubeTranscriptApi(
-                proxy_config=WebshareProxyConfig(
-                    proxy_username=os.getenv("WS_USER"),
-                    proxy_password=os.getenv("WS_PASS"),
+            # Configure proxy - use Webshare if credentials provided, otherwise direct connection
+            ws_user = os.getenv("WS_USER")
+            ws_pass = os.getenv("WS_PASS")
+
+            if ws_user and ws_pass:
+                proxy_config = WebshareProxyConfig(
+                    proxy_username=ws_user,
+                    proxy_password=ws_pass,
                     filter_ip_locations=["us"],
                 )
-            )
+                api = YouTubeTranscriptApi(proxy_config=proxy_config)
+            else:
+                api = YouTubeTranscriptApi()
+
             transcript_list = api.list(video_id)
 
             available_languages = []
