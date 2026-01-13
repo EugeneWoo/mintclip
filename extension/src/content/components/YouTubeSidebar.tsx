@@ -944,20 +944,15 @@ export function YouTubeSidebar({ videoId }: YouTubeSidebarProps): React.JSX.Elem
         onClick={() => setIsExpanded(!isExpanded)}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <div
+          <img
+            src={chrome.runtime.getURL('icon-48.png')}
+            alt="Mintclip"
             style={{
               width: '20px',
               height: '20px',
-              borderRadius: '5px',
-              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '12px',
+              borderRadius: '4px',
             }}
-          >
-            ✨
-          </div>
+          />
           <h3
             style={{
               margin: 0,

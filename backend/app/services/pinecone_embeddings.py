@@ -151,7 +151,7 @@ def get_or_compute_embeddings(
 def find_relevant_chunks(
     question: str,
     video_id: str,
-    top_k: int = 3
+    top_k: int = 5
 ) -> Optional[str]:
     """
     Find most relevant transcript chunks for a question

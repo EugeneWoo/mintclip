@@ -6,7 +6,7 @@ with Deepgram Nova-2 as fallback for videos without captions
 
 from youtube_transcript_api import YouTubeTranscriptApi, NoTranscriptFound, TranscriptsDisabled
 from youtube_transcript_api._errors import VideoUnavailable
-from youtube_transcript_api.proxies import WebshareProxyConfig
+from youtube_transcript_api.proxies import GenericProxyConfig
 from typing import List, Dict, Optional
 import re
 import logging
@@ -72,11 +72,13 @@ class TranscriptExtractor:
             ws_pass = os.getenv("WS_PASS")
 
             if ws_user and ws_pass:
-                logger.info("Using Webshare proxy configuration")
-                proxy_config = WebshareProxyConfig(
-                    proxy_username=ws_user,
-                    proxy_password=ws_pass,
-                    filter_ip_locations=["us"],
+                logger.info("Using IPRoyal/Webshare proxy configuration")
+                # Use GenericProxyConfig to avoid username modification
+                # WebshareProxyConfig incorrectly adds -rotate suffix to usernames ending with -rotate
+                proxy_url = f"http://{ws_user}:{ws_pass}@p.webshare.io:80/"
+                proxy_config = GenericProxyConfig(
+                    http_url=proxy_url,
+                    https_url=proxy_url,
                 )
                 api = YouTubeTranscriptApi(proxy_config=proxy_config)
             else:
@@ -248,10 +250,11 @@ class TranscriptExtractor:
             ws_pass = os.getenv("WS_PASS")
 
             if ws_user and ws_pass:
-                proxy_config = WebshareProxyConfig(
-                    proxy_username=ws_user,
-                    proxy_password=ws_pass,
-                    filter_ip_locations=["us"],
+                # Use GenericProxyConfig to avoid username modification
+                proxy_url = f"http://{ws_user}:{ws_pass}@p.webshare.io:80/"
+                proxy_config = GenericProxyConfig(
+                    http_url=proxy_url,
+                    https_url=proxy_url,
                 )
                 api = YouTubeTranscriptApi(proxy_config=proxy_config)
             else:

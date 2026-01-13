@@ -90,6 +90,31 @@ const seekToTimestamp = (videoId: string, seconds: number) => {
   }
 };
 
+// Binary search algorithm to find segment by current video time
+const findSegmentByTime = (currentTime: number, segments: GroupedSegment[]): number | null => {
+  if (segments.length === 0) return null;
+
+  let left = 0;
+  let right = segments.length - 1;
+
+  while (left <= right) {
+    const mid = Math.floor((left + right) / 2);
+    const segment = segments[mid];
+    const segmentEnd = segment.startSeconds + 30; // Assume 30s max per paragraph
+
+    if (currentTime >= segment.startSeconds && currentTime < segmentEnd) {
+      return mid;
+    } else if (currentTime < segment.startSeconds) {
+      right = mid - 1;
+    } else {
+      left = mid + 1;
+    }
+  }
+
+  // Fallback: return closest segment
+  return left < segments.length ? left : segments.length - 1;
+};
+
 export function TranscriptTab({
   transcript,
   isLoading = false,
