@@ -292,6 +292,9 @@ export function TranscriptTab({
               placeholder="Search transcript..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => e.stopPropagation()}
+              onKeyUp={(e) => e.stopPropagation()}
+              onKeyPress={(e) => e.stopPropagation()}
               style={{
                 flex: 1,
                 padding: '8px 12px',

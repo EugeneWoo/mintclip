@@ -49,3 +49,10 @@ Chrome Extension (Manifest V3) + FastAPI backend + React/TypeScript UI
 - Backend: `cd backend && uvicorn main:app --reload --port 8000`
 - Extension: `cd extension && npm run dev`
 - Requires GEMINI_API_KEY in environment
+
+## File Storage (this is non-negotiable)
+- Save output files from manual and AB tests (examples: `ab_test_result.json`, `comparison_report.md`) in `backend/manual_tests/` folder 
+- Save test scripts with file extension ".py" or ".sh" in `backend/scripts/` folder
+- Save .md documents related to integration and implementation in `backend/docs/` folder
+- Save bug fix writeups in `backend/bug-fixes/`folder
+- Save code review writeups in `backend/code-review/` folder 

@@ -52,6 +52,8 @@ interface ChatTabProps {
   suggestedQuestions?: string[];
   questionsLoading?: boolean;
   onFetchSuggestedQuestions?: () => void;
+  inputValue?: string;
+  onInputChange?: (value: string) => void;
 }
 
 export function ChatTab({
@@ -61,9 +63,15 @@ export function ChatTab({
   suggestedQuestions = [],
   questionsLoading = false,
   onFetchSuggestedQuestions,
+  inputValue = '',
+  onInputChange,
 }: ChatTabProps): React.JSX.Element {
-  const [inputValue, setInputValue] = useState('');
+  const [localInputValue, setLocalInputValue] = useState('');
   const [clickedPillIndex, setClickedPillIndex] = useState<number | null>(null);
+
+  // Use parent state if provided, otherwise use local state
+  const currentInputValue = onInputChange ? inputValue : localInputValue;
+  const setCurrentInputValue = onInputChange || setLocalInputValue;
 
   // Auto-fetch suggested questions when Chat tab opens with no messages
   React.useEffect(() => {
@@ -73,9 +81,9 @@ export function ChatTab({
   }, [messages.length, suggestedQuestions.length, questionsLoading, onFetchSuggestedQuestions]);
 
   const handleSend = () => {
-    if (inputValue.trim() && onSendMessage && !isLoading) {
-      onSendMessage(inputValue.trim());
-      setInputValue('');
+    if (currentInputValue.trim() && onSendMessage && !isLoading) {
+      onSendMessage(currentInputValue.trim());
+      setCurrentInputValue('');
     }
   };
 
@@ -249,8 +257,8 @@ export function ChatTab({
 
         <div style={{ display: 'flex', gap: '8px' }}>
           <textarea
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
+            value={currentInputValue}
+            onChange={(e) => setCurrentInputValue(e.target.value)}
             onKeyPress={handleKeyPress}
             onKeyDown={(e) => {
               // Prevent YouTube keyboard shortcuts from triggering
@@ -280,11 +288,11 @@ export function ChatTab({
           />
           <button
             onClick={handleSend}
-            disabled={!inputValue.trim() || isLoading}
+            disabled={!currentInputValue.trim() || isLoading}
             style={{
               padding: '10px 20px',
               background:
-                !inputValue.trim() || isLoading
+                !currentInputValue.trim() || isLoading
                   ? 'rgba(102, 126, 234, 0.3)'
                   : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
               color: 'white',
@@ -292,9 +300,9 @@ export function ChatTab({
               borderRadius: '8px',
               fontSize: '14px',
               fontWeight: 600,
-              cursor: !inputValue.trim() || isLoading ? 'not-allowed' : 'pointer',
+              cursor: !currentInputValue.trim() || isLoading ? 'not-allowed' : 'pointer',
               whiteSpace: 'nowrap',
-              boxShadow: !inputValue.trim() || isLoading ? 'none' : '0 2px 8px rgba(102, 126, 234, 0.25)',
+              boxShadow: !currentInputValue.trim() || isLoading ? 'none' : '0 2px 8px rgba(102, 126, 234, 0.25)',
             }}
           >
             Send

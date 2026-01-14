@@ -29,3 +29,6 @@ pinecone>=3.0.0
 
 # NumPy for fast similarity calculations
 numpy>=1.24.0
+
+# BM25 lexical retrieval (for A/B testing vs embeddings)
+rank-bm25>=0.2.2

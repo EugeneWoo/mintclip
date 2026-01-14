@@ -95,6 +95,7 @@ export function YouTubeSidebar({ videoId }: YouTubeSidebarProps): React.JSX.Elem
   // Chat state
   const [chatMessages, setChatMessages] = useState<any[]>([]);
   const [chatLoading, setChatLoading] = useState(false);
+  const [chatInputValue, setChatInputValue] = useState<string>('');
   const [suggestedQuestions, setSuggestedQuestions] = useState<string[]>([]);
   const [questionsLoading, setQuestionsLoading] = useState(false);
 
@@ -187,6 +188,11 @@ export function YouTubeSidebar({ videoId }: YouTubeSidebarProps): React.JSX.Elem
     };
 
     loadVideoData();
+  }, [videoId]);
+
+  // Clear chat input when video changes
+  React.useEffect(() => {
+    setChatInputValue('');
   }, [videoId]);
 
   // Check authentication status on mount
@@ -1076,6 +1082,8 @@ export function YouTubeSidebar({ videoId }: YouTubeSidebarProps): React.JSX.Elem
                     suggestedQuestions={suggestedQuestions}
                     questionsLoading={questionsLoading}
                     onFetchSuggestedQuestions={handleFetchSuggestedQuestions}
+                    inputValue={chatInputValue}
+                    onInputChange={setChatInputValue}
                   />
                 )}
               </div>
