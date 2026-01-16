@@ -206,7 +206,40 @@ Create a standalone web application that reuses 95% of existing frontend compone
 2. Unit tests for critical services
 3. Load testing for batch processing
 
-**Deliverable:** Production-ready V1
+#### Analytics Implementation
+1. **Mixpanel Setup** (Free: 100K events/month)
+   - Create Mixpanel account (free up to 100K events/month)
+   - Add Mixpanel SDK to web app and extension
+   - Implement user identification and event tracking
+   - Files to create:
+     - `web-app/src/services/analytics.ts`
+     - `extension/src/services/analytics.ts`
+
+**Why Mixpanel?**
+- ✅ User-based tracking (see individual user journeys)
+- ✅ Funnels (e.g., "Generate → Save → View" conversion)
+- ✅ Cohorts (e.g., "Users who save vs users who don't")
+- ✅ 100K events/month (10x more than Plausible's 10K pageviews)
+- ✅ Works for both extension and web app
+- ✅ GDPR compliant (data residency in EU/US)
+
+2. **Extension Analytics Events**
+   - `Extension Installed` - Track new installs
+   - `Generate Transcript` - Track transcript generation
+   - `Generate Summary` - Track summary generation (with format)
+   - `Chat Message Sent` - Track chat usage
+   - `Export Content` - Track exports (with format)
+   - `Save to Library` - Track saves to database
+
+3. **Web App Analytics Events**
+   - `Sign Up` - Track new user registration
+   - `Log In` - Track user logins
+   - `Save Video` - Track video saves
+   - `Delete Video` - Track video deletions
+   - `Export Data` - Track GDPR data exports
+   - `Delete Account` - Track account deletions
+
+**Deliverable:** Production-ready V1 with analytics tracking
 
 ---
 
