@@ -6,6 +6,7 @@
 import React, { useState, useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
 import { signInWithGoogle, signInWithEmail, signUpWithEmail, getAuthState } from './auth';
+import logoIcon from '../../assets/icon-128.png';
 
 type AuthMode = 'signin' | 'signup';
 
@@ -82,23 +83,18 @@ function Popup(): React.JSX.Element {
     >
       {/* Header */}
       <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-        <div
+        <img
+          src={logoIcon}
+          alt="Mintclip"
           style={{
             width: '64px',
             height: '64px',
             margin: '0 auto 16px',
             borderRadius: '16px',
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '32px',
           }}
-        >
-          ✨
-        </div>
-        <h1 style={{ margin: '0 0 8px 0', fontSize: '24px', fontWeight: 600 }}>Mintclip</h1>
-        <p style={{ color: '#666', fontSize: '14px', margin: 0 }}>
+        />
+        <h1 style={{ margin: '0 0 8px 0', fontSize: '32px', fontWeight: 600 }}>Mintclip</h1>
+        <p style={{ color: '#666', fontSize: '16px', margin: 0 }}>
           AI-powered YouTube learning
         </p>
       </div>
