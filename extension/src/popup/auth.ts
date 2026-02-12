@@ -6,21 +6,54 @@
 export interface AuthResult {
   success: boolean;
   token?: string;
+  user?: UserProfile;
   error?: string;
 }
 
+export interface UserProfile {
+  id: string;
+  email: string;
+  displayName?: string;
+  avatarUrl?: string;
+  tier: string;
+  summariesUsed: number;
+  chatMessagesUsed: number;
+}
+
 /**
- * Initiate Google OAuth flow
- * Uses Chrome Identity API to get auth token
+ * Initiate Google OAuth flow using Chrome Identity API
+ * Uses chrome.identity.getAuthToken for seamless Google sign-in
  */
 export async function signInWithGoogle(): Promise<AuthResult> {
   try {
-    // Get OAuth token using Chrome Identity API
+    console.log('Starting Google OAuth flow with chrome.identity.getAuthToken');
+
+    // First, try to remove any cached token to get a fresh one
+    try {
+      await new Promise<void>((resolve) => {
+        chrome.identity.getAuthToken({ interactive: false }, (cachedToken) => {
+          if (cachedToken) {
+            console.log('Removing cached Google token...');
+            chrome.identity.removeCachedAuthToken({ token: cachedToken }, () => {
+              resolve();
+            });
+          } else {
+            resolve();
+          }
+        });
+      });
+    } catch (e) {
+      console.log('No cached token to remove:', e);
+    }
+
+    // Get Google OAuth token using Chrome's built-in identity API (fresh token)
     const token = await new Promise<string>((resolve, reject) => {
       chrome.identity.getAuthToken({ interactive: true }, (token) => {
         if (chrome.runtime.lastError) {
-          reject(chrome.runtime.lastError);
+          console.error('getAuthToken error:', chrome.runtime.lastError);
+          reject(new Error(chrome.runtime.lastError.message));
         } else if (token) {
+          console.log('Got fresh Google OAuth token');
           resolve(token);
         } else {
           reject(new Error('No token received'));
@@ -28,19 +61,65 @@ export async function signInWithGoogle(): Promise<AuthResult> {
       });
     });
 
-    // TODO: Send token to backend for verification and user creation
-    // For now, we'll store it locally
+    console.log('Got Google OAuth token, verifying with backend...');
+
+    // Send the Google token to our backend to create/verify user
+    const response = await fetch('http://localhost:8000/api/auth/google/token', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        google_token: token,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      return {
+        success: false,
+        error: errorData.detail || `HTTP ${response.status}: ${response.statusText}`,
+      };
+    }
+
+    const data = await response.json();
+
+    if (!data.tokens) {
+      return {
+        success: false,
+        error: data.error || 'Failed to authenticate with server',
+      };
+    }
+
+    // Calculate token expiration timestamp
+    const expiresAt = Date.now() + (data.tokens.expires_in * 1000);
+
+    // Store authentication state
     await chrome.storage.local.set({
-      auth: {
+      authState: {
         isAuthenticated: true,
-        accessToken: token,
-        userId: 'temp-user-id', // TODO: Get from backend
+        accessToken: data.tokens.access_token,
+        refreshToken: data.tokens.refresh_token,
+        userId: data.user?.id,
+        email: data.user?.email,
+        expiresAt,
       },
     });
 
+    console.log('Google sign-in successful, user:', data.user?.email);
+
     return {
       success: true,
-      token,
+      token: data.tokens.access_token,
+      user: data.user ? {
+        id: data.user.id,
+        email: data.user.email,
+        displayName: data.user.display_name,
+        avatarUrl: data.user.avatar_url,
+        tier: data.user.tier,
+        summariesUsed: data.user.summaries_used,
+        chatMessagesUsed: data.user.chat_messages_used,
+      } : undefined,
     };
   } catch (error) {
     console.error('Google sign-in error:', error);
@@ -56,31 +135,32 @@ export async function signInWithGoogle(): Promise<AuthResult> {
  */
 export async function signOut(): Promise<void> {
   try {
-    // Get current token
-    const result = await chrome.storage.local.get(['auth']);
-    const token = result.auth?.accessToken;
-
-    // Revoke token if exists
-    if (token) {
-      await new Promise<void>((resolve, reject) => {
-        chrome.identity.removeCachedAuthToken({ token }, () => {
-          if (chrome.runtime.lastError) {
-            reject(chrome.runtime.lastError);
-          } else {
+    // Revoke the Google token
+    await new Promise<void>((resolve) => {
+      chrome.identity.getAuthToken({ interactive: false }, (token) => {
+        if (token) {
+          chrome.identity.removeCachedAuthToken({ token }, () => {
             resolve();
-          }
-        });
+          });
+        } else {
+          resolve();
+        }
       });
-    }
+    });
 
     // Clear local storage
     await chrome.storage.local.set({
-      auth: {
+      authState: {
         isAuthenticated: false,
-        accessToken: null,
-        userId: null,
+        accessToken: undefined,
+        refreshToken: undefined,
+        userId: undefined,
+        email: undefined,
+        expiresAt: undefined,
       },
     });
+
+    console.log('Sign out successful');
   } catch (error) {
     console.error('Sign out error:', error);
   }
@@ -108,23 +188,71 @@ export async function signUpWithEmail(email: string, password: string): Promise<
       };
     }
 
-    // TODO: Send email/password to backend for user creation
-    // Simulate API call delay
-    await new Promise(resolve => setTimeout(resolve, 500));
-
-    // Store auth state locally
-    await chrome.storage.local.set({
-      auth: {
-        isAuthenticated: true,
-        accessToken: 'temp-token-' + Date.now(), // TODO: Get real token from backend
-        userId: 'temp-user-id', // TODO: Get from backend
+    // Call backend signup endpoint
+    const response = await fetch('http://localhost:8000/api/auth/signup', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
         email,
+        password,
+        privacy_accepted: true,
+        terms_accepted: true,
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      return {
+        success: false,
+        error: data.detail || 'Signup failed',
+      };
+    }
+
+    // Check if email confirmation is required
+    if (!data.tokens && data.message) {
+      return {
+        success: false,
+        error: data.message,
+      };
+    }
+
+    if (!data.tokens) {
+      return {
+        success: false,
+        error: 'Signup failed - no tokens received',
+      };
+    }
+
+    // Calculate token expiration timestamp
+    const expiresAt = Date.now() + (data.tokens.expires_in * 1000);
+
+    // Store auth state
+    await chrome.storage.local.set({
+      authState: {
+        isAuthenticated: true,
+        accessToken: data.tokens.access_token,
+        refreshToken: data.tokens.refresh_token,
+        userId: data.user?.id,
+        email: data.user?.email || email,
+        expiresAt,
       },
     });
 
     return {
       success: true,
-      token: 'temp-token',
+      token: data.tokens.access_token,
+      user: data.user ? {
+        id: data.user.id,
+        email: data.user.email,
+        displayName: data.user.display_name,
+        avatarUrl: data.user.avatar_url,
+        tier: data.user.tier,
+        summariesUsed: data.user.summaries_used,
+        chatMessagesUsed: data.user.chat_messages_used,
+      } : undefined,
     };
   } catch (error) {
     console.error('Email sign-up error:', error);
@@ -157,23 +285,61 @@ export async function signInWithEmail(email: string, password: string): Promise<
       };
     }
 
-    // TODO: Send email/password to backend for authentication
-    // Simulate API call delay
-    await new Promise(resolve => setTimeout(resolve, 500));
-
-    // Store auth state locally
-    await chrome.storage.local.set({
-      auth: {
-        isAuthenticated: true,
-        accessToken: 'temp-token-' + Date.now(), // TODO: Get real token from backend
-        userId: 'temp-user-id', // TODO: Get from backend
+    // Call backend login endpoint
+    const response = await fetch('http://localhost:8000/api/auth/login', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
         email,
+        password,
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      return {
+        success: false,
+        error: data.detail || 'Login failed',
+      };
+    }
+
+    if (!data.tokens) {
+      return {
+        success: false,
+        error: 'Login failed - no tokens received',
+      };
+    }
+
+    // Calculate token expiration timestamp
+    const expiresAt = Date.now() + (data.tokens.expires_in * 1000);
+
+    // Store auth state
+    await chrome.storage.local.set({
+      authState: {
+        isAuthenticated: true,
+        accessToken: data.tokens.access_token,
+        refreshToken: data.tokens.refresh_token,
+        userId: data.user?.id,
+        email: data.user?.email || email,
+        expiresAt,
       },
     });
 
     return {
       success: true,
-      token: 'temp-token',
+      token: data.tokens.access_token,
+      user: data.user ? {
+        id: data.user.id,
+        email: data.user.email,
+        displayName: data.user.display_name,
+        avatarUrl: data.user.avatar_url,
+        tier: data.user.tier,
+        summariesUsed: data.user.summaries_used,
+        chatMessagesUsed: data.user.chat_messages_used,
+      } : undefined,
     };
   } catch (error) {
     console.error('Email sign-in error:', error);
@@ -185,17 +351,63 @@ export async function signInWithEmail(email: string, password: string): Promise<
 }
 
 /**
+ * Reset password via email
+ */
+export async function resetPassword(email: string): Promise<AuthResult> {
+  try {
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return {
+        success: false,
+        error: 'Please enter a valid email address',
+      };
+    }
+
+    // Call backend password reset endpoint
+    const response = await fetch('http://localhost:8000/api/auth/reset-password', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ email }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      return {
+        success: false,
+        error: data.detail || 'Password reset failed',
+      };
+    }
+
+    return {
+      success: true,
+    };
+  } catch (error) {
+    console.error('Password reset error:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to reset password',
+    };
+  }
+}
+
+/**
  * Get current authentication state
  */
 export async function getAuthState(): Promise<{
   isAuthenticated: boolean;
   userId?: string;
   accessToken?: string;
+  refreshToken?: string;
   email?: string;
+  expiresAt?: number;
 }> {
   try {
-    const result = await chrome.storage.local.get(['auth']);
-    return result.auth || { isAuthenticated: false };
+    const result = await chrome.storage.local.get(['authState']);
+    return result.authState || { isAuthenticated: false };
   } catch (error) {
     console.error('Get auth state error:', error);
     return { isAuthenticated: false };

@@ -12,8 +12,12 @@ import re
 import logging
 import os
 import urllib3
+import httpx
+from urllib.parse import quote
+import asyncio
 
 logger = logging.getLogger(__name__)
+
 
 # Disable SSL warnings if we need to bypass corporate proxies
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -21,6 +25,46 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 class TranscriptExtractor:
     """Service for extracting transcripts from YouTube videos"""
+
+    @staticmethod
+    async def get_video_title(video_id: str) -> Optional[str]:
+        """
+        Fetch video title from YouTube using oEmbed API
+
+        Args:
+            video_id: YouTube video ID
+
+        Returns:
+            Video title or None if fetching fails
+        """
+        try:
+            # YouTube oEmbed API - properly encode the URL
+            watch_url = f"https://www.youtube.com/watch?v={video_id}"
+            encoded_url = quote(watch_url, safe='')
+            oembed_url = f"https://www.youtube.com/oembed?url={encoded_url}&format=json"
+
+            logger.info(f"Fetching video title for {video_id} from oEmbed API")
+            logger.info(f"oEmbed URL: {oembed_url}")
+
+            async with httpx.AsyncClient(timeout=10.0, follow_redirects=True) as client:
+                response = await client.get(oembed_url, headers={
+                    'Accept': 'application/json',
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+                })
+
+                logger.info(f"oEmbed response status for {video_id}: {response.status_code}")
+
+                if response.status_code == 200:
+                    data = response.json()
+                    title = data.get('title')
+                    logger.info(f"Successfully fetched video title for {video_id}: {title}")
+                    return title
+                else:
+                    logger.warning(f"Failed to fetch video title for {video_id}: HTTP {response.status_code}, Body: {response.text[:200]}")
+                    return None
+        except Exception as e:
+            logger.error(f"Error fetching video title for {video_id}: {e}")
+            return None
 
     @staticmethod
     def extract_video_id(url: str) -> Optional[str]:
@@ -62,7 +106,7 @@ class TranscriptExtractor:
             Dictionary containing transcript data with timestamps
         """
         if languages is None:
-            languages = ['en']  # Default to English
+            languages = ['en']
 
         try:
             logger.info(f"Attempting to extract transcript for video: {video_id}")

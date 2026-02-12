@@ -17,11 +17,18 @@ python-dotenv==1.0.0
 # CORS middleware
 python-multipart==0.0.6
 
-# HTTP client for API calls
-httpx==0.25.2
+# HTTP client for API calls (updated for deepgram-sdk 3.2.0 compatibility)
+httpx>=0.25.2
 
 # Authentication
 pyjwt==2.8.0
+
+# Email validation
+pydantic[email]>=2.0.0
+
+# Supabase client with pinned gotrue to fix proxy error
+supabase==2.4.0
+gotrue==1.3.0
 
 # Pinecone embeddings (free tier for semantic search)
 # Note: Package renamed from pinecone-client to pinecone
@@ -32,3 +39,6 @@ numpy>=1.24.0
 
 # BM25 lexical retrieval (for A/B testing vs embeddings)
 rank-bm25>=0.2.2
+
+# Background task scheduler
+apscheduler>=3.10.0

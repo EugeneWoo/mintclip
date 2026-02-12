@@ -1,7 +1,9 @@
-# Environment variables
+# Environment variables (NEVER commit secrets!)
 .env
 .env.local
 .env.*.local
+.env.production
+.env.staging
 .env.save
 *.env.save
 
@@ -63,3 +65,6 @@ coverage/
 
 # Parent directory files (to avoid committing unrelated files)
 ../
+
+# Local environment scripts
+*.env.sh

@@ -1,598 +1,812 @@
-# Task Breakdown: Chrome Extension Setup & YouTube Page Detection
+# Task Breakdown: Mintclip Web App V1 (REVISED Feb 2026)
 
 ## Overview
-Total Tasks: 6 task groups
+**Total Estimated Tasks:** ~35 tasks across 4 phases (reduced from 52)
+**Timeline:** 4 weeks (1 phase per week)
+**Tech Stack:** React 18 + TypeScript + Vite + React Router DOM v7 only
+**Backend:** All APIs already exist - NO new endpoints needed
 
-## Task List
+## Scope Changes (Feb 2026)
+- ✅ **Dashboard pagination**: 9 cards + "Load More" button
+- ✅ **Tooltips**: On hover for full video title
+- ✅ **Export MD only**: PDF/TXT removed
+- ❌ **Library screen**: REMOVED - use Dashboard only
+- ❌ **Mobile responsiveness**: Desktop-only (1024px+)
+- ❌ **Advanced animations**: Basic hover effects only
+- ❌ **Automated tests**: Manual QA only
 
-### Extension Foundation
+## Scope Boundaries
 
-#### Task Group 1: Manifest & Basic Structure
-**Dependencies:** None
+### IN SCOPE
+- Single YouTube URL extraction (one URL at a time)
+- Google OAuth authentication only
+- Dashboard with video grid (3-4 columns)
+- Library table view with filters
+- Slide-out modal with 3 tabs (Transcript, Summary, Chat)
+- Two source modes: 'upload' (interactive) and 'extension' (view-only)
+- Dark theme throughout (#171717 background)
+- Responsive design (mobile, tablet, desktop)
+- Pixel-perfect match to design specs
 
-- [x] 1.0 Complete extension foundation
-  - [x] 1.1 Write 2-8 focused tests for manifest and permissions validation
-    - Test manifest V3 structure
-    - Test required permissions are declared
-    - Test extension loads without errors
-    - Limit to 2-8 highly focused tests maximum
-  - [x] 1.2 Create manifest.json with Manifest V3 structure
-    - Version, name, description, icons
-    - Permissions: `activeTab`, `storage`, `identity`
-    - Host permissions: `*://*.youtube.com/*`
-    - Content scripts configuration
-    - Background service worker configuration
-    - Action (toolbar icon) configuration
-  - [x] 1.3 Set up extension project structure
-    - Create folders: `content`, `background`, `popup`, `assets`
-    - Set up TypeScript configuration
-    - Configure build tools (webpack/vite for extension bundling)
-    - Set up React build pipeline for content scripts
-  - [x] 1.4 Configure extension icons and assets
-    - Create icon assets (16x16, 48x48, 128x128)
-    - Set up icon paths in manifest
-  - [x] 1.5 Ensure extension foundation tests pass
-    - Run ONLY the 2-8 tests written in 1.1
-    - Verify manifest validates correctly
-    - Verify extension loads in Chrome
-    - Do NOT run the entire test suite at this stage
-
-**Acceptance Criteria:**
-- The 2-8 tests written in 1.1 pass
-- Manifest V3 structure is valid
-- Extension loads in Chrome without errors
-- All required permissions are declared
-- Project structure is organized
-
-### Content Scripts & YouTube Detection
-
-#### Task Group 2: Page Detection & UI Injection
-**Dependencies:** Task Group 1
-
-- [x] 2.0 Complete content scripts and detection
-  - [x] 2.1 Write 2-8 focused tests for YouTube page detection
-    - Test URL pattern matching (watch, shorts, @, channel)
-    - Test SPA navigation detection
-    - Test content script injection triggers
-    - Limit to 2-8 highly focused tests maximum
-  - [x] 2.2 Create YouTube page detection logic
-    - URL pattern matcher for: `youtube.com/watch*`, `youtube.com/shorts/*`, `youtube.com/@*`, `youtube.com/channel/*`
-    - SPA navigation listener (handle YouTube's client-side routing)
-    - Detection state management
-  - [x] 2.3 Implement content script entry point
-    - Content script that runs on YouTube pages
-    - Detection trigger logic
-    - Cleanup on navigation
-  - [x] 2.4 Create shadow DOM container setup
-    - Shadow root creation and mounting
-    - Style isolation from YouTube CSS
-    - Container positioning (right side, overlay)
-  - [x] 2.5 Implement floating button component
-    - Floating button UI (minimal MVP design)
-    - Toggle on/off functionality
-    - Position on right side of page
-    - Avoid interfering with YouTube controls
-  - [x] 2.6 Ensure content scripts tests pass
-    - Run ONLY the 2-8 tests written in 2.1
-    - Verify detection works on all URL patterns
-    - Verify shadow DOM isolation
-    - Do NOT run the entire test suite at this stage
-
-**Acceptance Criteria:**
-- The 2-8 tests written in 2.1 pass
-- All YouTube URL patterns are detected correctly
-- SPA navigation is handled
-- Shadow DOM isolates styles properly
-- Floating button appears and toggles correctly
-
-### Background Service Worker
-
-#### Task Group 3: Service Worker & API Communication
-**Dependencies:** Task Group 1
-
-- [x] 3.0 Complete background service worker
-  - [x] 3.1 Write 2-8 focused tests for service worker functionality
-    - Test API communication with backend
-    - Test message passing with content scripts
-    - Test state management
-    - Limit to 2-8 highly focused tests maximum
-  - [x] 3.2 Create background service worker entry point
-    - Service worker setup and lifecycle
-    - Event listeners for extension events
-  - [x] 3.3 Implement API communication layer
-    - Backend API client (fetch/axios)
-    - Transcript fetching endpoint integration
-    - Gemini API proxy calls (via backend)
-    - Error handling and retries
-  - [x] 3.4 Implement message passing system
-    - Chrome runtime message API setup
-    - Communication between content scripts and service worker
-    - Message types and handlers
-  - [x] 3.5 Create state management
-    - Extension state storage (chrome.storage)
-    - User preferences management
-    - Lightweight transcript caching
-    - Authentication state persistence
-  - [x] 3.6 Implement streaming transcript support
-    - Stream handling for real-time transcript display
-    - Data chunk processing
-  - [x] 3.7 Ensure service worker tests pass
-    - Run ONLY the 2-8 tests written in 3.1
-    - Verify API communication works
-    - Verify message passing functions correctly
-    - Do NOT run the entire test suite at this stage
-
-**Acceptance Criteria:**
-- The 2-8 tests written in 3.1 pass
-- Service worker handles API calls correctly
-- Message passing works between components
-- State is persisted correctly
-- Streaming transcript data flows properly
-
-### UI Components
-
-#### Task Group 4: React UI Components
-**Dependencies:** Task Groups 2, 3
-
-- [ ] 4.0 Complete UI components
-  - [ ] 4.1 Write 2-8 focused tests for UI components
-    - Test tab switching
-    - Test component rendering in shadow DOM
-    - Test user interactions
-    - Limit to 2-8 highly focused tests maximum
-  - [ ] 4.2 Set up React in shadow DOM
-    - React app mounting in shadow root
-    - React Router or tab state management
-    - Styling setup (Tailwind CSS or CSS modules)
-  - [ ] 4.3 Create side panel container component
-    - Panel layout and structure
-    - Toggle open/close functionality
-    - Responsive sizing
-  - [ ] 4.4 Implement tab navigation component
-    - Tab bar with Transcript, Summary, Chat tabs
-    - Tab switching logic
-    - Active tab indicator
-  - [ ] 4.5 Create Transcript tab component
-    - Streaming transcript display with timestamps
-    - Scrollable transcript view
-    - Search functionality within transcript
-    - Copy button for transcript text
-  - [ ] 4.6 Create Summary tab component
-    - Summary display area
-    - Format selector (Q&A / Listicle toggle)
-    - Detail level selector (Short / Detailed toggle)
-    - Focus options (Insightful / Actionable / Funny buttons)
-    - Share button with dropdown menu:
-      - Copy section: "Copy Link", "Copy Text"
-      - Export section: "Export as Text", "Export as Doc", "Export as PDF", "Export as Markdown"
-    - Copy button for quick text copying
-  - [ ] 4.7 Create Chat tab component
-    - Chat interface layout
-    - Message input field
-    - Message display with timestamp references
-    - Chat history
-  - [ ] 4.8 Implement loading and error states
-    - Loading indicators for API calls
-    - Error toast notifications
-    - Graceful error handling UI
-  - [ ] 4.9 Apply minimal MVP styling
-    - Follow shadcn/ui component patterns
-    - Use Tailwind CSS for styling
-    - Dark theme to match YouTube
-    - Minimal polish (focus on functionality)
-  - [ ] 4.10 Ensure UI component tests pass
-    - Run ONLY the 2-8 tests written in 4.1
-    - Verify all tabs render correctly
-    - Verify user interactions work
-    - Do NOT run the entire test suite at this stage
-
-**Acceptance Criteria:**
-- The 2-8 tests written in 4.1 pass
-- All three tabs (Transcript, Summary, Chat) render correctly
-- Tab switching works smoothly
-- Transcript displays with timestamps
-- Summary tab has all configuration options
-- Share and Copy buttons function correctly
-- Chat interface is interactive
-- Styling is isolated and doesn't conflict with YouTube
-
-### Authentication Flow
-
-#### Task Group 5: Sign Up & Authentication
-**Dependencies:** Task Groups 1, 3
-
-- [ ] 5.0 Complete authentication flow
-  - [ ] 5.1 Write 2-8 focused tests for authentication
-    - Test sign up page rendering
-    - Test Google OAuth flow
-    - Test authentication state persistence
-    - Limit to 2-8 highly focused tests maximum
-  - [ ] 5.2 Create popup/sign up page component
-    - Sign up page UI (opens when extension icon clicked)
-    - Google Auth button
-    - Other auth options (if applicable)
-    - Login/registration form
-  - [ ] 5.3 Implement Google OAuth integration
-    - Chrome identity API setup
-    - OAuth flow implementation
-    - Token handling and storage
-  - [ ] 5.4 Create authentication state management
-    - Check authentication status on extension load
-    - Persist auth state
-    - Handle auth state changes
-  - [ ] 5.5 Implement extension icon click handler
-    - Open sign up page if not authenticated
-    - Open settings/preferences if authenticated
-    - Badge indicator when on processable YouTube page
-  - [ ] 5.6 Add authentication gating
-    - Require authentication before full functionality
-    - Show appropriate UI states for unauthenticated users
-  - [ ] 5.7 Ensure authentication tests pass
-    - Run ONLY the 2-8 tests written in 5.1
-    - Verify OAuth flow works
-    - Verify auth state persists
-    - Do NOT run the entire test suite at this stage
-
-**Acceptance Criteria:**
-- The 2-8 tests written in 5.1 pass
-- Sign up page opens when icon clicked (if not authenticated)
-- Google OAuth flow completes successfully
-- Authentication state persists across sessions
-- Extension functionality is gated by authentication
-- Badge shows on processable pages
-
-### Testing
-
-#### Task Group 6: Test Review & Gap Analysis
-**Dependencies:** Task Groups 1-5
-
-- [x] 6.0 Review existing tests and fill critical gaps only
-  - [x] 6.1 Review tests from Task Groups 1-5
-    - Review the 2-8 tests written by extension-foundation (Task 1.1)
-    - Review the 2-8 tests written by content-scripts (Task 2.1)
-    - Review the 2-8 tests written by service-worker (Task 3.1)
-    - Review the 2-8 tests written by ui-components (Task 4.1)
-    - Review the 2-8 tests written by authentication (Task 5.1)
-    - Total existing tests: approximately 10-40 tests
-  - [x] 6.2 Analyze test coverage gaps for THIS feature only
-    - Identify critical user workflows that lack test coverage
-    - Focus ONLY on gaps related to this spec's feature requirements
-    - Do NOT assess entire application test coverage
-    - Prioritize end-to-end workflows over unit test gaps
-    - Consider: full extension flow from detection to UI display, authentication to transcript viewing
-  - [x] 6.3 Write up to 10 additional strategic tests maximum
-    - Add maximum of 10 new tests to fill identified critical gaps
-    - Focus on integration points and end-to-end workflows
-    - Test complete user flows: YouTube page → detection → UI injection → transcript fetch → display
-    - Do NOT write comprehensive coverage for all scenarios
-    - Skip edge cases, performance tests, and accessibility tests unless business-critical
-  - [x] 6.4 Run feature-specific tests only
-    - Run ONLY tests related to this spec's feature (tests from 1.1, 2.1, 3.1, 4.1, 5.1, and 6.3)
-    - Expected total: approximately 20-50 tests maximum
-    - Do NOT run the entire application test suite
-    - Verify critical workflows pass
-
-**Acceptance Criteria:**
-- All feature-specific tests pass (approximately 20-50 tests total)
-- Critical user workflows for this feature are covered
-- No more than 10 additional tests added when filling in testing gaps
-- Testing focused exclusively on this spec's feature requirements
-- End-to-end extension flow is tested
+### OUT OF SCOPE (Prevent Scope Creep)
+- NO batch URL processing UI
+- NO email/password authentication
+- NO multi-video chat
+- NO collections/folders
+- NO cloud storage integration
+- NO advanced search across transcripts
+- NO analytics integration
+- NO public sharing links
+- NO collaborative features
+- NO video playlist import
+- NO offline/PWA functionality
+- NO video downloads
 
 ---
 
-## Clickable Timestamps Feature Tasks (Added December 30, 2025)
+## Phase 1: Foundation (Week 1)
 
-### Overview
-**Total Tasks:** 10 major tasks grouped into 3 phases
+### Task Group 1: Project Setup & Configuration
+**Dependencies:** None
 
-### Phase 1: Backend (Timestamp Injection in Summaries)
-
-#### Task 1: Update Backend Prompt Instructions
-**File:** `backend/app/prompts/summary.py`
-
-**Subtasks:**
-- [ ] 1.1 Remove "DO NOT include timestamps" instruction from line 17
-- [ ] 1.2 Add instruction to include timestamps in `(MM:SS)` format
-- [ ] 1.3 Add guideline to only timestamp substantial topics
-- [ ] 1.4 Add examples showing proper timestamp usage
-- [ ] 1.5 Update system instructions capitalization rule
-
-**Acceptance Criteria:**
-- [ ] `SYSTEM_INSTRUCTIONS` explicitly tells Gemini to include timestamps
-- [ ] Format specified as `(MM:SS)` - e.g., "The speaker discusses authentication (05:23)"
-- [ ] Clear guideline to only timestamp substantial topics
-- [ ] Examples included in instructions showing proper format
-- [ ] "Start immediately with content" rule preserved
-- [ ] "Always capitalize first letter" rule preserved
-
-**Testing Checklist:**
-- [ ] Verify prompt compiles without syntax errors
-- [ ] Confirm instructions are clear and unambiguous
-- [ ] Test prompt with example transcript to verify timestamp format
-
-#### Task 2: (Optional) Format Transcript with Timestamps for Gemini
-**File:** `backend/app/routes/summary.py`
-
-**Subtasks:**
-- [ ] 2.1 Check if `request.transcript` is a list of segments or plain text
-- [ ] 2.2 If list format, format each segment with timestamp prefix
-- [ ] 2.3 Ensure formatting doesn't break existing functionality
+- [x] 1.0 Set up React web app foundation
+  - [x] 1.1 Initialize Vite + React 18 + TypeScript project in `/web-app` directory
+    - Spec reference: Lines 109-115 (Frontend Tech Stack)
+    - Use `npm create vite@latest web-app -- --template react-ts`
+    - Configure `vite.config.ts` with port 3000, proxy to backend port 8000
+    - Set up `tsconfig.json` with strict mode enabled
+  - [x] 1.2 Install core dependencies ONLY
+    - `react-router-dom@7` (routing ONLY)
+    - NO additional state management libraries (useState/useEffect only)
+    - NO Axios (use native Fetch API)
+    - NO UI libraries (custom components only)
+  - [x] 1.3 Create project folder structure
+    - `/src/pages` (Landing, Dashboard, Library, AuthCallback)
+    - `/src/components` (Navigation, VideoCard, SavedItemModal, etc.)
+    - `/src/services` (api.ts, auth.ts)
+    - `/src/types` (SavedItem, User, ApiResponse types)
+    - `/src/styles` (global.css, variables.css)
+  - [x] 1.4 Set up environment configuration
+    - Create `.env.development` and `.env.production`
+    - Define `VITE_API_BASE_URL` (http://localhost:8000 dev, production URL)
+    - Define `VITE_GOOGLE_CLIENT_ID`
+    - Add `.env*` to `.gitignore`
+  - [x] 1.5 Configure design tokens in CSS variables
+    - Spec reference: Lines 93-97 (Design System Implementation)
+    - Colors: `--bg-dark: #171717`, `--bg-elevated: #1f1f1f`, `--bg-card: #262626`, `--accent-green: #22c55e`, `--text-white: #ffffff`, `--text-secondary: #a3a3a3`
+    - Typography: Plus Jakarta Sans (700-800), Inter (400-600)
+    - Border radius: `--radius-sm: 8px`, `--radius-md: 12px`, `--radius-lg: 20px`, `--radius-pill: 100px`
+    - Spacing: `--spacing-xs: 8px`, `--spacing-sm: 12px`, `--spacing-md: 16px`, `--spacing-lg: 24px`, `--spacing-xl: 32px`
 
 **Acceptance Criteria:**
-- [ ] Transcript formatted with `[MM:SS] ` prefix when segment data available
-- [ ] Fallback to plain text if segment data unavailable
-- [ ] Format maintains readability for Gemini
-- [ ] Existing summary generation still works
-- [ ] No breaking changes to current behavior
+- Vite dev server runs on port 3000
+- TypeScript compiles without errors
+- Folder structure matches spec requirements
+- CSS variables defined and accessible
+- Environment variables load correctly
 
-**Testing Checklist:**
-- [ ] Test with array format transcript
-- [ ] Test with plain text transcript
-- [ ] Verify summary generation works with both formats
-- [ ] Check that timestamps appear in generated summaries
+---
 
-### Phase 2: Frontend (Timestamp Parsing & Rendering)
+### Task Group 2: Routing & Navigation Setup
+**Dependencies:** Task Group 1
 
-#### Task 3: Add Timestamp Parsing Function
-**File:** `extension/src/content/components/SummaryTab.tsx`
-
-**Subtasks:**
-- [ ] 3.1 Create `parseTimestamps(text: string)` function
-- [ ] 3.2 Implement regex pattern `/\((\d{1,2}):(\d{2})\)/g`
-- [ ] 3.3 Parse minutes and seconds from regex matches
-- [ ] 3.4 Calculate totalSeconds for video seeking
-- [ ] 3.5 Return array of typed parts (text or timestamp)
-- [ ] 3.6 Export function for use in renderSummary
-
-**Acceptance Criteria:**
-- [ ] `parseTimestamps` function correctly identifies `(MM:SS)` patterns
-- [ ] Extracts minutes and seconds accurately
-- [ ] Calculates `totalSeconds = minutes * 60 + seconds`
-- [ ] Returns array of objects with structure:
-  ```typescript
-  { type: 'text' | 'timestamp', text: string, seconds?: number }
-  ```
-- [ ] Handles edge cases:
-  - No timestamps in text
-  - Multiple timestamps in one line
-  - Malformed timestamps (gracefully ignored)
-- [ ] Preserves original text order and spacing
-
-**Testing Checklist:**
-- [ ] Test with single timestamp: "Discussion (05:23) about AI"
-- [ ] Test with multiple timestamps: "Topic A (02:15), Topic B (07:30)"
-- [ ] Test with no timestamps: "This is plain text"
-- [ ] Test malformed: "This is (99:99) invalid"
-- [ ] Verify regex doesn't match non-timestamp parentheses
-
-#### Task 4: Update renderSummary to Render Clickable Timestamps
-**File:** `extension/src/content/components/SummaryTab.tsx`
-
-**Subtasks:**
-- [ ] 4.1 Import `parseTimestamps` function
-- [ ] 4.2 Modify line rendering logic to call `parseTimestamps`
-- [ ] 4.3 Map over parts and detect timestamp type
-- [ ] 4.4 Render timestamps as `<span>` with onClick handler
-- [ ] 4.5 Apply styling: purple (#667eea), underlined, pointer cursor
-- [ ] 4.6 Add `title` attribute for hover tooltip
-- [ ] 4.7 Render text parts as plain strings
-- [ ] 4.8 Maintain existing heading and bold text rendering
+- [x] 2.0 Implement routing and navigation structure
+  - [x] 2.1 Set up React Router DOM v7 routes
+    - Spec reference: Lines 112-113 (React Router DOM v7 ONLY)
+    - Create `src/App.tsx` with router configuration
+    - Routes: `/` (Landing), `/dashboard` (Dashboard), `/library` (Library), `/auth/callback` (AuthCallback)
+    - Protected route wrapper for `/dashboard` and `/library`
+  - [x] 2.2 Create protected route component
+    - Spec reference: Line 16 (Protected routes redirect to `/` when user not authenticated)
+    - Check for `mintclip_access_token` in localStorage
+    - Redirect to `/` if not authenticated
+    - Validate token expiration and auto-refresh if needed
+  - [x] 2.3 Build Navigation component
+    - Spec reference: Lines 95-96 (Navigation: Fixed top bar, pill-shaped (100px radius), blur backdrop filter)
+    - Fixed top bar with blur backdrop filter
+    - Left: Mintclip logo (clickable to `/dashboard`)
+    - Center: Pill-shaped nav links (Dashboard, Library) with active state
+    - Right: User avatar dropdown (Logout option)
+    - Show navigation only on authenticated routes
+  - [x] 2.4 Create user avatar dropdown
+    - Display user name and email from localStorage `mintclip_user`
+    - Logout option calls `POST /api/auth/logout` and clears localStorage
+    - Dropdown appears on avatar click, closes on outside click
 
 **Acceptance Criteria:**
-- [ ] Timestamps rendered as clickable spans with cursor: pointer
-- [ ] Timestamps styled with:
-  - Color: #667eea (purple)
-  - Font weight: 600 (semi-bold)
-  - Text decoration: underline
-- [ ] Hover tooltip shows: "Jump to {timestamp}"
-- [ ] Clicking timestamp triggers `handleTimestampClick(seconds)`
-- [ ] Non-timestamp text rendered normally
-- [ ] Existing markdown rendering (headings, bold) still works
-- [ ] No console errors or warnings
+- All routes navigate correctly
+- Protected routes redirect to landing when not authenticated
+- Navigation bar shows on Dashboard and Library only
+- User avatar dropdown works with logout functionality
+- Active route highlighted in navigation
 
-**Testing Checklist:**
-- [ ] Render summary with timestamps in plain text
-- [ ] Render summary with timestamps in heading line
-- [ ] Render summary with timestamps in bold text
-- [ ] Verify styling appears correctly in shadow DOM
-- [ ] Test hover behavior with tooltip
-- [ ] Verify cursor changes to pointer on hover
+---
 
-#### Task 5: Implement handleTimestampClick Function
-**File:** `extension/src/content/components/SummaryTab.tsx`
+### Task Group 3: Authentication Implementation
+**Dependencies:** Task Group 2
 
-**Subtasks:**
-- [ ] 5.1 Create `handleTimestampClick(seconds: number)` function
-- [ ] 5.2 Check if `onSeekVideo` callback prop exists
-- [ ] 5.3 Call `onSeekVideo(seconds)` if available
-- [ ] 5.4 Add console log for debugging
-
-**Acceptance Criteria:**
-- [ ] Function accepts `seconds` parameter (number type)
-- [ ] Safely checks for `onSeekVideo` before calling
-- [ ] Delegates video seeking to parent component
-- [ ] No errors if `onSeekVideo` not provided
-- [ ] Function is pure (no side effects except callback)
-
-**Testing Checklist:**
-- [ ] Call function with valid seconds value
-- [ ] Verify callback is invoked correctly
-- [ ] Test when `onSeekVideo` is undefined
-
-#### Task 6: Add onSeekVideo Prop to SummaryTab Interface
-**File:** `extension/src/content/components/SummaryTab.tsx`
-
-**Subtasks:**
-- [ ] 6.1 Add `onSeekVideo?: (seconds: number) => void` to interface
-- [ ] 6.2 Mark as optional (not required for basic functionality)
-- [ ] 6.3 Add JSDoc comment explaining usage
+- [x] 3.0 Build Google OAuth authentication flow
+  - [x] 3.1 Create auth service (`src/services/auth.ts`)
+    - Spec reference: Lines 12-18 (Google OAuth Authentication)
+    - `getGoogleAuthUrl()`: Generate Google OAuth URL with redirect_uri
+    - `exchangeCodeForTokens(code)`: POST to `/api/auth/google/code`, store tokens in localStorage
+    - `refreshAccessToken()`: POST to `/api/auth/refresh` with refresh_token
+    - `logout()`: POST to `/api/auth/logout`, clear localStorage
+    - `getValidAccessToken()`: Check expiration, auto-refresh if expired
+  - [x] 3.2 Implement token storage in localStorage
+    - Spec reference: Line 15 (Store tokens in localStorage: `mintclip_access_token`, `mintclip_refresh_token`, `mintclip_user`)
+    - Keys: `mintclip_access_token`, `mintclip_refresh_token`, `mintclip_user` (JSON)
+    - Store user object with `{ id, email, name, tier }` from backend response
+    - Add expiration timestamp for access token (1 hour)
+  - [x] 3.3 Build AuthCallback page (`/auth/callback`)
+    - Spec reference: Line 13 (Returns to `/auth/callback` with authorization code)
+    - Parse authorization code from URL query params
+    - Call `exchangeCodeForTokens(code)` to get tokens
+    - Show loading spinner during exchange
+    - Redirect to `/dashboard` on success
+    - Show error message and retry button on failure
+  - [x] 3.4 Implement automatic token refresh
+    - Spec reference: Line 17 (Token refresh: Automatically refresh access token when expired)
+    - Check token expiration before each API call
+    - Refresh token if expired (less than 5 minutes remaining)
+    - Update localStorage with new access token
+    - Handle refresh failure by redirecting to landing page
 
 **Acceptance Criteria:**
-- [ ] Interface includes `onSeekVideo` as optional property
-- [ ] Type signature correctly specified: `(seconds: number) => void`
-- [ ] Property is optional (can be undefined)
-- [ ] TypeScript compiles without errors
+- Google OAuth consent screen loads correctly
+- Authorization code exchanges for tokens successfully
+- Tokens stored in localStorage with correct keys
+- Token refresh works automatically
+- Logout clears all tokens and redirects to landing
 
-#### Task 7: Implement YouTube Player Seeking in YouTubeSidebar
-**File:** `extension/src/content/components/YouTubeSidebar.tsx`
+---
 
-**Subtasks:**
-- [ ] 7.1 Create `handleSeekVideo(seconds: number)` function
-- [ ] 7.2 Access YouTube player via `document.querySelector('video')`
-- [ ] 7.3 Check if player element exists
-- [ ] 7.4 Try YouTube iframe API methods first (`seekTo`, `playVideo`)
-- [ ] 7.5 Fallback to HTML5 video API (`currentTime`, `play`)
-- [ ] 7.6 Add error handling for missing player
-- [ ] 7.7 Pass `handleSeekVideo` to SummaryTab component prop
+### Task Group 4: Landing Page Design
+**Dependencies:** Task Group 3
 
-**Acceptance Criteria:**
-- [ ] Function successfully accesses YouTube video player
-- [ ] Video seeks to specified timestamp (±0.5s acceptable)
-- [ ] Video resumes playback after seeking
-- [ ] Works with both YouTube iframe API and HTML5 video element
-- [ ] Graceful error handling if player not found
-- [ ] Function accessible from SummaryTab via prop
-
-**Testing Checklist:**
-- [ ] Test with short video (< 5 minutes)
-- [ ] Test with long video (> 20 minutes)
-- [ ] Test seeking to beginning (0:00-1:00)
-- [ ] Test seeking to middle of video
-- [ ] Test seeking to end of video
-- [ ] Verify video plays after seeking
-- [ ] Test with YouTube iframe player
-- [ ] Test error case (player not found)
-
-### Phase 3: Testing & Documentation
-
-#### Task 8: Testing & Edge Case Handling
-**Files:** All modified files
-
-**Subtasks:**
-- [ ] 8.1 Backend Testing
-  - [ ] 8.1.1 Test summary generation with short video (< 2 min)
-  - [ ] 8.1.2 Test summary generation with medium video (5-10 min)
-  - [ ] 8.1.3 Test summary generation with long video (>20 min)
-  - [ ] 8.1.4 Test with single-topic videos
-  - [ ] 8.1.5 Test with multi-topic videos
-  - [ ] 8.1.6 Verify timestamp format consistency
-  - [ ] 8.1.7 Check timestamps are only added for substantial topics
-  - [ ] 8.1.8 Verify no timestamps in opening/closing lines
-
-- [ ] 8.2 Frontend Testing
-  - [ ] 8.2.1 Test timestamp parsing with valid `(MM:SS)` format
-  - [ ] 8.2.2 Test parsing with multiple timestamps per line
-  - [ ] 8.2.3 Test parsing with no timestamps
-  - [ ] 8.2.4 Test rendering timestamps in plain text
-  - [ ] 8.2.5 Test rendering timestamps in headings (`###`, `##`)
-  - [ ] 8.2.6 Test rendering timestamps in bold text
-  - [ ] 8.2.7 Verify styling applies correctly
-  - [ ] 8.2.8 Test hover tooltip displays
-
-- [ ] 8.3 Integration Testing
-  - [ ] 8.3.1 Test full flow: generate summary → timestamps appear → click → video seeks
-  - [ ] 8.3.2 Test with video that has native English transcript
-  - [ ] 8.3.3 Test with video that has AI-translated English
-  - [ ] 8.3.4 Test seeking to beginning (0-60 seconds)
-  - [ ] 8.3.5 Test seeking to middle of video
-  - [ ] 8.3.6 Test seeking to end of video
-  - [ ] 8.3.7 Test rapid clicking of multiple timestamps
-  - [ ] 8.3.8 Verify video plays after seeking
-
-- [ ] 8.4 Edge Case Testing
-  - [ ] 8.4.1 Test with malformed timestamp: `(99:99)`
-  - [ ] 8.4.2 Test with timestamp at 0 seconds: `(00:00)`
-  - [ ] 8.4.3 Test with summary that has no timestamps
-  [  ] 8.4.4 Test with very long timestamps list (>10 timestamps)
-  [  ] 8.4.5 Test when YouTube player is not found
-  [ ] 8.4.6 Test when `onSeekVideo` callback is undefined
-  [ ] 8.4.7 Test seeking beyond video duration
+- [x] 4.0 Build landing page UI
+  - [x] 4.1 Create Landing page component (`src/pages/Landing.tsx`)
+    - Spec reference: Lines 127-132 (landing-page-framer.html)
+    - Hero section with Mintclip logo and headline "Extract YouTube transcripts instantly"
+    - Subheadline: "Get transcripts, AI summaries, and chat with any YouTube video"
+    - Single "Sign In with Google" button (green, pill-shaped, centered)
+  - [x] 4.2 Implement "Sign In with Google" button
+    - Click triggers `getGoogleAuthUrl()` and redirects to Google OAuth
+    - Button design: Green gradient background, 100px border radius, 16px padding
+    - Hover effect: Slight scale transform (1.02)
+    - Loading state during redirect
+  - [x] 4.3 Add feature cards section
+    - Three cards: "Transcripts", "Summaries", "Chat"
+    - Each card: Icon, title, description
+    - Card design: Dark background (#262626), 20px border radius, subtle border
+    - Responsive grid: 3 columns desktop, 1 column mobile
+  - [x] 4.4 Build footer section
+    - Copyright text centered at bottom
+    - Dark background matching page theme
+    - Responsive padding
 
 **Acceptance Criteria:**
-- [ ] All test scenarios pass without crashes
-- [ ] Timestamps format consistently as `(MM:SS)`
-- [ ] Only substantial topics have timestamps
-- [ ] Clicking timestamps successfully seeks video
-- [ ] Video plays after seeking
-- [ ] No console errors in production build
-- [ ] Edge cases handled gracefully
-- [ ] User experience is smooth and intuitive
+- Landing page matches design specifications
+- "Sign In with Google" button redirects to OAuth consent
+- Feature cards display correctly on all screen sizes
+- Dark theme applied throughout
+- Responsive layout works on mobile, tablet, desktop
 
-#### Task 9: Documentation & Cleanup
-**Files:** `CLAUDE.md`, code comments
+---
 
-**Subtasks:**
-- [ ] 9.1 Update `CLAUDE.md` with timestamp feature documentation
-- [ ] 9.2 Add feature to "Completed Features" section
-- [ ] 9.3 Document technical approach (Option 1 - Gemini-based)
-- [ ] 9.4 Add code references with line numbers
-- [ ] 9.5 Update example output section
-- [ ] 9.6 Add troubleshooting section for timestamp issues
-- [ ] 9.7 Remove debug console.log statements (or keep as warnings)
-- [ ] 9.8 Add inline comments for complex logic
+## Phase 2: Dashboard - Single URL Processing (Week 2)
 
-**Acceptance Criteria:**
-- [ ] CLAUDE.md updated with feature description
-- [ ] Feature listed in "Completed Features" section
-- [ ] Implementation approach documented
-- [ ] Key file locations and line numbers referenced
-- [ ] Before/after examples included
-- [ ] Troubleshooting section added
-- [ ] Code is clean and well-commented
-- [ ] No debug console.logs in production code
+### Task Group 5: API Service Layer
+**Dependencies:** Task Group 3
 
-#### Task 10: Build Verification & Final Testing
-**Files:** Extension build output
-
-**Subtasks:**
-- [ ] 10.1 Run `npm run build` in extension directory
-- [ ] 10.2 Verify no TypeScript errors
-- [ ] 10.3 Verify no build warnings
-- [ ] 10.4 Load extension in Chrome
-- [ ] 10.5 Test with real YouTube video
-- [ ] 10.6 Verify timestamps appear in generated summary
-- [ ] 10.7 Test clicking timestamps
-- [ ] 10.8 Verify video seeks correctly
-- [ ] 10.9 Test all three summary formats (Short, Topics, Q&A)
-- [ ] 10.10 Check responsive design in sidebar
+- [x] 5.0 Build API service with authentication
+  - [x] 5.1 Create API service (`src/services/api.ts`)
+    - Spec reference: Lines 117-123 (API Endpoint Reuse)
+    - Base function: `fetchWithAuth(endpoint, options)` adds Bearer token header
+    - Automatically calls `getValidAccessToken()` before each request
+    - Handles 401 errors by refreshing token and retrying once
+    - Handles network errors with user-friendly messages
+  - [x] 5.2 Implement transcript extraction method
+    - Spec reference: Line 120 (POST /api/transcript/extract)
+    - `extractTranscript(videoId)`: POST to `/api/transcript/extract`
+    - Returns transcript with auto-translation to English
+    - Auto-saves to Supabase with `source='upload'`
+  - [x] 5.3 Implement saved items methods
+    - Spec reference: Line 123 (Saved Items endpoints)
+    - `getSavedItems()`: GET `/api/saved-items/list`
+    - `getSavedItem(videoId, itemType)`: GET `/api/saved-items/{video_id}/{item_type}`
+    - `deleteSavedItem(videoId, itemType)`: DELETE `/api/saved-items/{video_id}/{item_type}`
+  - [x] 5.4 Implement summary and chat methods
+    - Spec reference: Lines 121-122 (Summary and Chat endpoints)
+    - `generateSummary(videoId, format)`: POST `/api/summary/generate`
+    - `sendChatMessage(videoId, message, chatHistory)`: POST `/api/chat/message`
+    - `getSuggestedQuestions(videoId)`: POST `/api/chat/suggested-questions`
 
 **Acceptance Criteria:**
-- [ ] Extension builds successfully with 0 errors, 0 warnings
-- [ ] Extension loads without manifest errors
-- [ ] Summary generation works with timestamp injection
-- [ ] Timestamps appear and are clickable
-- [ ] Video seeking works across all formats
-- [ ] No runtime console errors
-- [ ] All acceptance criteria from Tasks 1-9 met
+- All API methods include Bearer token authentication
+- Token refresh works automatically on 401 errors
+- Network errors return user-friendly error messages
+- API methods typed with TypeScript interfaces
 
-**Implementation Approach:**
-- Phase 1 (Tasks 1-2): Backend prompt updates
-- Phase 2 (Tasks 3-7): Frontend implementation
-- Phase 3 (Tasks 8-10): Testing and documentation
+---
 
-**Estimated Effort:** 2-3 hours total
+### Task Group 6: TypeScript Type Definitions
+**Dependencies:** Task Group 5
 
-**Final Acceptance Criteria Summary:**
-- ✅ Must-Have: Backend prompts include timestamps, Frontend parses timestamps, Clicking seeks video, Extension builds without errors, Works across all formats
-- ⚠️ Should-Have: Substantial topics only, Hover tooltips, Cursor styling, Error handling
-- 💡 Nice-to-Have: Hour format support, Validation, Visual feedback, Keyboard navigation
+- [x] 6.0 Define TypeScript types for data models
+  - [x] 6.1 Create SavedItem types (`src/types/index.ts`)
+    - Spec reference: Line 101 (saved_items table schema)
+    - `SavedItem` interface with fields: id, user_id, video_id, item_type, content, created_at, expires_at, source
+    - `ItemType` enum: 'transcript' | 'summary' | 'chat'
+    - `Source` enum: 'upload' | 'extension'
+  - [x] 6.2 Create content JSONB schema types
+    - Spec reference: Lines 102-104 (Content JSONB schemas)
+    - `TranscriptContent`: videoTitle, videoThumbnail, savedAt, language, text, segments[]
+    - `SummaryContent`: videoTitle, videoThumbnail, savedAt, format, summary, is_structured
+    - `ChatContent`: videoTitle, videoThumbnail, savedAt, chat_history[], suggested_questions[]
+  - [x] 6.3 Create API response types
+    - `ApiResponse<T>`: Generic wrapper with data, error, message fields
+    - `User`: id, email, name, tier
+    - `TokenResponse`: access_token, refresh_token, user
+  - [x] 6.4 Create component prop types
+    - `VideoCardProps`, `SavedItemModalProps`, `FilterBarProps`, etc.
+    - Export all types from central `types/index.ts`
 
-## Execution Order
+**Acceptance Criteria:**
+- All data models have TypeScript interfaces
+- JSONB content schemas typed correctly
+- No `any` types used (strict TypeScript)
+- Types exported and reusable across components
 
-Recommended implementation sequence:
-1. Extension Foundation (Task Group 1) - Base structure must be in place first
-2. Content Scripts & YouTube Detection (Task Group 2) - Can start in parallel with Task Group 3
-3. Background Service Worker (Task Group 3) - Can start in parallel with Task Group 2
-4. UI Components (Task Group 4) - Requires Task Groups 2 and 3 to be complete
-5. Authentication Flow (Task Group 5) - Can start after Task Groups 1 and 3, but should complete before full feature testing
-6. Test Review & Gap Analysis (Task Group 6) - Final step after all implementation
+---
 
-## Notes
+### Task Group 7: Dashboard Page Layout
+**Dependencies:** Task Groups 4, 5, 6
 
-- This is a Chrome extension, so testing will require Chrome extension testing tools (e.g., Puppeteer with extension loading, or manual testing in Chrome)
-- The extension uses React in a shadow DOM, which requires special consideration for testing
-- API endpoints are assumed to exist on the backend - coordinate with backend team for endpoint availability
-- Authentication flow may need backend API endpoints for OAuth callback handling
-- Export functionality (PDF, Doc, Markdown) may require additional libraries or backend support
+- [x] 7.0 Build Dashboard page structure
+  - [x] 7.1 Create Dashboard page component (`src/pages/Dashboard.tsx`)
+    - Spec reference: Lines 134-139 (dashboard-framer.html)
+    - Page header: "Welcome back, [Name]" using user from localStorage
+    - URL input section below header
+    - Filter bar below input
+    - Video grid below filter bar
+  - [x] 7.2 Implement single URL input section
+    - Spec reference: Lines 20-29 (Single URL Processing)
+    - Large text input with placeholder "Paste YouTube URL..."
+    - Green "Extract" button right-aligned next to input
+    - Input validation: Check YouTube URL pattern (youtube.com/watch?v=, youtu.be/)
+    - Extract button disabled when input empty or invalid
+    - Design: Dark input (#262626), white text, green accent
+  - [x] 7.3 Add URL validation logic
+    - Regex pattern: `/^(https?:\/\/)?(www\.)?(youtube\.com\/watch\?v=|youtu\.be\/)[\w-]+/`
+    - Show red border on invalid URL
+    - Show checkmark icon on valid URL
+    - Extract video ID from URL string
+  - [x] 7.4 Implement extraction flow
+    - Spec reference: Lines 23-29 (Extract flow with loading and error states)
+    - On submit: Show loading spinner "Extracting..."
+    - Call `extractTranscript(videoId)` from API service
+    - Display success message on completion
+    - Display error message below input on failure (private video, no captions, API error)
+    - Clear input and refresh video grid on success
 
+**Acceptance Criteria:**
+- Dashboard matches design layout
+- URL input validates YouTube URLs correctly
+- Extract button disabled for invalid/empty URLs
+- Loading state shows during extraction
+- Error messages display below input
+- Success refreshes video grid
+
+---
+
+### Task Group 8: Video Grid Display
+**Dependencies:** Task Group 7
+
+- [x] 8.0 Build video grid with cards (MODIFIED)
+  - [x] 8.1 Create VideoCard component (`src/components/VideoCard.tsx`)
+    - Spec reference: Lines 32-36 (Dashboard Video Grid)
+    - Props: SavedItem with transcript content
+    - Layout: YouTube thumbnail (16:9 ratio from CDN), title (2-line ellipsis), badges, created date, hover actions
+    - Thumbnail source: `https://img.youtube.com/vi/{video_id}/maxresdefault.jpg`
+    - Design: Dark card (#262626), 20px border radius, subtle border
+  - [x] 8.2 Implement card badges
+    - Badge pills showing available content: "T" (Transcript), "S" (Summary), "C" (Chat)
+    - Badge colors: Transcript (blue), Summary (purple), Chat (green)
+    - Only show badges for content types that exist
+    - Badge design: Rounded pill, 6px padding, 12px font size
+  - [x] 8.3 Add card hover effects
+    - Spec reference: Line 36 (Cards have 20px border radius, subtle border, hover effect lifts card -4px)
+    - Lift card -4px on hover (transform: translateY(-4px))
+    - Show action buttons on hover: "View", "Export MD", and "Delete"
+    - Smooth transition: 0.2s ease-out
+    - Cursor pointer on entire card
+  - [x] 8.4 Implement card actions (MODIFIED)
+    - Spec reference: Lines 38-39 (View and Delete actions)
+    - "View" button opens SavedItemModal with video details
+    - **"Export MD" button**: Downloads content as Markdown file (NEW)
+    - "Delete" button shows confirmation dialog
+    - Delete confirmation calls `deleteSavedItem()` and removes card from grid
+    - Action buttons: Secondary style (border only), 8px border radius
+  - [x] 8.5 Add tooltip on title hover (NEW)
+    - Show full video title on hover using HTML `title` attribute or custom tooltip
+    - Prevents title truncation issues
+  - [x] 8.6 Build desktop grid layout (SIMPLIFIED)
+    - Spec reference: Line 32 (Display 4 column desktop grid)
+    - Desktop (1024px+): 4 columns ONLY
+    - Grid gap: 24px
+    - Equal height cards using flexbox
+    - **Mobile responsiveness removed**
+  - [x] 8.7 Implement pagination (NEW)
+    - Show 9 cards initially (3 rows × 3 columns)
+    - "Load More" button below grid to load next 10 cards
+    - Client-side pagination (all items loaded from API, show subsets)
+    - Button design: Secondary style, centered, shows "Load X more videos"
+
+**Acceptance Criteria:**
+- Video cards display thumbnail, title, badges, date correctly
+- Hover effects work smoothly
+- Action buttons appear on hover (View, Export MD, Delete)
+- Tooltip shows full title on hover
+- Delete confirmation prevents accidental deletion
+- Export MD button downloads Markdown file
+- Grid displays 4 columns on desktop
+- Pagination shows 9 cards + "Load More" button
+- Cards match design specifications
+
+---
+
+### 🔄 Task Group 9: Filter Bar Implementation - DEPRIORITIZED TO V2
+**Dependencies:** Task Group 8
+**Status:** Use basic filters in Dashboard only, advanced filters moved to V2
+
+- [ ] 9.0 Build filter and search functionality (BASIC VERSION FOR V1)
+  - [ ] 9.1 Create FilterBar component (`src/components/FilterBar.tsx`)
+    - Spec reference: Lines 34-35 (Filter bar with tabs and search)
+    - Left side: Tab buttons "All", "With Summary", "With Chat", "Recent"
+    - Right side: Search input with icon
+    - Active tab has green background (#22c55e)
+    - Design: Dark background, pill-shaped tabs (100px radius)
+  - [ ] 9.2 Implement filter tab logic
+    - "All": Show all saved items
+    - "With Summary": Filter items with item_type='summary'
+    - "With Chat": Filter items with item_type='chat'
+    - "Recent": Sort by created_at descending (last 7 days)
+    - Active tab state managed in Dashboard parent component
+  - [ ] 9.3 Implement real-time search
+    - Spec reference: Line 35 (Real-time search input filters cards by video title)
+    - Search input filters cards by video title (case-insensitive)
+    - Debounce search input by 300ms
+    - Show "No results found" message when no cards match
+    - Clear button (X icon) appears when search has text
+  - [ ] 9.4 Combine filters and search
+    - Apply filter tab first, then search on filtered results
+    - Update video grid reactively when filters/search change
+    - Show result count: "Showing X videos"
+
+**Acceptance Criteria:**
+- Filter tabs work correctly for each category
+- Search filters by video title in real-time
+- Filters and search work together correctly
+- Active tab highlighted with green background
+- Result count updates dynamically
+- UI matches design specifications
+
+---
+
+## Phase 3: Library Table View (Week 3) - ❌ REMOVED FROM V1
+
+### ❌ Task Group 10: Library Page Layout - DEPRIORITIZED TO V2
+**Dependencies:** Task Groups 5, 6
+**Reason:** Dashboard pagination sufficient for MVP
+
+---
+
+### ❌ Task Group 11: Library Table Implementation - DEPRIORITIZED TO V2
+**Dependencies:** Task Group 10
+**Reason:** Library screen removed
+
+---
+
+### ❌ Task Group 12: Library Card View (Mobile) - DEPRIORITIZED TO V2
+**Dependencies:** Task Group 11
+**Reason:** Mobile responsiveness deprioritized
+
+---
+
+### 🔄 Task Group 13: Export Functionality - SIMPLIFIED FOR V1 (MD Only)
+**Dependencies:** Task Group 11
+**Modification:** PDF and TXT export removed, Markdown export only
+
+---
+
+## Phase 4: SavedItemModal Implementation (Week 4)
+
+### Task Group 14: Modal Foundation ✅ COMPLETED
+**Dependencies:** Task Groups 8, 11
+
+- [x] 14.0 Build modal slide-out structure
+  - [x] 14.1 Create SavedItemModal component (`src/components/modal/SavedItemModal.tsx`)
+    - Spec reference: Lines 54-61 (SavedItemModal Slide-Out Design)
+    - Props: `isOpen`, `onClose`, `item` (SavedItemData)
+    - Modal container: Fixed position, right side, slides in from right
+    - Dimensions: 600px width (max), 800px height (full viewport)
+    - Background: #212121 dark theme
+    - Animation: 0.3s ease-out slide (translateX transform)
+  - [x] 14.2 Implement modal overlay
+    - Spec reference: Line 57 (Background overlay rgba(0, 0, 0, 0.5))
+    - Full-screen overlay: rgba(0, 0, 0, 0.5)
+    - Clicking overlay closes modal
+    - Prevent body scroll when modal open
+    - Fade-in animation with modal slide
+  - [x] 14.3 Build modal header
+    - Spec reference: Line 58 (Header: Video title, close button)
+    - Left: Video title (18px bold, single line ellipsis) with tooltip
+    - Right: Close button (36x36px clickable area, X icon)
+    - Background: Same as modal (#212121)
+    - Bottom border: Subtle separator
+  - [x] 14.4 Implement close handlers
+    - Spec reference: Line 60 (Close handlers: ESC key, overlay click, X button click)
+    - ESC key press closes modal
+    - Overlay click closes modal
+    - X button click closes modal
+    - Clean up event listeners on unmount
+  - [x] 14.5 Build tab navigation
+    - Spec reference: Line 59 (Three tabs: Transcript, Summary, Chat)
+    - Three tabs: "Transcript", "Summary", "Chat"
+    - Active tab: Green underline (3px thick, #22c55e)
+    - Tab design: Horizontal layout with spacing
+    - Click tab switches content below
+
+**Acceptance Criteria:**
+- Modal slides in from right smoothly
+- Overlay fades in with modal
+- Close handlers work (ESC, overlay, X button)
+- Tab navigation switches between tabs
+- Modal dimensions and styling match specifications
+- Body scroll prevented when modal open
+
+---
+
+### Task Group 15: Transcript Tab Implementation ✅ COMPLETED
+**Dependencies:** Task Group 14
+
+- [x] 15.0 Build Transcript tab features
+  - [x] 15.1 Create TranscriptTab component (integrated in SavedItemModal)
+    - Spec reference: Lines 63-71 (Transcript Tab Features)
+    - Props: `savedItem` (SavedItem with transcript content)
+    - Layout: Controls row top, transcript display below
+    - Scrollable content area with custom scrollbar
+  - [x] 15.2 Implement controls row (MODIFIED)
+    - Spec reference: Line 64 (Controls row: Search input, Language display, Copy button, Export button)
+    - Search input: Filter transcript text (highlight matches)
+    - Language display: Read-only badge showing transcript language
+    - Copy button: Copy entire transcript to clipboard with visual feedback
+    - Export button: Download transcript as **Markdown only (TXT removed)**
+    - Controls design: Horizontal layout, 8px gap
+  - [x] 15.3 Build transcript display
+    - Spec reference: Lines 65-66 (Transcript display: Paragraphs with timestamps)
+    - Group text into paragraphs (8 lines or punctuation breaks)
+    - Show timestamps at paragraph start
+    - Timestamp format: "MM:SS" (blue color #3ea6ff)
+    - Text: White color, 15px font size, 1.6 line height
+    - Paragraph spacing: 24px gap
+  - [x] 15.4 Implement clickable timestamps
+    - Spec reference: Line 67 (Clicking timestamp seeks YouTube video)
+    - Parse timestamp format to seconds
+    - Timestamps displayed in blue for visibility
+  - [x] 15.5 Implement search highlight
+    - Spec reference: Line 68 (Search highlights matching text in yellow)
+    - Search input filters/highlights matching text
+    - Highlight color: Yellow background (#fef08a)
+    - Case-insensitive search
+    - Show "No matches found" when no results
+
+**Acceptance Criteria:**
+- Transcript displays with timestamps correctly
+- Search highlights matches in yellow
+- Copy button copies to clipboard with visual feedback
+- Export MD downloads Markdown file
+- Layout matches modal specifications
+
+---
+
+### Task Group 16: Summary Tab Implementation ✅ COMPLETED
+**Dependencies:** Task Group 14
+
+- [x] 16.0 Build Summary tab features
+  - [x] 16.1 Create SummaryTab component (integrated in SavedItemModal)
+    - Spec reference: Lines 73-81 (Summary Tab Features)
+    - Props: `savedItem`, `source` ('upload' or 'extension')
+    - Layout: Format selector top, summary display below, action buttons bottom
+    - Two modes: Interactive (upload) vs View-only (extension)
+  - [x] 16.2 Implement format selector dropdown
+    - Spec reference: Line 73 (Format selector dropdown: "Short", "Topics", "Q&A")
+    - Options: "Short", "Topics", "Q&A"
+    - Changes displayed summary when selected
+    - Active format highlighted with green accent (#22c55e)
+    - Dropdown design: Dark background, pill-shaped buttons
+  - [x] 16.3 Implement Generate button (upload mode only)
+    - Spec reference: Lines 74-75 (Generate button visible only for source='upload')
+    - Visible only when `source='upload'`
+    - Click calls `generateSummary(videoId, format)`
+    - Loading state: "Generating summary..." text
+    - Cache generated summary per format (avoid regenerating)
+    - Show error message if generation fails
+  - [x] 16.4 Build summary display with Markdown rendering
+    - Spec reference: Line 75 (Display: Markdown rendering with headers, bullet lists)
+    - Render Markdown with headers (bold), bullet lists, line breaks
+    - Custom markdown parser for structured formats
+    - Text styling: White text, proper spacing (16px paragraph gap)
+    - Scrollable content area
+  - [x] 16.5 Implement action buttons (MODIFIED)
+    - Spec reference: Line 77 (Export and Copy buttons)
+    - Export button: Download summary as **Markdown file only (PDF removed)**
+    - Copy button: Copy summary text to clipboard with visual feedback
+    - Buttons: Secondary style (border only), horizontal layout
+  - [x] 16.6 Implement view-only mode (extension items)
+    - Spec reference: Line 79 (View-only mode for source='extension')
+    - Hide Generate button for `source='extension'`
+    - Show existing summary only
+    - Export and copy still available
+
+**Acceptance Criteria:**
+- Format selector switches between Short/Topics/Q&A
+- Generate button works for upload items only
+- Summary displays with proper Markdown formatting
+- Summaries cached per format
+- Export and copy buttons work with visual feedback
+- View-only mode prevents generation
+- Loading state shows during generation
+
+---
+
+### Task Group 17: Chat Tab Implementation ✅ COMPLETED
+**Dependencies:** Task Group 14
+
+- [x] 17.0 Build Chat tab features
+  - [x] 17.1 Create ChatTab component (integrated in SavedItemModal)
+    - Spec reference: Lines 83-91 (Chat Tab Features)
+    - Props: `savedItem`, `source` ('upload' or 'extension')
+    - Layout: Suggested questions top, message list middle, input area bottom
+    - Two modes: Interactive (upload) vs View-only (extension)
+  - [x] 17.2 Implement suggested questions (upload mode only)
+    - Spec reference: Line 83 (Suggested questions: 3 purple pill buttons)
+    - Load questions via `getSuggestedQuestions(videoId)` on tab mount
+    - Display 3 purple pill buttons
+    - Clicking pill sends question automatically
+    - Only show for `source='upload'` items
+    - Pill design: Purple gradient (#a855f7 to #7c3aed), rounded pill (20px radius)
+  - [x] 17.3 Build message list display
+    - Spec reference: Line 84 (Message list: User messages right-aligned, Assistant left-aligned)
+    - User messages: Purple gradient bubble, right-aligned, white text
+    - Assistant messages: Gray bubble (#404040), left-aligned, white text
+    - Message bubbles: Rounded corners (12px), 10-14px padding
+    - Auto-scroll to latest message on new message (using refs)
+  - [x] 17.4 Implement chat input area
+    - Spec reference: Line 85 (Input area: Textarea with Send button)
+    - Textarea: Multi-line input (max 4 rows), fixed height
+    - Send button: Green gradient, disabled when empty or loading
+    - Input design: Dark background, white text, rounded corners
+    - Enter key sends message, Shift+Enter adds line break
+  - [x] 17.5 Implement interactive chat (upload mode)
+    - Spec reference: Line 86 (Interactive mode: source='upload' can send messages)
+    - Send button calls `sendChatMessage(videoId, message, chatHistory)`
+    - Update message list with user message immediately
+    - Show loading indicator while assistant responds
+    - Append assistant response to message list
+    - Handle errors with error message in chat
+  - [x] 17.6 Implement view-only mode (extension items)
+    - Spec reference: Line 87 (View-only mode: source='extension' shows existing chat only)
+    - Show existing chat history only
+    - Disable textarea and send button
+    - Display message below input: "Chat only available for uploaded videos"
+    - Message design: Gray background, centered text
+  - [x] 17.7 Implement empty state
+    - Spec reference: Line 88 (Empty state: Chat bubble icon with message)
+    - Show when no chat history exists
+    - Center-aligned chat bubble icon (💬)
+    - Message: "Ask questions about this video"
+    - Only show in interactive mode
+
+**Acceptance Criteria:**
+- Suggested questions load and send messages correctly
+- Message list displays user/assistant messages with proper styling
+- Auto-scroll works when new messages added (using refs)
+- Input area works with send button and Enter key
+- Interactive mode sends messages successfully
+- View-only mode disables input with message
+- Empty state shows when no messages exist
+- Layout matches modal specifications
+
+---
+
+## Phase 4: Polish & Testing (Week 4) - SIMPLIFIED
+
+### 🔄 Task Group 18: Animations & Transitions - DEPRIORITIZED TO V2
+**Dependencies:** All previous task groups
+**Status:** Basic hover effects only, advanced animations moved to V2
+
+---
+
+### Task Group 19: Error Handling & Edge Cases
+**Dependencies:** Task Group 18
+
+- [ ] 19.0 Implement comprehensive error handling
+  - [ ] 19.1 Add API error handling
+  - [ ] 19.2 Implement extraction error states
+  - [ ] 19.3 Add modal error handling
+  - [ ] 19.4 Implement loading states
+  - [ ] 19.5 Add validation feedback
+
+---
+
+### ❌ Task Group 20: Responsive Design Implementation - DEPRIORITIZED TO V2
+**Dependencies:** Task Group 19
+**Reason:** Desktop-only approach (1024px+)
+
+---
+
+### ❌ Task Group 21: Test Coverage & Quality Assurance - DEPRIORITIZED TO V2
+**Dependencies:** Task Group 20
+**Reason:** Manual QA only for MVP, add automated tests in V2
+
+---
+
+## Execution Order (REVISED Feb 2026)
+
+**Recommended implementation sequence:**
+
+1. **Phase 1: Foundation (Week 1)** - Task Groups 1-4 ✅ COMPLETED
+   - Set up project, routing, authentication, landing page
+
+2. **Phase 2: Dashboard (Week 2)** - Task Groups 5-8 (MODIFIED) ✅ COMPLETED
+   - API service, type definitions, dashboard layout, video grid with pagination, basic filters
+
+3. **Phase 3: Modal (Week 3)** - Task Groups 14-17 (MODIFIED) ✅ COMPLETED
+   - Modal foundation, transcript tab, summary tab, chat tab
+   - **Modified**: Export MD only (no PDF/TXT)
+
+4. **Phase 4: Polish (Week 4)** - Task Groups 18-19 (SIMPLIFIED) ⏳ IN PROGRESS
+   - Basic error handling, loading states, hover effects
+   - **Removed**: Advanced animations, mobile responsiveness, automated tests
+
+---
+
+## DEPRIORITIZED TASK GROUPS (Moved to V2)
+
+The following task groups are **NOT in V1 scope** and have been deprioritized:
+
+### ❌ Task Group 9: Filter Bar Implementation
+### ❌ Task Group 10: Library Page Layout
+### ❌ Task Group 11: Library Table Implementation
+### ❌ Task Group 12: Library Card View (Mobile)
+### ❌ Task Group 13: Export Functionality (PDF/TXT)
+### ❌ Task Group 18: Animations & Transitions
+### ❌ Task Group 20: Responsive Design Implementation
+### ❌ Task Group 21: Test Coverage & Quality Assurance
+
+---
+
+## Implementation Summary
+
+### ✅ COMPLETED - Task Groups 1-8, 14-17
+**Total Completed:** 17 task groups covering:
+- Project setup and configuration
+- Routing and navigation
+- Authentication implementation
+- Landing page
+- Dashboard with URL extraction
+- Video grid with pagination
+- Modal foundation (slide-out, 600px × 800px)
+- Transcript tab (search, copy, export MD)
+- Summary tab (format selector, generate, copy, export MD)
+- Chat tab (suggested questions, interactive mode, auto-scroll)
+
+### ⏳ IN PROGRESS - Task Groups 18-19
+**Remaining Work:**
+- Error handling improvements
+- Loading states
+- Basic hover effects
+
+### ❌ DEPRIORITIZED - Task Groups 9-13, 18, 20-21
+**Moved to V2:**
+- Advanced filters
+- Library table view
+- PDF/TXT export
+- Advanced animations
+- Mobile responsiveness
+- Automated tests
+
+---
+
+## Final Scope Reminder (REVISED Feb 2026)
+
+### IN SCOPE - V1 Implementation ✅
+- ✅ Google OAuth authentication
+- ✅ Single URL extraction with auto-save
+- ✅ Dashboard with 9-card grid + pagination
+- ✅ Modal with 3 tabs (Transcript, Summary, Chat)
+- ✅ Interactive mode for upload items (generate summary, chat)
+- ✅ View-only mode for extension items
+- ✅ Markdown export only (no PDF/TXT)
+- ✅ Desktop-only (1024px+)
+- ✅ Copy to clipboard functionality
+- ✅ Search with highlight in transcript
+- ✅ Auto-scroll for chat messages
+- ✅ Source-based interactivity (upload vs extension)
+
+### OUT OF SCOPE - V1 (Moved to V2)
+These features are **NOT included in V1** to prevent scope creep:
+
+- Batch URL processing UI (completely hidden)
+- Email/password authentication (Google OAuth only)
+- Library table view (Dashboard pagination sufficient)
+- PDF/TXT export (Markdown export only)
+- Advanced animations (Basic hover effects only)
+- Mobile responsiveness (Desktop-only 1024px+)
+- Automated tests (Manual QA only)
+
+---
+
+## Deployment Guide
+
+**Deployment Documentation:** See [BACKEND.md](../../../BACKEND.md) for complete deployment instructions.
+
+### Quick Reference: Production URLs
+
+When deploying to Railway, update these URLs in `extension/src/config.ts`:
+
+```typescript
+const defaultBackendUrl = isDevelopment
+  ? 'http://localhost:8000'
+  : 'https://mintclip-api-production.up.railway.app'; // Replace with actual backend URL
+
+const defaultWebAppUrl = isDevelopment
+  ? 'http://127.0.0.1:5173'
+  : 'https://mintclip-webapp-production.up.railway.app'; // Replace with actual web app URL
+```
+
+### Deployment Steps
+
+1. **Backend (Railway)**
+   - Deploy from GitHub with root directory `backend`
+   - Add environment variables from `backend/.env.example`
+   - Configure Supabase connection
+   - Set up Google OAuth redirect URIs
+
+2. **Extension (Chrome Web Store)**
+   - Update `extension/src/config.ts` with production URLs
+   - Run `npm run build` in extension directory
+   - Package and submit to Chrome Web Store
+
+3. **Web App (Railway)**
+   - Deploy from GitHub with root directory `web-app`
+   - Add `VITE_API_BASE_URL` and `VITE_GOOGLE_CLIENT_ID` env vars
+   - Update backend CORS settings
+
+4. **Post-Deployment**
+   - Test health checks: `curl https://[backend-url]/api/health`
+   - Verify OAuth flow works
+   - Test extension Dashboard button opens web app
+   - Monitor logs in Railway dashboard
+
+### Environment Variables Checklist
+
+**Backend:**
+- [ ] `GEMINI_API_KEY`
+- [ ] `SUPABASE_URL`
+- [ ] `SUPABASE_SERVICE_KEY`
+- [ ] `GOOGLE_OAUTH_CLIENT_ID`
+- [ ] `GOOGLE_OAUTH_CLIENT_SECRET`
+- [ ] `FRONTEND_URL` (web app URL)
+
+**Extension:**
+- [ ] `VITE_BACKEND_URL` (production backend URL)
+- [ ] `VITE_WEBAPP_URL` (production web app URL)
+
+**Web App:**
+- [ ] `VITE_API_BASE_URL` (production backend URL)
+- [ ] `VITE_GOOGLE_CLIENT_ID`
+
+For detailed instructions, see [BACKEND.md](../../../BACKEND.md).

@@ -21,6 +21,7 @@ export interface TranscriptResponse {
   transcript?: TranscriptEntry[];
   full_text?: string;
   video_id?: string;
+  video_title?: string;
   language?: string;
   is_generated?: boolean;
   error?: string;
@@ -58,10 +59,86 @@ export interface ChatMessageResponse {
 /**
  * Get backend API URL from environment or use default
  */
-function getApiUrl(): string {
+export function getApiUrl(): string {
   // For development, use localhost. For production, use deployed backend
   // TODO: Make this configurable in extension options
   return 'http://localhost:8000';
+}
+
+// ============================================
+// Authentication API
+// ============================================
+
+export interface AuthTokens {
+  accessToken: string;
+  refreshToken: string;
+  expiresIn: number;
+  tokenType: string;
+}
+
+export interface UserProfile {
+  id: string;
+  email: string;
+  displayName?: string;
+  avatarUrl?: string;
+  tier: string;
+  summariesUsed: number;
+  chatMessagesUsed: number;
+}
+
+export interface AuthResponse {
+  success: boolean;
+  tokens?: AuthTokens;
+  user?: UserProfile;
+  error?: string;
+  message?: string;
+}
+
+/**
+ * Refresh access token using refresh token
+ */
+export async function refreshAccessToken(
+  refreshToken: string
+): Promise<AuthResponse> {
+  try {
+    console.log('Refreshing access token');
+
+    const response = await fetch(`${getApiUrl()}/api/auth/refresh`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        refresh_token: refreshToken,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      return {
+        success: false,
+        error: errorData.detail || `HTTP ${response.status}: ${response.statusText}`,
+      };
+    }
+
+    const data = await response.json();
+
+    return {
+      success: true,
+      tokens: {
+        accessToken: data.access_token,
+        refreshToken: data.refresh_token,
+        expiresIn: data.expires_in,
+        tokenType: data.token_type,
+      },
+    };
+  } catch (error) {
+    console.error('Token refresh error:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    };
+  }
 }
 
 /**

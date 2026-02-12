@@ -6,53 +6,86 @@ Chrome Extension (Manifest V3) + FastAPI backend + React/TypeScript UI
 - Backend: Async Python, uvicorn server, youtube-transcript-api, Gemini 2.5-flash-lite
 - Communication: Service worker ↔ Content script via message passing
 
-## Key Components
-**Extension** (`extension/`):
-- `background.ts` - Service worker, handles message routing
-- `content.tsx` - Content script, Shadow DOM rendering
-- `App.tsx` - Main React component
+## Core Features
 
-**Backend** (`backend/`):
-- `main.py` - FastAPI app entry point
-- `routers/transcript.py` - Transcript service
-- `routers/summarize.py` - Summarization service
-- `routers/translate.py` - Translation service
-- `routers/metadata.py` - Video metadata service
-- `services/` - Core business logic
+### Authentication & Session Management
+- Google OAuth via Chrome Identity API
+- Automatic token refresh (1hr access tokens, 30-90 day refresh tokens)
+- Files: `extension/src/background/auth.ts`, `extension/src/popup/auth.ts`, `backend/app/routes/auth.py`
+
+### Saved Items
+- Save buttons in Transcript, Summary, Chat tabs
+- Supabase storage with quota limits (25 free, unlimited premium)
+- 30-day expiration for free tier
+- Files: `extension/src/content/components/YouTubeSidebar.tsx` (lines 972-1090), `backend/app/routes/saved_items.py`
+
+### Transcript & AI Features
+- Multi-language transcript extraction with AI translation (Gemini)
+- Three summary formats: Short, Topic-based, Q&A
+- Context-aware chat with video transcript
+- Caching: In-memory (MVP), 30 days transcripts, 7 days summaries/translations, 24 hours chat messages
+- Files: `backend/app/routes/transcript.py`, `backend/app/services/cache.py`
 
 ## Data Flow
-1. User activates extension (click or keyboard shortcut)
-2. Content script sends message to service worker
-3. Service worker calls backend API (port 8787)
-4. Backend fetches YouTube transcript (cached 1hr)
-5. Backend generates/returns summary or translation (english greedy translation if native english captions are not available) (cached 7 days)
-6. Service worker renders result in Shadow DOM overlay
+
+### Transcript Extraction & Translation
+1. Extension requests transcript → Backend calls YouTube Transcript API
+2. Backend detects available languages, returns transcript with segments
+3. **If non-English**: Backend eagerly translates to English in background
+   - Translation cached in-memory (MVP): `transcript_translation:{video_id}:{lang}` (7 days TTL)
+   - Cache clears on server restart (acceptable for MVP)
+4. Frontend prioritizes English: checks native English first, falls back to AI-translated
+5. English transcript sent to summary endpoint with `language='en'`
+6. Summary endpoint skips translation, summarizes directly (cached 7 days)
+
+### Save Item Flow (with Auto Token Refresh)
+1. User clicks "Save" → Handler sends `SAVE_ITEM` message
+2. Service worker calls `getValidAccessToken()` → Auto-refreshes if expired
+3. Service worker posts to `/api/saved-items/save` with Bearer token
+4. Backend validates token, checks quota, upserts to Supabase `saved_items` table
+5. Component shows "✓ Saved" feedback or prompts re-login on auth error
 
 ## API Endpoints
-- `POST /api/transcript` - Fetch transcript (returns text, segments, languages)
-- `POST /api/summarize` - Generate summary (returns bullet points, takes 10-30s)
-- `POST /api/translate` - Translate text (returns translated text, cached)
-- `GET /api/metadata?video_id={id}` - Get video metadata
 
-## Latest Extension UI Fixes (Jan 5, 2026)
-- **Header Rendering Bug**: Fixed markdown headers (###) displaying as literal text in Shadow DOM
-- **Boolean Field Migration**: Added `summary_is_structured`, `translation_is_structured` fields to distinguish formatted vs text content
+**Core**: `/api/transcript/extract`, `/api/summary/generate`, `/api/chat/message`
+**Auth**: `/api/auth/google/token`, `/api/auth/refresh`, `/api/auth/logout`
+**Saved Items**: `/api/saved-items/save`, `/api/saved-items/list`, `/api/saved-items/{video_id}/{item_type}`
+
+## Database Schema (Supabase)
+
+### saved_items Table
+- Columns: `id`, `user_id`, `video_id`, `item_type`, `content` (jsonb), `created_at`, `expires_at`
+- Unique constraint: `(user_id, video_id, item_type)` - prevents duplicates
+- Quota: 25 items (free), unlimited (premium)
 
 ## Key Files
-- `extension/src/background.ts:50-80` - Message handling
-- `extension/src/content.tsx:120-150` - Shadow DOM rendering
-- `backend/services/transcript_service.py` - Transcript extraction logic
-- `backend/services/summarize_service.py` - AI summarization
+
+**Extension**:
+- `extension/src/background/messageHandler.ts` - Message routing, SAVE_ITEM handler
+- `extension/src/background/auth.ts` - Token refresh logic (`getValidAccessToken()`)
+- `extension/src/content/components/YouTubeSidebar.tsx` - Save handlers (lines 972-1090)
+- `extension/src/popup/index.tsx` - Auth UI
+
+**Backend**:
+- `backend/app/routes/auth.py` - Auth endpoints with token refresh
+- `backend/app/routes/saved_items.py` - CRUD with quota management
+- `backend/app/services/gemini_client.py` - AI integration
+- `backend/app/middleware/auth.py` - Token validation
 
 ## Environment
 - Python 3.10+, Node.js 18+
-- Backend: `cd backend && uvicorn main:app --reload --port 8000`
+- Backend: `cd backend && uvicorn app.main:app --reload --port 8000`
 - Extension: `cd extension && npm run dev`
-- Requires GEMINI_API_KEY in environment
+- Requires GEMINI_API_KEY and Supabase credentials (see `backend/.env.example`)
 
-## File Storage (this is non-negotiable)
-- Save output files from manual and AB tests (examples: `ab_test_result.json`, `comparison_report.md`) in `backend/manual_tests/` folder 
-- Save test scripts with file extension ".py" or ".sh" in `backend/scripts/` folder
-- Save .md documents related to integration and implementation in `backend/docs/` folder
-- Save bug fix writeups in `backend/bug-fixes/`folder
-- Save code review writeups in `backend/code-review/` folder 
+## Troubleshooting
+- **Token expired**: Auto-refresh implemented, should work seamlessly
+- **Quota reached**: Free tier limited to 25 items (upgrade to premium)
+- **Backend errors**: Verify backend running on port 8000, check Supabase credentials
+
+## File Storage (non-negotiable)
+- Manual tests/AB results → `backend/manual_tests/`
+- Test scripts (.py/.sh) → `backend/scripts/`
+- Implementation docs (.md) → `backend/docs/`
+- Bug fixes → `backend/bug-fixes/`
+- Code reviews → `backend/code-review/`

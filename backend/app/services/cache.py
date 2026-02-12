@@ -76,3 +76,85 @@ def get_cache() -> SimpleCache:
 TTL_SUGGESTED_QUESTIONS = 86400  # 24 hours
 TTL_SUMMARY = 604800  # 7 days
 TTL_TRANSCRIPT = 2592000  # 30 days (transcripts never change)
+TTL_BATCH_JOB = 86400  # 24 hours (batch job status)
+TTL_CHAT_MESSAGE = 86400  # 24 hours (chat messages)
+
+
+# Batch job status management functions
+def set_job_status(job_id: str, status: dict, ttl: int = TTL_BATCH_JOB):
+    """Store batch job status with 24-hour TTL.
+
+    Args:
+        job_id: Unique batch job identifier
+        status: Job status dictionary with structure:
+            {
+                'job_id': str,
+                'status': 'pending' | 'processing' | 'complete' | 'failed',
+                'total': int,
+                'completed': int,
+                'failed': int,
+                'results': [...]
+            }
+        ttl: Time-to-live in seconds (default: 24 hours)
+    """
+    cache = get_cache()
+    cache.set(f"batch_job:{job_id}", status, ttl)
+
+
+def get_job_status(job_id: str) -> Optional[dict]:
+    """Retrieve batch job status.
+
+    Args:
+        job_id: Unique batch job identifier
+
+    Returns:
+        Job status dictionary if found and not expired, None otherwise
+    """
+    cache = get_cache()
+    return cache.get(f"batch_job:{job_id}")
+
+
+def update_job_progress(job_id: str, video_result: dict):
+    """Update job progress after each video completes.
+
+    Args:
+        job_id: Unique batch job identifier
+        video_result: Video processing result with structure:
+            {
+                'video_id': str,
+                'title': str,
+                'status': 'completed' | 'failed',
+                'transcript': list (optional),
+                'error': str (optional)
+            }
+    """
+    cache = get_cache()
+    job_status = cache.get(f"batch_job:{job_id}")
+
+    if not job_status:
+        return  # Job not found or expired
+
+    # Update counters
+    if video_result['status'] == 'completed':
+        job_status['completed'] += 1
+    elif video_result['status'] == 'failed':
+        job_status['failed'] += 1
+
+    # Add result to results list
+    job_status['results'].append(video_result)
+
+    # Update overall job status
+    if job_status['completed'] + job_status['failed'] >= job_status['total']:
+        # All videos processed
+        if job_status['failed'] == 0:
+            job_status['status'] = 'complete'
+        elif job_status['completed'] == 0:
+            job_status['status'] = 'failed'
+        else:
+            job_status['status'] = 'complete'  # Partial success still counts as complete
+    elif job_status['status'] == 'pending':
+        # First video started processing
+        job_status['status'] = 'processing'
+
+    # Save updated status
+    cache.set(f"batch_job:{job_id}", job_status, TTL_BATCH_JOB)

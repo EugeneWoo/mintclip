@@ -93,10 +93,30 @@ GET /api/transcript/languages/{video_id}
 POST /api/summary/generate
 ```
 
-### Chat (Coming Soon)
+### Chat
 ```bash
 POST /api/chat/message
+Content-Type: application/json
+
+{
+  "video_id": "VIDEO_ID",
+  "transcript": "Full transcript text...",
+  "question": "What is this video about?",
+  "chat_history": [],
+  "language": "en"
+}
 ```
+
+Response:
+```json
+{
+  "success": true,
+  "response": "This video is about...",
+  "cached": false
+}
+```
+
+**Cache**: Responses are cached for 24 hours based on video_id + question + language
 
 ## Testing
 

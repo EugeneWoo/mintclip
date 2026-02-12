@@ -8,7 +8,7 @@ from pydantic import BaseModel
 from typing import List, Optional, Dict
 import json
 
-from app.services.cache import get_cache, TTL_SUGGESTED_QUESTIONS
+from app.services.cache import get_cache, TTL_SUGGESTED_QUESTIONS, TTL_CHAT_MESSAGE
 from app.services.gemini_client import get_gemini_client
 from app.prompts.suggested_questions import FALLBACK_QUESTIONS
 
@@ -46,6 +46,7 @@ class ChatMessageResponse(BaseModel):
     success: bool
     response: Optional[str] = None
     error: Optional[str] = None
+    cached: bool = False
 
 
 @router.post("/suggested-questions", response_model=SuggestedQuestionsResponse)
@@ -157,6 +158,8 @@ async def send_message(request: ChatMessageRequest):
     - Chat history (last 6 messages)
     - Timestamp citations when relevant
 
+    Responses are cached for 24 hours based on video_id + question + language.
+
     If transcript is not in English, it will be automatically translated to English first.
 
     Args:
@@ -173,15 +176,32 @@ async def send_message(request: ChatMessageRequest):
         if not request.transcript.strip():
             raise HTTPException(status_code=400, detail="Transcript is required")
 
+        cache = get_cache()
         gemini_client = get_gemini_client()
         transcript_text = request.transcript
+
+        # Create cache key based on video_id, question, and language
+        # Hash the question to use in cache key (avoid special characters)
+        import hashlib
+        question_hash = hashlib.md5(request.question.strip().encode()).hexdigest()[:16]
+        lang_code = request.language or 'en'
+        chat_cache_key = f"chat_message:{request.video_id}:{question_hash}:{lang_code}"
+
+        # Check cache first (24-hour TTL)
+        cached_response = cache.get(chat_cache_key)
+        if cached_response:
+            print(f"Returning cached chat response for video {request.video_id}, question: {request.question[:50]}...")
+            return ChatMessageResponse(
+                success=True,
+                response=cached_response,
+                cached=True
+            )
 
         # Translate to English if not already in English
         if request.language and request.language != 'en':
             print(f"Translating transcript from {request.language} to English for chat")
 
             # Check translation cache
-            cache = get_cache()
             from app.services.cache import TTL_SUMMARY
             translation_cache_key = f"translation:{request.video_id}:{request.language}"
             cached_translation = cache.get(translation_cache_key)
@@ -218,9 +238,14 @@ async def send_message(request: ChatMessageRequest):
                 error="Failed to generate response. Gemini may not be available."
             )
 
+        # Cache the response for 24 hours
+        cache.set(chat_cache_key, response_text, TTL_CHAT_MESSAGE)
+        print(f"Cached chat response for video {request.video_id}")
+
         return ChatMessageResponse(
             success=True,
-            response=response_text
+            response=response_text,
+            cached=False
         )
 
     except HTTPException:

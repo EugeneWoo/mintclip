@@ -12,7 +12,10 @@ export interface UserPreferences {
 export interface AuthState {
   isAuthenticated: boolean;
   userId?: string;
+  email?: string;
   accessToken?: string;
+  refreshToken?: string;
+  expiresAt?: number; // Unix timestamp in milliseconds
 }
 
 const PREFERENCES_KEY = 'userPreferences';

@@ -1,0 +1,1421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard — Mintclip</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #171717;
+      --bg-elevated: #1f1f1f;
+      --bg-card: #262626;
+      --accent: #22c55e;
+      --accent-light: #4ade80;
+      --accent-glow: rgba(34, 197, 94, 0.15);
+      --accent-hover: #16a34a;
+      --text-primary: #ffffff;
+      --text-secondary: #a3a3a3;
+      --text-muted: #737373;
+      --border: rgba(255, 255, 255, 0.08);
+      --border-accent: rgba(34, 197, 94, 0.3);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html {
+      font-size: 16px;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg-dark);
+      color: var(--text-primary);
+      line-height: 1.6;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Navigation */
+    nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      padding: 1.25rem 2rem;
+    }
+
+    .nav-container {
+      max-width: 1400px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(23, 23, 23, 0.8);
+      backdrop-filter: blur(20px);
+      border: 1px solid var(--border);
+      border-radius: 100px;
+      padding: 0.75rem 1rem 0.75rem 1.5rem;
+    }
+
+    .nav-left {
+      display: flex;
+      align-items: center;
+      gap: 3rem;
+    }
+
+    .logo {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 1.5rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      color: var(--text-primary);
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .logo-mark {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+    }
+
+    .nav-menu {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .nav-menu a {
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+      text-decoration: none;
+      padding: 0.75rem 1.25rem;
+      border-radius: 100px;
+      transition: all 0.2s;
+    }
+
+    .nav-menu a:hover {
+      color: var(--text-primary);
+      background: var(--bg-card);
+    }
+
+    .nav-menu a.active {
+      background: var(--accent);
+      color: #000;
+      font-weight: 600;
+    }
+
+    .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    /* Account Dropdown */
+    .account-dropdown {
+      position: relative;
+    }
+
+    .account-trigger {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.5rem 1rem 0.5rem 0.5rem;
+      border: 1px solid var(--border);
+      border-radius: 100px;
+      background: var(--bg-card);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .account-trigger:hover {
+      border-color: var(--border-accent);
+      background: var(--bg-elevated);
+    }
+
+    .avatar {
+      width: 32px;
+      height: 32px;
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #000;
+      font-weight: 700;
+      font-size: 0.8125rem;
+      letter-spacing: -0.02em;
+    }
+
+    .account-name {
+      font-weight: 500;
+      font-size: 0.875rem;
+      color: var(--text-primary);
+    }
+
+    .dropdown-arrow {
+      color: var(--text-muted);
+      font-size: 0.625rem;
+      transition: transform 0.2s;
+    }
+
+    .account-dropdown:hover .dropdown-arrow {
+      transform: rotate(180deg);
+    }
+
+    .dropdown-menu {
+      position: absolute;
+      top: calc(100% + 8px);
+      right: 0;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      box-shadow: 0 16px 48px rgba(0, 0, 0, 0.4);
+      min-width: 280px;
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(-8px);
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .account-dropdown:hover .dropdown-menu {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0);
+    }
+
+    .dropdown-header {
+      padding: 1.25rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .dropdown-header .name {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-weight: 700;
+      font-size: 1rem;
+      color: var(--text-primary);
+      margin-bottom: 0.25rem;
+    }
+
+    .dropdown-header .email {
+      font-size: 0.875rem;
+      color: var(--text-muted);
+    }
+
+    .dropdown-section {
+      padding: 0.5rem;
+    }
+
+    .dropdown-section-title {
+      font-size: 0.6875rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      padding: 0.75rem 0.875rem 0.375rem;
+    }
+
+    .dropdown-item {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.75rem 0.875rem;
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 0.875rem;
+      border-radius: 8px;
+      transition: all 0.15s;
+    }
+
+    .dropdown-item:hover {
+      background: var(--bg-card);
+      color: var(--text-primary);
+    }
+
+    .dropdown-item.danger {
+      color: #ef4444;
+    }
+
+    .dropdown-item.danger:hover {
+      background: rgba(239, 68, 68, 0.1);
+      color: #ef4444;
+    }
+
+    .dropdown-icon {
+      width: 18px;
+      text-align: center;
+      opacity: 0.7;
+      font-size: 1rem;
+    }
+
+    .dropdown-divider {
+      height: 1px;
+      background: var(--border);
+      margin: 0.25rem 0;
+    }
+
+    /* Main Content */
+    main {
+      flex: 1;
+      max-width: 1400px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 7rem 2rem 2rem;
+    }
+
+    /* Page Header */
+    .page-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 2.5rem;
+    }
+
+    .page-header-left h1 {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 2.5rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      margin-bottom: 0.5rem;
+    }
+
+    .page-header-left p {
+      font-size: 1rem;
+      color: var(--text-secondary);
+    }
+
+    .btn {
+      font-family: 'Inter', sans-serif;
+      font-size: 0.9rem;
+      font-weight: 600;
+      padding: 0.875rem 1.75rem;
+      border-radius: 100px;
+      cursor: pointer;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      border: none;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #000;
+    }
+
+    .btn-primary:hover {
+      background: var(--accent-light);
+      transform: scale(1.02);
+      box-shadow: 0 0 40px var(--accent-glow);
+    }
+
+    .btn-secondary {
+      background: transparent;
+      color: var(--text-primary);
+      border: 1px solid var(--border);
+    }
+
+    .btn-secondary:hover {
+      background: var(--bg-card);
+      border-color: var(--border-accent);
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 0.75rem;
+    }
+
+    /* URL Input Section */
+    .url-input-section {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 2rem;
+      margin-bottom: 2.5rem;
+    }
+
+    .input-tabs {
+      display: flex;
+      gap: 0.25rem;
+      margin-bottom: 1.25rem;
+      background: var(--bg-card);
+      padding: 0.25rem;
+      border-radius: 100px;
+      width: fit-content;
+    }
+
+    .input-tab {
+      padding: 0.625rem 1.25rem;
+      border: none;
+      background: transparent;
+      color: var(--text-secondary);
+      font-weight: 500;
+      font-size: 0.875rem;
+      cursor: pointer;
+      border-radius: 100px;
+      transition: all 0.2s;
+      font-family: 'Inter', sans-serif;
+    }
+
+    .input-tab:hover {
+      color: var(--text-primary);
+    }
+
+    .input-tab.active {
+      background: var(--bg-elevated);
+      color: var(--text-primary);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    }
+
+    .url-input-wrapper {
+      display: flex;
+      gap: 0.75rem;
+    }
+
+    .url-input {
+      flex: 1;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.9375rem;
+      padding: 1rem 1.25rem;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: var(--bg-dark);
+      color: var(--text-primary);
+      outline: none;
+      transition: all 0.2s;
+    }
+
+    .url-input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+
+    .url-input::placeholder {
+      color: var(--text-muted);
+    }
+
+    /* Batch URL Input Styles */
+    .batch-url-inputs {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      flex: 1;
+    }
+
+    .batch-url-textarea {
+      font-family: 'Inter', sans-serif;
+      font-size: 0.9375rem;
+      padding: 1rem 1.25rem;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: var(--bg-dark);
+      color: var(--text-primary);
+      outline: none;
+      transition: all 0.2s;
+      resize: vertical;
+      min-height: 140px;
+      max-height: 200px;
+      line-height: 1.6;
+    }
+
+    .batch-url-textarea:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+
+    .batch-url-textarea::placeholder {
+      color: var(--text-muted);
+    }
+
+    .input-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 0.75rem;
+      font-size: 0.8125rem;
+    }
+
+    .format-hint {
+      color: var(--text-muted);
+    }
+
+    .url-count {
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+
+    .url-count.valid {
+      color: var(--accent);
+    }
+
+    .url-count.invalid {
+      color: #ef4444;
+    }
+
+    /* Validation Error Messages */
+    .validation-error {
+      color: #ef4444;
+      font-size: 0.75rem;
+      font-weight: 500;
+      margin-top: 0.375rem;
+      display: none;
+    }
+
+    .validation-error.visible {
+      display: block;
+    }
+
+    .batch-url-wrapper.has-error .batch-url-field {
+      border-color: #ef4444;
+    }
+
+    /* Filter Bar */
+    .filter-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2rem;
+    }
+
+    .filter-left {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .filter-btn {
+      padding: 0.625rem 1.25rem;
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--text-secondary);
+      font-size: 0.875rem;
+      font-weight: 500;
+      border-radius: 100px;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: 'Inter', sans-serif;
+    }
+
+    .filter-btn:hover {
+      background: var(--bg-card);
+      color: var(--text-primary);
+    }
+
+    .filter-btn.active {
+      background: var(--accent);
+      color: #000;
+      font-weight: 600;
+    }
+
+    .search-wrapper {
+      position: relative;
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 1rem;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+      font-size: 0.875rem;
+    }
+
+    .search-input {
+      padding: 0.625rem 1rem 0.625rem 2.5rem;
+      border: 1px solid var(--border);
+      border-radius: 100px;
+      font-size: 0.875rem;
+      width: 300px;
+      outline: none;
+      background: var(--bg-elevated);
+      color: var(--text-primary);
+      font-family: 'Inter', sans-serif;
+      transition: all 0.2s;
+    }
+
+    .search-input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+
+    .search-input::placeholder {
+      color: var(--text-muted);
+    }
+
+    /* Video Grid */
+    .video-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .video-card {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      overflow: hidden;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      cursor: pointer;
+      position: relative;
+    }
+
+    .video-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--accent), transparent);
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .video-card:hover {
+      transform: translateY(-4px);
+      border-color: var(--border-accent);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    }
+
+    .video-card:hover::before {
+      opacity: 1;
+    }
+
+    .video-thumbnail {
+      position: relative;
+      aspect-ratio: 16/9;
+      background: var(--bg-card);
+      overflow: hidden;
+    }
+
+    .video-thumbnail img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.3s;
+    }
+
+    .video-card:hover .video-thumbnail img {
+      transform: scale(1.05);
+    }
+
+    .video-duration {
+      position: absolute;
+      bottom: 10px;
+      right: 10px;
+      background: rgba(0, 0, 0, 0.9);
+      color: var(--text-primary);
+      font-family: 'Inter', monospace;
+      font-size: 0.6875rem;
+      font-weight: 600;
+      padding: 0.375rem 0.625rem;
+      border-radius: 6px;
+      letter-spacing: 0.02em;
+    }
+
+    .video-badges {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .badge {
+      background: rgba(0, 0, 0, 0.85);
+      font-size: 0.625rem;
+      font-weight: 600;
+      padding: 0.375rem 0.625rem;
+      border-radius: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      backdrop-filter: blur(10px);
+    }
+
+    .badge-transcript {
+      color: #60a5fa;
+    }
+
+    .badge-summary {
+      color: var(--accent);
+    }
+
+    .badge-chat {
+      color: #a78bfa;
+    }
+
+    /* Batch Video Card Styles */
+    .batch-thumbnail-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: 1fr 1fr;
+      gap: 2px;
+      width: 100%;
+      height: 100%;
+      background: var(--bg-card);
+    }
+
+    .batch-thumbnail-grid img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .batch-badge {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: rgba(0, 0, 0, 0.9);
+      backdrop-filter: blur(10px);
+      color: var(--accent);
+      font-size: 0.6875rem;
+      font-weight: 700;
+      padding: 0.5rem 0.75rem;
+      border-radius: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      z-index: 10;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    }
+
+    .video-info {
+      padding: 1.25rem;
+    }
+
+    .video-title {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-weight: 600;
+      font-size: 1.0625rem;
+      color: var(--text-primary);
+      margin-bottom: 0.75rem;
+      line-height: 1.4;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      letter-spacing: -0.01em;
+    }
+
+    .video-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.8125rem;
+      color: var(--text-muted);
+    }
+
+    .video-channel {
+      font-weight: 500;
+      color: var(--text-secondary);
+    }
+
+    .video-actions {
+      display: flex;
+      gap: 0.5rem;
+      padding: 0 1.25rem 1.25rem;
+      opacity: 0;
+      transform: translateY(4px);
+      transition: all 0.2s;
+    }
+
+    .video-card:hover .video-actions {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .action-btn {
+      flex: 1;
+      padding: 0.625rem;
+      border: 1px solid var(--border);
+      background: var(--bg-dark);
+      color: var(--text-secondary);
+      font-size: 0.75rem;
+      font-weight: 500;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.15s;
+      font-family: 'Inter', sans-serif;
+    }
+
+    .action-btn:hover {
+      background: var(--bg-card);
+      color: var(--text-primary);
+      border-color: var(--border-accent);
+    }
+
+    .action-btn.danger:hover {
+      background: rgba(239, 68, 68, 0.1);
+      color: #ef4444;
+      border-color: rgba(239, 68, 68, 0.3);
+    }
+
+    /* View More Section */
+    .view-more-container {
+      display: flex;
+      justify-content: center;
+      margin-top: 3rem;
+      padding-top: 2rem;
+      border-top: 1px solid var(--border);
+    }
+
+    .view-more-btn {
+      padding: 1rem 2.5rem;
+      font-size: 1rem;
+      gap: 0.75rem;
+    }
+
+    /* Footer */
+    footer {
+      background: var(--bg-elevated);
+      border-top: 1px solid var(--border);
+      padding: 3rem 2rem;
+      margin-top: auto;
+    }
+
+    .footer-content {
+      max-width: 1400px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1.5rem;
+    }
+
+    .footer-left {
+      display: flex;
+      align-items: center;
+      gap: 2rem;
+    }
+
+    .footer-logo {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      text-decoration: none;
+    }
+
+    .footer-logo .logo-mark {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+    }
+
+    .footer-copyright {
+      font-size: 0.875rem;
+      color: var(--text-muted);
+    }
+
+    .footer-links {
+      display: flex;
+      gap: 2rem;
+    }
+
+    .footer-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.875rem;
+      transition: color 0.2s;
+    }
+
+    .footer-links a:hover {
+      color: var(--accent);
+    }
+
+    /* Responsive */
+    @media (max-width: 1024px) {
+      .video-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 768px) {
+      nav {
+        padding: 1rem 1.5rem;
+      }
+
+      .nav-container {
+        border-radius: 16px;
+        padding: 0.5rem 1rem;
+      }
+
+      .nav-menu {
+        display: none;
+      }
+
+      main {
+        padding: 6rem 1.5rem 1.5rem;
+      }
+
+      .page-header {
+        flex-direction: column;
+        gap: 1.5rem;
+      }
+
+      .page-header-left h1 {
+        font-size: 2rem;
+      }
+
+      .url-input-wrapper {
+        flex-direction: column;
+      }
+
+      .filter-bar {
+        flex-direction: column;
+        gap: 1rem;
+        align-items: stretch;
+      }
+
+      .search-input {
+        width: 100%;
+      }
+
+      .video-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .stats-bar {
+        flex-wrap: wrap;
+        gap: 2rem;
+      }
+
+      footer {
+        padding: 2rem 1.5rem;
+      }
+
+      .footer-content {
+        flex-direction: column;
+        text-align: center;
+      }
+
+      .footer-left {
+        flex-direction: column;
+        gap: 1rem;
+      }
+
+      .footer-links {
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 1rem 1.5rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Navigation -->
+  <nav>
+    <div class="nav-container">
+      <div class="nav-left">
+        <a href="landing-page-framer.html" class="logo">
+          <img src="../../extension/assets/icon-48.png" alt="Mintclip" class="logo-mark">
+          Mintclip
+        </a>
+        <div class="nav-menu">
+          <a href="dashboard-framer.html" class="active">Dashboard</a>
+          <a href="#">Library</a>
+        </div>
+      </div>
+      <div class="nav-right">
+        <!-- Account Dropdown -->
+        <div class="account-dropdown">
+          <div class="account-trigger">
+            <div class="avatar">JD</div>
+            <span class="account-name">John Doe</span>
+            <span class="dropdown-arrow">▼</span>
+          </div>
+          <div class="dropdown-menu">
+            <div class="dropdown-header">
+              <div class="name">John Doe</div>
+              <div class="email">john.doe@email.com</div>
+            </div>
+            <div class="dropdown-section">
+              <div class="dropdown-section-title">Account</div>
+              <a href="#" class="dropdown-item">
+                <span class="dropdown-icon">⚙️</span>
+                Account Settings
+              </a>
+              <a href="#" class="dropdown-item">
+                <span class="dropdown-icon">🔒</span>
+                Change Password
+              </a>
+              <a href="#" class="dropdown-item">
+                <span class="dropdown-icon">💳</span>
+                Billing & Plan
+              </a>
+            </div>
+            <div class="dropdown-divider"></div>
+            <div class="dropdown-section">
+              <div class="dropdown-section-title">Data & Privacy</div>
+              <a href="#" class="dropdown-item">
+                <span class="dropdown-icon">📊</span>
+                Export My Data
+              </a>
+              <a href="#" class="dropdown-item">
+                <span class="dropdown-icon">🛡️</span>
+                Privacy Settings
+              </a>
+              <a href="#" class="dropdown-item danger">
+                <span class="dropdown-icon">🗑️</span>
+                Delete Account
+              </a>
+            </div>
+            <div class="dropdown-divider"></div>
+            <div class="dropdown-section">
+              <a href="landing-page-framer.html" class="dropdown-item">
+                <span class="dropdown-icon">→</span>
+                Sign Out
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+  <main>
+    <!-- Page Header -->
+    <div class="page-header">
+      <div class="page-header-left">
+        <h1>Welcome back, John</h1>
+        <p>Process videos and manage your library</p>
+      </div>
+      <div class="header-actions">
+        <button class="btn btn-secondary">
+          <span>↓</span>
+          Export All
+        </button>
+      </div>
+    </div>
+
+    <!-- URL Input Section -->
+    <div class="url-input-section">
+      <div class="input-tabs">
+        <button class="input-tab active">Single URL</button>
+        <button class="input-tab">Batch (up to 5)</button>
+      </div>
+
+      <!-- Single URL Input (shown by default) -->
+      <div class="url-input-wrapper" id="single-url-input">
+        <input type="text" class="url-input" placeholder="Paste a YouTube URL to generate transcript and summary...">
+        <button class="btn btn-primary">Extract</button>
+      </div>
+
+      <!-- Batch URL Input (hidden by default, shown via JS) -->
+      <div class="url-input-wrapper" id="batch-url-input" style="display: none; flex-direction: column;">
+        <div class="batch-url-inputs">
+          <textarea class="batch-url-textarea" id="batch-url-textarea" placeholder="Paste up to 5 YouTube URLs, one per line:&#10;&#10;https://youtube.com/watch?v=...&#10;https://youtube.com/watch?v=...&#10;https://youtube.com/watch?v=...&#10;https://youtube.com/watch?v=...&#10;https://youtube.com/watch?v=..."></textarea>
+          <div class="validation-error" id="batch-url-error">Invalid YouTube URL(s)</div>
+        </div>
+        <div class="input-footer">
+          <span class="format-hint">Paste up to 5 YouTube URLs (one per line)</span>
+          <span class="url-count" id="url-count">0/5 URLs</span>
+        </div>
+        <button class="btn btn-primary" style="align-self: flex-start; margin-top: 1rem;">Extract</button>
+      </div>
+
+      <!-- Single URL error message -->
+      <div class="validation-error" id="single-url-error" style="margin-top: 0.5rem;">Invalid YouTube URL</div>
+    </div>
+
+    <!-- Filter Bar -->
+    <div class="filter-bar">
+      <div class="filter-left">
+        <button class="filter-btn active">All</button>
+        <button class="filter-btn">With Summary</button>
+        <button class="filter-btn">With Chat</button>
+        <button class="filter-btn">Recent</button>
+      </div>
+      <div class="search-wrapper">
+        <span class="search-icon">🔍</span>
+        <input type="text" class="search-input" placeholder="Search videos...">
+      </div>
+    </div>
+
+    <!-- Video Grid -->
+    <div class="video-grid">
+      <!-- Video Card 1 -->
+      <div class="video-card">
+        <div class="video-thumbnail">
+          <img src="https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg" alt="Video thumbnail">
+          <span class="video-duration">10:32</span>
+          <div class="video-badges">
+            <span class="badge badge-transcript">Transcript</span>
+            <span class="badge badge-summary">Summary</span>
+          </div>
+        </div>
+        <div class="video-info">
+          <h3 class="video-title">How to Build a Successful Startup in 2026</h3>
+          <div class="video-meta">
+            <span class="video-channel">TechTalk</span>
+            <span>2 days ago</span>
+          </div>
+        </div>
+        <div class="video-actions">
+          <button class="action-btn">View</button>
+          <button class="action-btn danger">Delete</button>
+        </div>
+      </div>
+
+      <!-- Video Card 2 -->
+      <div class="video-card">
+        <div class="video-thumbnail">
+          <img src="https://i.ytimg.com/vi/jNQXAC9IVRw/hqdefault.jpg" alt="Video thumbnail">
+          <span class="video-duration">45:18</span>
+          <div class="video-badges">
+            <span class="badge badge-transcript">Transcript</span>
+            <span class="badge badge-summary">Summary</span>
+            <span class="badge badge-chat">Chat</span>
+          </div>
+        </div>
+        <div class="video-info">
+          <h3 class="video-title">Complete Python Course for Beginners — Learn Programming from Scratch</h3>
+          <div class="video-meta">
+            <span class="video-channel">CodeAcademy</span>
+            <span>1 week ago</span>
+          </div>
+        </div>
+        <div class="video-actions">
+          <button class="action-btn">View</button>
+          <button class="action-btn danger">Delete</button>
+        </div>
+      </div>
+
+      <!-- Video Card 3 -->
+      <div class="video-card">
+        <div class="video-thumbnail">
+          <img src="https://i.ytimg.com/vi/9bZkp7q19f0/hqdefault.jpg" alt="Video thumbnail">
+          <span class="video-duration">23:45</span>
+          <div class="video-badges">
+            <span class="badge badge-transcript">Transcript</span>
+          </div>
+        </div>
+        <div class="video-info">
+          <h3 class="video-title">The Future of AI: What to Expect in the Next Decade</h3>
+          <div class="video-meta">
+            <span class="video-channel">AI Weekly</span>
+            <span>3 days ago</span>
+          </div>
+        </div>
+        <div class="video-actions">
+          <button class="action-btn">View</button>
+          <button class="action-btn danger">Delete</button>
+        </div>
+      </div>
+
+      <!-- Video Card 4 -->
+      <div class="video-card">
+        <div class="video-thumbnail">
+          <img src="https://i.ytimg.com/vi/kJQP7kiw5Fk/hqdefault.jpg" alt="Video thumbnail">
+          <span class="video-duration">15:22</span>
+          <div class="video-badges">
+            <span class="badge badge-transcript">Transcript</span>
+            <span class="badge badge-summary">Summary</span>
+          </div>
+        </div>
+        <div class="video-info">
+          <h3 class="video-title">Product Design Principles Every Developer Should Know</h3>
+          <div class="video-meta">
+            <span class="video-channel">DesignLab</span>
+            <span>5 days ago</span>
+          </div>
+        </div>
+        <div class="video-actions">
+          <button class="action-btn">View</button>
+          <button class="action-btn danger">Delete</button>
+        </div>
+      </div>
+
+      <!-- Video Card 5 -->
+      <div class="video-card">
+        <div class="video-thumbnail">
+          <img src="https://i.ytimg.com/vi/fJ9rUzIMcZQ/hqdefault.jpg" alt="Video thumbnail">
+          <span class="video-duration">8:15</span>
+          <div class="video-badges">
+            <span class="badge badge-transcript">Transcript</span>
+            <span class="badge badge-chat">Chat</span>
+          </div>
+        </div>
+        <div class="video-info">
+          <h3 class="video-title">Quick Tips for Better Productivity</h3>
+          <div class="video-meta">
+            <span class="video-channel">ProductivityPro</span>
+            <span>1 week ago</span>
+          </div>
+        </div>
+        <div class="video-actions">
+          <button class="action-btn">View</button>
+          <button class="action-btn danger">Delete</button>
+        </div>
+      </div>
+
+      <!-- Video Card 6 -->
+      <div class="video-card">
+        <div class="video-thumbnail">
+          <img src="https://i.ytimg.com/vi/OPf0YbXqDm0/hqdefault.jpg" alt="Video thumbnail">
+          <span class="video-duration">32:10</span>
+          <div class="video-badges">
+            <span class="badge badge-transcript">Transcript</span>
+            <span class="badge badge-summary">Summary</span>
+          </div>
+        </div>
+        <div class="video-info">
+          <h3 class="video-title">Understanding Machine Learning: A Comprehensive Guide</h3>
+          <div class="video-meta">
+            <span class="video-channel">MLMasters</span>
+            <span>2 weeks ago</span>
+          </div>
+        </div>
+        <div class="video-actions">
+          <button class="action-btn">View</button>
+          <button class="action-btn danger">Delete</button>
+        </div>
+      </div>
+
+      <!-- Video Card 7 -->
+      <div class="video-card">
+        <div class="video-thumbnail">
+          <img src="https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg" alt="Video thumbnail">
+          <span class="video-duration">18:45</span>
+          <div class="video-badges">
+            <span class="badge badge-transcript">Transcript</span>
+            <span class="badge badge-summary">Summary</span>
+            <span class="badge badge-chat">Chat</span>
+          </div>
+        </div>
+        <div class="video-info">
+          <h3 class="video-title">Advanced React Patterns for Modern Applications</h3>
+          <div class="video-meta">
+            <span class="video-channel">CodeMasters</span>
+            <span>3 days ago</span>
+          </div>
+        </div>
+        <div class="video-actions">
+          <button class="action-btn">View</button>
+          <button class="action-btn danger">Delete</button>
+        </div>
+      </div>
+
+      <!-- Video Card 8 -->
+      <div class="video-card">
+        <div class="video-thumbnail">
+          <img src="https://i.ytimg.com/vi/jNQXAC9IVRw/hqdefault.jpg" alt="Video thumbnail">
+          <span class="video-duration">28:30</span>
+          <div class="video-badges">
+            <span class="badge badge-transcript">Transcript</span>
+            <span class="badge badge-summary">Summary</span>
+          </div>
+        </div>
+        <div class="video-info">
+          <h3 class="video-title">Introduction to Cloud Computing Architecture</h3>
+          <div class="video-meta">
+            <span class="video-channel">TechInsights</span>
+            <span>1 week ago</span>
+          </div>
+        </div>
+        <div class="video-actions">
+          <button class="action-btn">View</button>
+          <button class="action-btn danger">Delete</button>
+        </div>
+      </div>
+
+      <!-- Video Card 9 -->
+      <div class="video-card">
+        <div class="video-thumbnail">
+          <img src="https://i.ytimg.com/vi/9bZkp7q19f0/hqdefault.jpg" alt="Video thumbnail">
+          <span class="video-duration">12:15</span>
+          <div class="video-badges">
+            <span class="badge badge-transcript">Transcript</span>
+          </div>
+        </div>
+        <div class="video-info">
+          <h3 class="video-title">The Complete Guide to CSS Grid Layout</h3>
+          <div class="video-meta">
+            <span class="video-channel">WebDev Pro</span>
+            <span>4 days ago</span>
+          </div>
+        </div>
+        <div class="video-actions">
+          <button class="action-btn">View</button>
+          <button class="action-btn danger">Delete</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- View More Button -->
+    <div class="view-more-container">
+      <button class="btn btn-secondary view-more-btn">
+        View More
+        <span>→</span>
+      </button>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer>
+    <div class="footer-content">
+      <div class="footer-left">
+        <a href="landing-page-framer.html" class="footer-logo">
+          <img src="../../extension/assets/icon-48.png" alt="Mintclip" class="logo-mark">
+          Mintclip
+        </a>
+        <span class="footer-copyright">&copy; 2026 Mintclip. All rights reserved.</span>
+      </div>
+      <div class="footer-links">
+        <a href="#">Privacy Policy</a>
+        <a href="#">Terms of Service</a>
+        <a href="#">Cookie Policy</a>
+        <a href="#">GDPR Compliance</a>
+        <a href="#">Data Processing Agreement</a>
+        <a href="#">Contact Support</a>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // Simple tab switching (no external dependencies)
+    const inputTabs = document.querySelectorAll('.input-tab');
+    const singleUrlInput = document.getElementById('single-url-input');
+    const batchUrlInput = document.getElementById('batch-url-input');
+    const batchUrlTextarea = document.getElementById('batch-url-textarea');
+    const urlCount = document.getElementById('url-count');
+    const batchUrlError = document.getElementById('batch-url-error');
+    const singleUrlInputField = singleUrlInput.querySelector('.url-input');
+    const singleUrlError = document.getElementById('single-url-error');
+
+    // YouTube URL validation regex
+    const youtubeUrlRegex = /^(https?:\/\/)?(www\.)?(youtube\.com\/(watch\?v=|shorts\/)|youtu\.be\/)[\w-]+/;
+
+    // Extract video ID from URL
+    function extractVideoId(url) {
+      const regExp = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*/;
+      const match = url.match(regExp);
+      return (match && match[7].length == 11) ? match[7] : false;
+    }
+
+    // Single URL validation
+    function validateSingleUrl() {
+      const url = singleUrlInputField.value.trim();
+
+      if (url === '') {
+        singleUrlError.classList.remove('visible');
+        singleUrlInputField.style.borderColor = 'var(--border)';
+        return;
+      }
+
+      if (youtubeUrlRegex.test(url)) {
+        singleUrlError.classList.remove('visible');
+        singleUrlInputField.style.borderColor = 'var(--border)';
+      } else {
+        singleUrlError.classList.add('visible');
+        singleUrlInputField.style.borderColor = '#ef4444';
+      }
+    }
+
+    // Add event listener for single URL input
+    singleUrlInputField.addEventListener('input', validateSingleUrl);
+    singleUrlInputField.addEventListener('blur', validateSingleUrl);
+
+    // Function to count and validate URLs
+    function updateUrlCount() {
+      const text = batchUrlTextarea.value.trim();
+      const lines = text.split('\n').filter(line => line.trim() !== '');
+      const count = lines.length;
+
+      urlCount.textContent = `${count}/5 URLs`;
+      urlCount.classList.remove('valid', 'invalid');
+
+      if (count === 0) {
+        urlCount.style.color = 'var(--text-secondary)';
+        batchUrlError.classList.remove('visible');
+        batchUrlTextarea.style.borderColor = 'var(--border)';
+        return;
+      }
+
+      if (count > 5) {
+        urlCount.classList.add('invalid');
+        batchUrlError.textContent = 'Maximum 5 URLs allowed';
+        batchUrlError.classList.add('visible');
+        batchUrlTextarea.style.borderColor = '#ef4444';
+        return;
+      }
+
+      // Check if all URLs are valid
+      const invalidUrls = [];
+      const videoIds = [];
+      const duplicateUrls = [];
+
+      lines.forEach((line, index) => {
+        const url = line.trim();
+        if (!youtubeUrlRegex.test(url)) {
+          invalidUrls.push(index + 1);
+        } else {
+          const videoId = extractVideoId(url);
+          if (videoIds.includes(videoId)) {
+            duplicateUrls.push(index + 1);
+          }
+          videoIds.push(videoId);
+        }
+      });
+
+      // Show appropriate error message
+      if (invalidUrls.length > 0) {
+        urlCount.classList.add('invalid');
+        batchUrlError.textContent = `Invalid YouTube URL(s) on line${invalidUrls.length > 1 ? 's' : ''} ${invalidUrls.join(', ')}`;
+        batchUrlError.classList.add('visible');
+        batchUrlTextarea.style.borderColor = '#ef4444';
+      } else if (duplicateUrls.length > 0) {
+        urlCount.classList.add('invalid');
+        batchUrlError.textContent = `Duplicate video URL(s) on line${duplicateUrls.length > 1 ? 's' : ''} ${duplicateUrls.join(', ')}`;
+        batchUrlError.classList.add('visible');
+        batchUrlTextarea.style.borderColor = '#ef4444';
+      } else {
+        urlCount.classList.add('valid');
+        batchUrlError.classList.remove('visible');
+        batchUrlTextarea.style.borderColor = 'var(--border)';
+      }
+    }
+
+    // Add event listener for textarea input
+    batchUrlTextarea.addEventListener('input', updateUrlCount);
+
+    inputTabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        // Remove active class from all tabs
+        inputTabs.forEach(t => t.classList.remove('active'));
+
+        // Add active class to clicked tab
+        tab.classList.add('active');
+
+        // Toggle input visibility
+        if (tab.textContent.includes('Single')) {
+          singleUrlInput.style.display = 'flex';
+          batchUrlInput.style.display = 'none';
+        } else {
+          singleUrlInput.style.display = 'none';
+          batchUrlInput.style.display = 'flex';
+          batchUrlInput.style.flexDirection = 'column';
+          // Reset error message when switching to batch tab
+          batchUrlError.textContent = 'Invalid YouTube URL(s)';
+        }
+      });
+    });
+  </script>
+</body>
+</html>

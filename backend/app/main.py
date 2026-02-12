@@ -9,7 +9,8 @@ from dotenv import load_dotenv
 import os
 import logging
 
-from app.routes import transcript, summary, chat
+from app.routes import transcript, summary, chat, auth, saved_items, admin
+from app.scheduler import start_scheduler, shutdown_scheduler
 
 # Configure logging
 logging.basicConfig(
@@ -40,9 +41,29 @@ app.add_middleware(
 )
 
 # Include routers
+app.include_router(auth.router, prefix="/api/auth", tags=["Authentication"])
 app.include_router(transcript.router, prefix="/api/transcript", tags=["Transcript"])
 app.include_router(summary.router, prefix="/api/summary", tags=["Summary"])
 app.include_router(chat.router, prefix="/api/chat", tags=["Chat"])
+app.include_router(saved_items.router, prefix="/api/saved-items", tags=["Saved Items"])
+app.include_router(admin.router, prefix="/api/admin", tags=["Admin"])
+
+
+# Startup and shutdown events
+@app.on_event("startup")
+async def startup_event():
+    """Initialize background tasks on startup"""
+    logger.info("Starting Mintclip API...")
+    start_scheduler()
+    logger.info("Mintclip API started successfully")
+
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Cleanup on shutdown"""
+    logger.info("Shutting down Mintclip API...")
+    shutdown_scheduler()
+    logger.info("Mintclip API shutdown complete")
 
 
 @app.get("/")

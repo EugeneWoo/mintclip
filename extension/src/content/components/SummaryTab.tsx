@@ -17,6 +17,7 @@ interface SummaryTabProps {
   summaries?: { short?: string; topic?: string; qa?: string; short_is_structured?: boolean; topic_is_structured?: boolean; qa_is_structured?: boolean };
   videoTitle?: string;
   videoId?: string;  // NEW: Video ID for timestamp seeking
+  onSaveSummary?: () => void; // Save summary to Supabase
 }
 
 export function SummaryTab({
@@ -28,9 +29,11 @@ export function SummaryTab({
   summaries = {},
   videoTitle = '',
   videoId = '',  // NEW: Video ID for timestamp seeking
+  onSaveSummary,
 }: SummaryTabProps): React.JSX.Element {
   const [showShareMenu, setShowShareMenu] = useState(false);
   const [showCopyFeedback, setShowCopyFeedback] = useState(false);
+  const [showSaveFeedback, setShowSaveFeedback] = useState(false);
 
   // Get the per-format is_structured flag based on currentFormat
   const isStructured = currentFormat === 'short'
@@ -96,6 +99,14 @@ export function SummaryTab({
       navigator.clipboard.writeText(removeTimestamps(summary));
       setShowCopyFeedback(true);
       setTimeout(() => setShowCopyFeedback(false), 1000);
+    }
+  };
+
+  const handleSave = () => {
+    if (onSaveSummary && summary) {
+      onSaveSummary();
+      setShowSaveFeedback(true);
+      setTimeout(() => setShowSaveFeedback(false), 2000);
     }
   };
 
@@ -569,7 +580,7 @@ export function SummaryTab({
               Q&A
             </button>
 
-            {/* Copy and Export buttons - only show when summary exists */}
+            {/* Copy, Save and Export buttons - only show when summary exists */}
             {summary && !isLoading && (
               <>
                 <div style={{ width: '8px' }} /> {/* Spacer */}
@@ -600,6 +611,33 @@ export function SummaryTab({
                     <rect x="5" y="5" width="9" height="9" rx="1.5" stroke="currentColor" strokeWidth="1.5" fill="none"/>
                     <path d="M3 10V3C3 2.44772 3.44772 2 4 2H10" stroke="currentColor" strokeWidth="1.5" fill="none"/>
                   </svg>
+                </button>
+                <button
+                  onClick={handleSave}
+                  disabled={!onSaveSummary}
+                  style={{
+                    padding: '8px 12px',
+                    backgroundColor: showSaveFeedback ? '#4ade80' : 'rgba(255, 255, 255, 0.05)',
+                    border: showSaveFeedback
+                      ? '1px solid #4ade80'
+                      : '1px solid rgba(255, 255, 255, 0.1)',
+                    borderRadius: '6px',
+                    color: showSaveFeedback ? '#fff' : 'rgba(255, 255, 255, 0.7)',
+                    fontSize: '13px',
+                    fontWeight: 600,
+                    cursor: onSaveSummary ? 'pointer' : 'not-allowed',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    transition: 'all 0.2s',
+                    boxShadow: showSaveFeedback ? '0 0 0 0.5px #4ade80' : 'none',
+                    height: '36px',
+                    flexShrink: 0,
+                    whiteSpace: 'nowrap',
+                  }}
+                  title="Save summary to library"
+                >
+                  {showSaveFeedback ? '✓ Saved' : 'Save'}
                 </button>
                 <div style={{ position: 'relative' }}>
                   <button

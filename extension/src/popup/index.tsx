@@ -5,18 +5,14 @@
 
 import React, { useState, useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
-import { signInWithGoogle, signInWithEmail, signUpWithEmail, getAuthState } from './auth';
+import { signInWithGoogle, getAuthState } from './auth';
 import logoIcon from '../../assets/icon-128.png';
-
-type AuthMode = 'signin' | 'signup';
 
 function Popup(): React.JSX.Element {
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [authMode, setAuthMode] = useState<AuthMode>('signin');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
 
   // Check if already authenticated
   useEffect(() => {
@@ -35,8 +31,14 @@ function Popup(): React.JSX.Element {
       const result = await signInWithGoogle();
 
       if (result.success) {
-        // Close popup immediately after successful auth
-        window.close();
+        // Show success message
+        setShowSuccess(true);
+        setIsAuthenticated(true);
+
+        // Close popup after 3 seconds
+        setTimeout(() => {
+          window.close();
+        }, 3000);
       } else {
         setError(result.error || 'Failed to sign in');
         setIsAuthenticating(false);
@@ -48,31 +50,42 @@ function Popup(): React.JSX.Element {
     }
   };
 
-  const handleEmailAuth = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsAuthenticating(true);
-    setError(null);
+  // Show success state
+  if (showSuccess) {
+    return (
+      <div
+        style={{
+          width: '400px',
+          padding: '60px 20px',
+          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+          textAlign: 'center',
+        }}
+      >
+        <div
+          style={{
+            fontSize: '64px',
+            marginBottom: '20px',
+          }}
+        >
+          ✓
+        </div>
+        <h2
+          style={{
+            margin: '0 0 12px 0',
+            fontSize: '24px',
+            fontWeight: 600,
+            color: '#22c55e',
+          }}
+        >
+          You're signed in!
+        </h2>
+        <p style={{ color: '#666', fontSize: '14px', margin: 0 }}>
+          This window will close automatically...
+        </p>
+      </div>
+    );
+  }
 
-    try {
-      const result = authMode === 'signup'
-        ? await signUpWithEmail(email, password)
-        : await signInWithEmail(email, password);
-
-      if (result.success) {
-        // Close popup immediately after successful auth
-        window.close();
-      } else {
-        setError(result.error || 'Failed to authenticate');
-        setIsAuthenticating(false);
-      }
-    } catch (err) {
-      console.error('Authentication error:', err);
-      setError('An unexpected error occurred');
-      setIsAuthenticating(false);
-    }
-  };
-
-  // No success screen needed - popup closes immediately after auth
   return (
     <div
       style={{
@@ -134,91 +147,6 @@ function Popup(): React.JSX.Element {
             </div>
           </div>
         </div>
-      </div>
-
-      {/* Email Form */}
-      <form onSubmit={handleEmailAuth} style={{ marginBottom: '16px' }}>
-        <input
-          type="email"
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          disabled={isAuthenticating}
-          required
-          style={{
-            width: '100%',
-            padding: '12px',
-            fontSize: '14px',
-            border: '1px solid #ddd',
-            borderRadius: '8px',
-            marginBottom: '12px',
-            boxSizing: 'border-box',
-          }}
-        />
-        <input
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          disabled={isAuthenticating}
-          required
-          style={{
-            width: '100%',
-            padding: '12px',
-            fontSize: '14px',
-            border: '1px solid #ddd',
-            borderRadius: '8px',
-            marginBottom: '12px',
-            boxSizing: 'border-box',
-          }}
-        />
-        <button
-          type="submit"
-          disabled={isAuthenticating}
-          style={{
-            width: '100%',
-            padding: '12px 24px',
-            fontSize: '15px',
-            fontWeight: 600,
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-            color: 'white',
-            border: 'none',
-            borderRadius: '8px',
-            cursor: isAuthenticating ? 'not-allowed' : 'pointer',
-            opacity: isAuthenticating ? 0.6 : 1,
-            boxShadow: '0 2px 8px rgba(102, 126, 234, 0.3)',
-          }}
-        >
-          {isAuthenticating ? 'Please wait...' : (authMode === 'signup' ? 'Sign Up' : 'Sign In')}
-        </button>
-      </form>
-
-      {/* Toggle Sign In / Sign Up */}
-      <div style={{ textAlign: 'center', marginBottom: '16px' }}>
-        <button
-          onClick={() => {
-            setAuthMode(authMode === 'signin' ? 'signup' : 'signin');
-            setError(null);
-          }}
-          disabled={isAuthenticating}
-          style={{
-            background: 'none',
-            border: 'none',
-            color: '#667eea',
-            fontSize: '13px',
-            cursor: 'pointer',
-            textDecoration: 'underline',
-          }}
-        >
-          {authMode === 'signin' ? "Don't have an account? Sign up" : 'Already have an account? Sign in'}
-        </button>
-      </div>
-
-      {/* Divider */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
-        <div style={{ flex: 1, height: '1px', backgroundColor: '#ddd' }} />
-        <span style={{ fontSize: '12px', color: '#999' }}>OR</span>
-        <div style={{ flex: 1, height: '1px', backgroundColor: '#ddd' }} />
       </div>
 
       {/* Google Sign In Button */}
@@ -310,4 +238,3 @@ if (container) {
   const root = createRoot(container);
   root.render(<Popup />);
 }
-

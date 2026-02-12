@@ -1,0 +1,1774 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Library — Mintclip</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #171717;
+      --bg-elevated: #1f1f1f;
+      --bg-card: #262626;
+      --accent: #22c55e;
+      --accent-light: #4ade80;
+      --accent-glow: rgba(34, 197, 94, 0.15);
+      --accent-hover: #16a34a;
+      --text-primary: #ffffff;
+      --text-secondary: #a3a3a3;
+      --text-muted: #737373;
+      --border: rgba(255, 255, 255, 0.08);
+      --border-accent: rgba(34, 197, 94, 0.3);
+      --danger: #ef4444;
+      --warning: #f59e0b;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html {
+      font-size: 16px;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg-dark);
+      color: var(--text-primary);
+      line-height: 1.6;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Navigation */
+    nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      padding: 1.25rem 2rem;
+    }
+
+    .nav-container {
+      max-width: 1400px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(23, 23, 23, 0.8);
+      backdrop-filter: blur(20px);
+      border: 1px solid var(--border);
+      border-radius: 100px;
+      padding: 0.75rem 1rem 0.75rem 1.5rem;
+    }
+
+    .nav-left {
+      display: flex;
+      align-items: center;
+      gap: 3rem;
+    }
+
+    .logo {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 1.5rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      color: var(--text-primary);
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .logo-mark {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+    }
+
+    .nav-menu {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .nav-menu a {
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+      text-decoration: none;
+      padding: 0.75rem 1.25rem;
+      border-radius: 100px;
+      transition: all 0.2s;
+    }
+
+    .nav-menu a:hover {
+      color: var(--text-primary);
+      background: var(--bg-card);
+    }
+
+    .nav-menu a.active {
+      background: var(--accent);
+      color: #000;
+      font-weight: 600;
+    }
+
+    .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    /* Account Dropdown */
+    .account-dropdown {
+      position: relative;
+    }
+
+    .account-trigger {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.5rem 1rem 0.5rem 0.5rem;
+      border: 1px solid var(--border);
+      border-radius: 100px;
+      background: var(--bg-card);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .account-trigger:hover {
+      border-color: var(--border-accent);
+      background: var(--bg-elevated);
+    }
+
+    .avatar {
+      width: 32px;
+      height: 32px;
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #000;
+      font-weight: 700;
+      font-size: 0.8125rem;
+      letter-spacing: -0.02em;
+    }
+
+    .account-name {
+      font-weight: 500;
+      font-size: 0.875rem;
+      color: var(--text-primary);
+    }
+
+    .dropdown-arrow {
+      color: var(--text-muted);
+      font-size: 0.625rem;
+      transition: transform 0.2s;
+    }
+
+    .account-dropdown:hover .dropdown-arrow {
+      transform: rotate(180deg);
+    }
+
+    .dropdown-menu {
+      position: absolute;
+      top: calc(100% + 8px);
+      right: 0;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      box-shadow: 0 16px 48px rgba(0, 0, 0, 0.4);
+      min-width: 280px;
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(-8px);
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .account-dropdown:hover .dropdown-menu {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0);
+    }
+
+    .dropdown-header {
+      padding: 1.25rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .dropdown-header .name {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-weight: 700;
+      font-size: 1rem;
+      color: var(--text-primary);
+      margin-bottom: 0.25rem;
+    }
+
+    .dropdown-header .email {
+      font-size: 0.875rem;
+      color: var(--text-muted);
+    }
+
+    .dropdown-section {
+      padding: 0.5rem;
+    }
+
+    .dropdown-section-title {
+      font-size: 0.6875rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      padding: 0.75rem 0.875rem 0.375rem;
+    }
+
+    .dropdown-item {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.75rem 0.875rem;
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 0.875rem;
+      border-radius: 8px;
+      transition: all 0.15s;
+    }
+
+    .dropdown-item:hover {
+      background: var(--bg-card);
+      color: var(--text-primary);
+    }
+
+    .dropdown-item.danger {
+      color: var(--danger);
+    }
+
+    .dropdown-item.danger:hover {
+      background: rgba(239, 68, 68, 0.1);
+      color: var(--danger);
+    }
+
+    .dropdown-icon {
+      width: 18px;
+      text-align: center;
+      opacity: 0.7;
+      font-size: 1rem;
+    }
+
+    .dropdown-divider {
+      height: 1px;
+      background: var(--border);
+      margin: 0.25rem 0;
+    }
+
+    /* Main Content */
+    main {
+      flex: 1;
+      max-width: 1400px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 7rem 2rem 2rem;
+    }
+
+    /* Page Header */
+    .page-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 2rem;
+    }
+
+    .page-header-left h1 {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 2.5rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      margin-bottom: 0.5rem;
+    }
+
+    .page-header-left p {
+      font-size: 1rem;
+      color: var(--text-secondary);
+    }
+
+    .btn {
+      font-family: 'Inter', sans-serif;
+      font-size: 0.9rem;
+      font-weight: 600;
+      padding: 0.875rem 1.75rem;
+      border-radius: 100px;
+      cursor: pointer;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      border: none;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #000;
+    }
+
+    .btn-primary:hover {
+      background: var(--accent-light);
+      transform: scale(1.02);
+      box-shadow: 0 0 40px var(--accent-glow);
+    }
+
+    .btn-secondary {
+      background: transparent;
+      color: var(--text-primary);
+      border: 1px solid var(--border);
+    }
+
+    .btn-secondary:hover {
+      background: var(--bg-card);
+      border-color: var(--border-accent);
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 0.75rem;
+    }
+
+    /* Filter Bar */
+    .filter-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+      padding-bottom: 1.5rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .filter-left {
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+    }
+
+    .filter-group {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+    }
+
+    .filter-label {
+      font-size: 0.8125rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      padding-right: 0.5rem;
+    }
+
+    .filter-btn {
+      padding: 0.625rem 1.25rem;
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--text-secondary);
+      font-size: 0.875rem;
+      font-weight: 500;
+      border-radius: 100px;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: 'Inter', sans-serif;
+    }
+
+    .filter-btn:hover {
+      background: var(--bg-card);
+      color: var(--text-primary);
+    }
+
+    .filter-btn.active {
+      background: var(--accent);
+      color: #000;
+      font-weight: 600;
+    }
+
+    .search-wrapper {
+      position: relative;
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 1rem;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+      font-size: 0.875rem;
+    }
+
+    .search-input {
+      padding: 0.625rem 1rem 0.625rem 2.5rem;
+      border: 1px solid var(--border);
+      border-radius: 100px;
+      font-size: 0.875rem;
+      width: 300px;
+      outline: none;
+      background: var(--bg-elevated);
+      color: var(--text-primary);
+      font-family: 'Inter', sans-serif;
+      transition: all 0.2s;
+    }
+
+    .search-input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+
+    .search-input::placeholder {
+      color: var(--text-muted);
+    }
+
+    /* Table Styles */
+    .library-table-container {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      overflow: visible;
+    }
+
+    .library-table {
+      border-radius: 20px;
+      overflow: hidden;
+    }
+
+    .library-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .library-table thead {
+      background: var(--bg-card);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .library-table th {
+      padding: 1rem 1.5rem;
+      text-align: left;
+      font-size: 0.8125rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      white-space: nowrap;
+    }
+
+    .library-table th.column-thumbnail {
+      width: 340px;
+    }
+
+    .library-table th.column-title {
+      width: 21%;
+    }
+
+    .library-table th.column-type {
+      width: 140px;
+    }
+
+    .library-table th.column-date {
+      width: 160px;
+    }
+
+    .library-table th.column-size {
+      width: 120px;
+    }
+
+    .library-table th.column-actions {
+      width: 180px;
+      text-align: right;
+    }
+
+    .library-table tbody tr {
+      border-bottom: 1px solid var(--border);
+      transition: all 0.2s;
+    }
+
+    .library-table tbody tr:last-child {
+      border-bottom: none;
+    }
+
+    .library-table tbody tr:hover {
+      background: var(--bg-card);
+    }
+
+    .library-table td {
+      padding: 1rem 1.5rem;
+      vertical-align: middle;
+      position: relative;
+    }
+
+    /* Thumbnail Cell */
+    .thumbnail-cell {
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+    }
+
+    .thumbnail-wrapper {
+      position: relative;
+      width: 160px;
+      flex-shrink: 0;
+    }
+
+    .thumbnail-img {
+      width: 100%;
+      aspect-ratio: 16/9;
+      background: var(--bg-card);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    .thumbnail-img img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .video-duration-badge {
+      position: absolute;
+      bottom: 6px;
+      right: 6px;
+      background: rgba(0, 0, 0, 0.9);
+      color: var(--text-primary);
+      font-family: 'Inter', monospace;
+      font-size: 0.625rem;
+      font-weight: 600;
+      padding: 0.25rem 0.5rem;
+      border-radius: 4px;
+      letter-spacing: 0.02em;
+    }
+
+    .batch-badge {
+      position: absolute;
+      top: 6px;
+      left: 6px;
+      background: rgba(245, 158, 11, 0.95);
+      backdrop-filter: blur(10px);
+      color: #000;
+      font-size: 0.625rem;
+      font-weight: 700;
+      padding: 0.375rem 0.625rem;
+      border-radius: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      z-index: 10;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    }
+
+    .thumbnail-info {
+      flex: 1;
+      min-width: 0;
+      overflow: visible;
+    }
+
+    .thumbnail-title {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-weight: 600;
+      font-size: 0.9375rem;
+      color: var(--text-primary);
+      margin-bottom: 0.375rem;
+      line-height: 1.4;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      letter-spacing: -0.01em;
+      position: relative;
+    }
+
+    /* JavaScript-based tooltip styles */
+    .title-tooltip {
+      position: fixed;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      color: var(--text-primary);
+      padding: 0.75rem 1rem;
+      border-radius: 12px;
+      font-size: 0.875rem;
+      font-weight: 500;
+      line-height: 1.5;
+      white-space: normal;
+      max-width: 400px;
+      min-width: 200px;
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+      z-index: 10000;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.2s, visibility 0.2s;
+      pointer-events: none;
+      letter-spacing: -0.01em;
+    }
+
+    .title-tooltip.visible {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .title-tooltip::before {
+      content: '';
+      position: absolute;
+      bottom: -6px;
+      left: 1rem;
+      border: 6px solid transparent;
+      border-top-color: var(--bg-card);
+    }
+
+    .thumbnail-channel {
+      font-size: 0.8125rem;
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+
+    /* Batch Thumbnails Grid */
+    .batch-thumbnails {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: 1fr 1fr;
+      gap: 2px;
+      width: 100%;
+      height: 100%;
+      background: var(--bg-card);
+    }
+
+    .batch-thumbnails img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    /* Title Cell */
+    .title-cell {
+      font-weight: 500;
+      font-size: 0.9375rem;
+      color: var(--text-primary);
+      line-height: 1.5;
+    }
+
+    /* Type Cell */
+    .type-cell {
+      display: flex;
+      gap: 0.375rem;
+      flex-wrap: wrap;
+    }
+
+    .type-badge {
+      font-size: 0.6875rem;
+      font-weight: 600;
+      padding: 0.375rem 0.625rem;
+      border-radius: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      background: var(--bg-dark);
+    }
+
+    .type-badge-transcript {
+      color: #60a5fa;
+      background: rgba(96, 165, 250, 0.15);
+    }
+
+    .type-badge-summary {
+      color: var(--accent);
+      background: rgba(34, 197, 94, 0.15);
+    }
+
+    .type-badge-chat {
+      color: #a78bfa;
+      background: rgba(167, 139, 250, 0.15);
+    }
+
+    /* Date Cell */
+    .date-cell {
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+    }
+
+    /* Size Cell */
+    .size-cell {
+      font-size: 0.875rem;
+      color: var(--text-muted);
+      font-family: 'Inter', monospace;
+    }
+
+    /* Actions Cell */
+    .actions-cell {
+      display: flex;
+      gap: 0.5rem;
+      justify-content: flex-end;
+    }
+
+    .action-btn {
+      padding: 0.5rem 1rem;
+      border: 1px solid var(--border);
+      background: var(--bg-dark);
+      color: var(--text-secondary);
+      font-size: 0.8125rem;
+      font-weight: 500;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.15s;
+      font-family: 'Inter', sans-serif;
+      position: relative;
+    }
+
+    .action-btn:hover:not(:disabled) {
+      background: var(--bg-card);
+      color: var(--text-primary);
+      border-color: var(--border-accent);
+    }
+
+    .action-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      position: relative;
+    }
+
+    .action-btn:disabled:hover::after {
+      content: attr(data-tooltip);
+      position: absolute;
+      bottom: calc(100% + 8px);
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      color: var(--text-primary);
+      padding: 0.5rem 0.75rem;
+      border-radius: 8px;
+      font-size: 0.75rem;
+      font-weight: 500;
+      white-space: nowrap;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+      z-index: 100;
+      opacity: 1;
+      pointer-events: none;
+    }
+
+    .action-btn:disabled:hover::before {
+      content: '';
+      position: absolute;
+      bottom: calc(100% + 2px);
+      left: 50%;
+      transform: translateX(-50%);
+      border: 6px solid transparent;
+      border-top-color: var(--bg-card);
+      z-index: 101;
+      opacity: 1;
+      pointer-events: none;
+    }
+
+    .action-btn.danger:hover:not(:disabled) {
+      background: rgba(239, 68, 68, 0.1);
+      color: var(--danger);
+      border-color: rgba(239, 68, 68, 0.3);
+    }
+
+    /* Export Dropdown */
+    .export-dropdown {
+      position: absolute;
+      top: calc(100% + 4px);
+      right: 0;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+      z-index: 50;
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(-8px);
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      min-width: 240px;
+    }
+
+    .export-dropdown.visible {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0);
+    }
+
+    .export-dropdown-header {
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .export-options {
+      padding: 0.5rem;
+    }
+
+    .export-option {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      padding: 0.75rem 1rem;
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 0.875rem;
+      border-radius: 8px;
+      transition: all 0.15s;
+      cursor: pointer;
+      border: 1px solid transparent;
+    }
+
+    .export-option:hover {
+      background: var(--bg-elevated);
+      color: var(--text-primary);
+      border-color: var(--border);
+    }
+
+    .export-option-left {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .export-icon {
+      font-size: 1rem;
+      opacity: 0.7;
+    }
+
+    .export-format {
+      font-weight: 500;
+    }
+
+    .export-size {
+      font-size: 0.6875rem;
+      color: var(--text-muted);
+    }
+
+    .export-badge {
+      font-size: 0.625rem;
+      font-weight: 600;
+      padding: 0.25rem 0.5rem;
+      border-radius: 4px;
+      background: var(--bg-dark);
+      color: var(--text-muted);
+    }
+
+    /* Empty State */
+    .empty-state {
+      text-align: center;
+      padding: 6rem 2rem;
+    }
+
+    .empty-icon {
+      font-size: 4rem;
+      margin-bottom: 1.5rem;
+      opacity: 0.3;
+    }
+
+    .empty-title {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: 0.75rem;
+    }
+
+    .empty-description {
+      font-size: 1rem;
+      color: var(--text-secondary);
+      margin-bottom: 2rem;
+      max-width: 400px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    /* Batch Warning */
+    .batch-warning {
+      background: rgba(245, 158, 11, 0.1);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      display: flex;
+      gap: 0.75rem;
+      align-items: flex-start;
+      margin-top: 0.5rem;
+    }
+
+    .warning-icon {
+      font-size: 0.875rem;
+      flex-shrink: 0;
+    }
+
+    .warning-text {
+      font-size: 0.8125rem;
+      color: var(--warning);
+      line-height: 1.4;
+    }
+
+    /* Footer */
+    footer {
+      background: var(--bg-elevated);
+      border-top: 1px solid var(--border);
+      padding: 3rem 2rem;
+      margin-top: auto;
+    }
+
+    .footer-content {
+      max-width: 1400px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1.5rem;
+    }
+
+    .footer-left {
+      display: flex;
+      align-items: center;
+      gap: 2rem;
+    }
+
+    .footer-logo {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      text-decoration: none;
+    }
+
+    .footer-logo .logo-mark {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+    }
+
+    .footer-copyright {
+      font-size: 0.875rem;
+      color: var(--text-muted);
+    }
+
+    .footer-links {
+      display: flex;
+      gap: 2rem;
+    }
+
+    .footer-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.875rem;
+      transition: color 0.2s;
+    }
+
+    .footer-links a:hover {
+      color: var(--accent);
+    }
+
+    /* Responsive */
+    @media (max-width: 1200px) {
+      .library-table th.column-thumbnail,
+      .library-table td:first-child {
+        width: 288px;
+      }
+
+      .thumbnail-wrapper {
+        width: 120px;
+      }
+    }
+
+    @media (max-width: 768px) {
+      nav {
+        padding: 1rem 1.5rem;
+      }
+
+      .nav-container {
+        border-radius: 16px;
+        padding: 0.5rem 1rem;
+      }
+
+      .nav-menu {
+        display: none;
+      }
+
+      main {
+        padding: 6rem 1.5rem 1.5rem;
+      }
+
+      .page-header {
+        flex-direction: column;
+        gap: 1.5rem;
+      }
+
+      .page-header-left h1 {
+        font-size: 2rem;
+      }
+
+      .filter-bar {
+        flex-direction: column;
+        gap: 1rem;
+        align-items: stretch;
+      }
+
+      .search-input {
+        width: 100%;
+      }
+
+      .library-table-container {
+        border-radius: 16px;
+      }
+
+      .library-table thead {
+        display: none;
+      }
+
+      .library-table,
+      .library-table tbody,
+      .library-table tr,
+      .library-table td {
+        display: block;
+        width: 100%;
+      }
+
+      .library-table tr {
+        margin-bottom: 1rem;
+        background: var(--bg-card);
+        border-radius: 12px;
+        padding: 1rem;
+      }
+
+      .library-table td {
+        padding: 0.75rem 0;
+        border: none;
+        text-align: left;
+      }
+
+      .library-table td::before {
+        content: attr(data-label);
+        font-size: 0.8125rem;
+        font-weight: 600;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        display: block;
+        margin-bottom: 0.375rem;
+      }
+
+      .thumbnail-cell {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .thumbnail-wrapper {
+        width: 100%;
+      }
+
+      footer {
+        padding: 2rem 1.5rem;
+      }
+
+      .footer-content {
+        flex-direction: column;
+        text-align: center;
+      }
+
+      .footer-left {
+        flex-direction: column;
+        gap: 1rem;
+      }
+
+      .footer-links {
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 1rem 1.5rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Navigation -->
+  <nav>
+    <div class="nav-container">
+      <div class="nav-left">
+        <a href="landing-page-framer.html" class="logo">
+          <img src="../../extension/assets/icon-48.png" alt="Mintclip" class="logo-mark">
+          Mintclip
+        </a>
+        <div class="nav-menu">
+          <a href="dashboard-framer.html">Dashboard</a>
+          <a href="library.html" class="active">Library</a>
+        </div>
+      </div>
+      <div class="nav-right">
+        <!-- Account Dropdown -->
+        <div class="account-dropdown">
+          <div class="account-trigger">
+            <div class="avatar">JD</div>
+            <span class="account-name">John Doe</span>
+            <span class="dropdown-arrow">▼</span>
+          </div>
+          <div class="dropdown-menu">
+            <div class="dropdown-header">
+              <div class="name">John Doe</div>
+              <div class="email">john.doe@email.com</div>
+            </div>
+            <div class="dropdown-section">
+              <div class="dropdown-section-title">Account</div>
+              <a href="#" class="dropdown-item">
+                <span class="dropdown-icon">⚙️</span>
+                Account Settings
+              </a>
+              <a href="#" class="dropdown-item">
+                <span class="dropdown-icon">🔒</span>
+                Change Password
+              </a>
+              <a href="#" class="dropdown-item">
+                <span class="dropdown-icon">💳</span>
+                Billing & Plan
+              </a>
+            </div>
+            <div class="dropdown-divider"></div>
+            <div class="dropdown-section">
+              <div class="dropdown-section-title">Data & Privacy</div>
+              <a href="#" class="dropdown-item">
+                <span class="dropdown-icon">📊</span>
+                Export My Data
+              </a>
+              <a href="#" class="dropdown-item">
+                <span class="dropdown-icon">🛡️</span>
+                Privacy Settings
+              </a>
+              <a href="#" class="dropdown-item danger">
+                <span class="dropdown-icon">🗑️</span>
+                Delete Account
+              </a>
+            </div>
+            <div class="dropdown-divider"></div>
+            <div class="dropdown-section">
+              <a href="landing-page-framer.html" class="dropdown-item">
+                <span class="dropdown-icon">→</span>
+                Sign Out
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+  <main>
+    <!-- Page Header -->
+    <div class="page-header">
+      <div class="page-header-left">
+        <h1>Library</h1>
+        <p>All your saved videos, transcripts, summaries, and chats</p>
+      </div>
+      <div class="header-actions">
+        <button class="btn btn-secondary">
+          <span>↓</span>
+          Export All
+        </button>
+      </div>
+    </div>
+
+    <!-- Filter Bar -->
+    <div class="filter-bar">
+      <div class="filter-left">
+        <div class="filter-group">
+          <span class="filter-label">Type</span>
+          <button class="filter-btn active">All</button>
+          <button class="filter-btn">Individual</button>
+          <button class="filter-btn">Batch</button>
+        </div>
+        <div class="filter-group">
+          <span class="filter-label">Content</span>
+          <button class="filter-btn active">All</button>
+          <button class="filter-btn">Transcript</button>
+          <button class="filter-btn">Summary</button>
+          <button class="filter-btn">Chat</button>
+        </div>
+        <div class="filter-group">
+          <span class="filter-label">Sort</span>
+          <button class="filter-btn active">Recent</button>
+          <button class="filter-btn">Oldest</button>
+          <button class="filter-btn">A-Z</button>
+        </div>
+      </div>
+      <div class="search-wrapper">
+        <span class="search-icon">🔍</span>
+        <input type="text" class="search-input" placeholder="Search videos...">
+      </div>
+    </div>
+
+    <!-- Library Table -->
+    <!--
+      PRODUCTION IMPLEMENTATION NOTES:
+      - Fetch saved items from Supabase 'saved_items' table
+      - Map video_id to YouTube metadata for thumbnails/titles
+      - Populate data-full-title attribute dynamically from database
+      - Example React/JS implementation:
+        {items.map(item => (
+          <tr key={item.id}>
+            <td>
+              <h3 class="thumbnail-title" data-full-title={item.video_title}>
+                {item.video_title}
+              </h3>
+            </td>
+          </tr>
+        ))}
+    -->
+    <div class="library-table-container">
+      <table class="library-table">
+        <thead>
+          <tr>
+            <th class="column-thumbnail">Video</th>
+            <th class="column-title">Content Available</th>
+            <th class="column-type">Type</th>
+            <th class="column-date">Created</th>
+            <th class="column-size">Size</th>
+            <th class="column-actions">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Row 1: Individual video with all content types -->
+          <tr>
+            <td data-label="Video">
+              <div class="thumbnail-cell">
+                <div class="thumbnail-wrapper">
+                  <div class="thumbnail-img">
+                    <img src="https://i.ytimg.com/vi/jNQXAC9IVRw/hqdefault.jpg" alt="Video thumbnail">
+                    <span class="video-duration-badge">45:18</span>
+                  </div>
+                </div>
+                <div class="thumbnail-info">
+                  <!-- In production: data-full-title and text content should be populated from Supabase -->
+                  <!-- Example: <h3 class="thumbnail-title" data-full-title="${video.title}">${video.title}</h3> -->
+                  <h3 class="thumbnail-title" data-full-title="Complete Python Course for Beginners — Learn Programming from Scratch">Complete Python Course for Beginners — Learn Programming from Scratch</h3>
+                  <div class="thumbnail-channel">CodeAcademy</div>
+                </div>
+              </div>
+            </td>
+            <td data-label="Content Available">
+              <div class="type-cell">
+                <span class="type-badge type-badge-transcript">Transcript</span>
+                <span class="type-badge type-badge-summary">Summary</span>
+                <span class="type-badge type-badge-chat">Chat</span>
+              </div>
+            </td>
+            <td data-label="Type">Individual</td>
+            <td data-label="Created">
+              <div class="date-cell">Jan 15, 2026</div>
+            </td>
+            <td data-label="Size">
+              <div class="size-cell">412 KB</div>
+            </td>
+            <td data-label="Actions">
+              <div class="actions-cell">
+                <div style="position: relative;">
+                  <button class="action-btn" onclick="toggleExport(this)">Export</button>
+                  <div class="export-dropdown">
+                    <div class="export-dropdown-header">Choose Content to Export</div>
+                    <div class="export-options">
+                      <div class="export-option" onclick="exportItem('transcript', 'pdf')">
+                        <div class="export-option-left">
+                          <span class="export-icon">📄</span>
+                          <div>
+                            <div class="export-format">Transcript (PDF)</div>
+                            <div class="export-size">~245 KB</div>
+                          </div>
+                        </div>
+                        <span class="export-badge">Best for reading</span>
+                      </div>
+                      <div class="export-option" onclick="exportItem('summary', 'md')">
+                        <div class="export-option-left">
+                          <span class="export-icon">📝</span>
+                          <div>
+                            <div class="export-format">Summary (MD)</div>
+                            <div class="export-size">~28 KB</div>
+                          </div>
+                        </div>
+                        <span class="export-badge">Quick overview</span>
+                      </div>
+                      <div class="export-option" onclick="exportItem('chat', 'txt')">
+                        <div class="export-option-left">
+                          <span class="export-icon">💬</span>
+                          <div>
+                            <div class="export-format">Chat (TXT)</div>
+                            <div class="export-size">~56 KB</div>
+                          </div>
+                        </div>
+                        <span class="export-badge">Q&A history</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <button class="action-btn">View</button>
+                <button class="action-btn danger" onclick="deleteItem(this)">Delete</button>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Row 2: Individual video with transcript and summary only -->
+          <tr>
+            <td data-label="Video">
+              <div class="thumbnail-cell">
+                <div class="thumbnail-wrapper">
+                  <div class="thumbnail-img">
+                    <img src="https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg" alt="Video thumbnail">
+                    <span class="video-duration-badge">10:32</span>
+                  </div>
+                </div>
+                <div class="thumbnail-info">
+                  <h3 class="thumbnail-title" data-full-title="How to Build a Successful Startup in 2026">How to Build a Successful Startup in 2026</h3>
+                  <div class="thumbnail-channel">TechTalk</div>
+                </div>
+              </div>
+            </td>
+            <td data-label="Content Available">
+              <div class="type-cell">
+                <span class="type-badge type-badge-transcript">Transcript</span>
+                <span class="type-badge type-badge-summary">Summary</span>
+              </div>
+            </td>
+            <td data-label="Type">Individual</td>
+            <td data-label="Created">
+              <div class="date-cell">Jan 14, 2026</div>
+            </td>
+            <td data-label="Size">
+              <div class="size-cell">166 KB</div>
+            </td>
+            <td data-label="Actions">
+              <div class="actions-cell">
+                <div style="position: relative;">
+                  <button class="action-btn" onclick="toggleExport(this)">Export</button>
+                  <div class="export-dropdown">
+                    <div class="export-dropdown-header">Choose Content to Export</div>
+                    <div class="export-options">
+                      <div class="export-option" onclick="exportItem('transcript', 'pdf')">
+                        <div class="export-option-left">
+                          <span class="export-icon">📄</span>
+                          <div>
+                            <div class="export-format">Transcript (PDF)</div>
+                            <div class="export-size">~128 KB</div>
+                          </div>
+                        </div>
+                        <span class="export-badge">Best for reading</span>
+                      </div>
+                      <div class="export-option" onclick="exportItem('summary', 'md')">
+                        <div class="export-option-left">
+                          <span class="export-icon">📝</span>
+                          <div>
+                            <div class="export-format">Summary (MD)</div>
+                            <div class="export-size">~18 KB</div>
+                          </div>
+                        </div>
+                        <span class="export-badge">Quick overview</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <button class="action-btn">View</button>
+                <button class="action-btn danger" onclick="deleteItem(this)">Delete</button>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Row 3: Batch video with warning -->
+          <tr>
+            <td data-label="Video">
+              <div class="thumbnail-cell">
+                <div class="thumbnail-wrapper">
+                  <div class="thumbnail-img">
+                    <div class="batch-thumbnails">
+                      <img src="https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg" alt="Video 1">
+                      <img src="https://i.ytimg.com/vi/jNQXAC9IVRw/hqdefault.jpg" alt="Video 2">
+                      <img src="https://i.ytimg.com/vi/9bZkp7q19f0/hqdefault.jpg" alt="Video 3">
+                      <img src="https://i.ytimg.com/vi/kJQP7kiw5Fk/hqdefault.jpg" alt="Video 4">
+                    </div>
+                    <span class="batch-badge">Batch: 6</span>
+                  </div>
+                </div>
+                <div class="thumbnail-info">
+                  <h3 class="thumbnail-title" data-full-title="Startup Course Collection (Modules 1-6)">Startup Course Collection (Modules 1-6)</h3>
+                  <div class="thumbnail-channel">Mixed</div>
+                </div>
+              </div>
+            </td>
+            <td data-label="Content Available">
+              <div class="type-cell">
+                <span class="type-badge type-badge-transcript">Transcript</span>
+                <span class="type-badge type-badge-summary">Summary</span>
+              </div>
+            </td>
+            <td data-label="Type">
+              <span style="color: var(--warning); font-weight: 600;">Batch</span>
+            </td>
+            <td data-label="Created">
+              <div class="date-cell">Jan 13, 2026</div>
+            </td>
+            <td data-label="Size">
+              <div class="size-cell">2.4 MB</div>
+            </td>
+            <td data-label="Actions">
+              <div class="actions-cell">
+                <button class="action-btn" disabled data-tooltip="Batch exporting not supported">Export</button>
+                <button class="action-btn">View All</button>
+                <button class="action-btn danger" onclick="deleteItem(this)">Delete</button>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Row 4: Transcript only -->
+          <tr>
+            <td data-label="Video">
+              <div class="thumbnail-cell">
+                <div class="thumbnail-wrapper">
+                  <div class="thumbnail-img">
+                    <img src="https://i.ytimg.com/vi/9bZkp7q19f0/hqdefault.jpg" alt="Video thumbnail">
+                    <span class="video-duration-badge">23:45</span>
+                  </div>
+                </div>
+                <div class="thumbnail-info">
+                  <h3 class="thumbnail-title" data-full-title="The Future of AI: What to Expect in the Next Decade">The Future of AI: What to Expect in the Next Decade</h3>
+                  <div class="thumbnail-channel">AI Weekly</div>
+                </div>
+              </div>
+            </td>
+            <td data-label="Content Available">
+              <div class="type-cell">
+                <span class="type-badge type-badge-transcript">Transcript</span>
+              </div>
+            </td>
+            <td data-label="Type">Individual</td>
+            <td data-label="Created">
+              <div class="date-cell">Jan 12, 2026</div>
+            </td>
+            <td data-label="Size">
+              <div class="size-cell">207 KB</div>
+            </td>
+            <td data-label="Actions">
+              <div class="actions-cell">
+                <div style="position: relative;">
+                  <button class="action-btn" onclick="toggleExport(this)">Export</button>
+                  <div class="export-dropdown">
+                    <div class="export-dropdown-header">Choose Content to Export</div>
+                    <div class="export-options">
+                      <div class="export-option" onclick="exportItem('transcript', 'pdf')">
+                        <div class="export-option-left">
+                          <span class="export-icon">📄</span>
+                          <div>
+                            <div class="export-format">Transcript (PDF)</div>
+                            <div class="export-size">~156 KB</div>
+                          </div>
+                        </div>
+                        <span class="export-badge">Best for reading</span>
+                      </div>
+                      <div class="export-option" onclick="exportItem('transcript', 'md')">
+                        <div class="export-option-left">
+                          <span class="export-icon">📝</span>
+                          <div>
+                            <div class="export-format">Transcript (MD)</div>
+                            <div class="export-size">~58 KB</div>
+                          </div>
+                        </div>
+                        <span class="export-badge">Best for devs</span>
+                      </div>
+                      <div class="export-option" onclick="exportItem('transcript', 'txt')">
+                        <div class="export-option-left">
+                          <span class="export-icon">📃</span>
+                          <div>
+                            <div class="export-format">Transcript (TXT)</div>
+                            <div class="export-size">~51 KB</div>
+                          </div>
+                        </div>
+                        <span class="export-badge">Universal</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <button class="action-btn">View</button>
+                <button class="action-btn danger" onclick="deleteItem(this)">Delete</button>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Row 5: Chat only -->
+          <tr>
+            <td data-label="Video">
+              <div class="thumbnail-cell">
+                <div class="thumbnail-wrapper">
+                  <div class="thumbnail-img">
+                    <img src="https://i.ytimg.com/vi/fJ9rUzIMcZQ/hqdefault.jpg" alt="Video thumbnail">
+                    <span class="video-duration-badge">8:15</span>
+                  </div>
+                </div>
+                <div class="thumbnail-info">
+                  <h3 class="thumbnail-title" data-full-title="Quick Tips for Better Productivity">Quick Tips for Better Productivity</h3>
+                  <div class="thumbnail-channel">ProductivityPro</div>
+                </div>
+              </div>
+            </td>
+            <td data-label="Content Available">
+              <div class="type-cell">
+                <span class="type-badge type-badge-chat">Chat</span>
+              </div>
+            </td>
+            <td data-label="Type">Individual</td>
+            <td data-label="Created">
+              <div class="date-cell">Jan 10, 2026</div>
+            </td>
+            <td data-label="Size">
+              <div class="size-cell">49 KB</div>
+            </td>
+            <td data-label="Actions">
+              <div class="actions-cell">
+                <div style="position: relative;">
+                  <button class="action-btn" onclick="toggleExport(this)">Export</button>
+                  <div class="export-dropdown">
+                    <div class="export-dropdown-header">Choose Content to Export</div>
+                    <div class="export-options">
+                      <div class="export-option" onclick="exportItem('chat', 'pdf')">
+                        <div class="export-option-left">
+                          <span class="export-icon">📄</span>
+                          <div>
+                            <div class="export-format">Chat (PDF)</div>
+                            <div class="export-size">~34 KB</div>
+                          </div>
+                        </div>
+                        <span class="export-badge">Best for reading</span>
+                      </div>
+                      <div class="export-option" onclick="exportItem('chat', 'md')">
+                        <div class="export-option-left">
+                          <span class="export-icon">📝</span>
+                          <div>
+                            <div class="export-format">Chat (MD)</div>
+                            <div class="export-size">~18 KB</div>
+                          </div>
+                        </div>
+                        <span class="export-badge">Best for devs</span>
+                      </div>
+                      <div class="export-option" onclick="exportItem('chat', 'txt')">
+                        <div class="export-option-left">
+                          <span class="export-icon">📃</span>
+                          <div>
+                            <div class="export-format">Chat (TXT)</div>
+                            <div class="export-size">~15 KB</div>
+                          </div>
+                        </div>
+                        <span class="export-badge">Universal</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <button class="action-btn">View</button>
+                <button class="action-btn danger" onclick="deleteItem(this)">Delete</button>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Row 6: Another individual video -->
+          <tr>
+            <td data-label="Video">
+              <div class="thumbnail-cell">
+                <div class="thumbnail-wrapper">
+                  <div class="thumbnail-img">
+                    <img src="https://i.ytimg.com/vi/OPf0YbXqDm0/hqdefault.jpg" alt="Video thumbnail">
+                    <span class="video-duration-badge">32:10</span>
+                  </div>
+                </div>
+                <div class="thumbnail-info">
+                  <h3 class="thumbnail-title" data-full-title="Understanding Machine Learning: A Comprehensive Guide">Understanding Machine Learning: A Comprehensive Guide</h3>
+                  <div class="thumbnail-channel">MLMasters</div>
+                </div>
+              </div>
+            </td>
+            <td data-label="Content Available">
+              <div class="type-cell">
+                <span class="type-badge type-badge-transcript">Transcript</span>
+                <span class="type-badge type-badge-summary">Summary</span>
+              </div>
+            </td>
+            <td data-label="Type">Individual</td>
+            <td data-label="Created">
+              <div class="date-cell">Jan 8, 2026</div>
+            </td>
+            <td data-label="Size">
+              <div class="size-cell">270 KB</div>
+            </td>
+            <td data-label="Actions">
+              <div class="actions-cell">
+                <div style="position: relative;">
+                  <button class="action-btn" onclick="toggleExport(this)">Export</button>
+                  <div class="export-dropdown">
+                    <div class="export-dropdown-header">Choose Content to Export</div>
+                    <div class="export-options">
+                      <div class="export-option" onclick="exportItem('transcript', 'pdf')">
+                        <div class="export-option-left">
+                          <span class="export-icon">📄</span>
+                          <div>
+                            <div class="export-format">Transcript (PDF)</div>
+                            <div class="export-size">~198 KB</div>
+                          </div>
+                        </div>
+                        <span class="export-badge">Best for reading</span>
+                      </div>
+                      <div class="export-option" onclick="exportItem('summary', 'md')">
+                        <div class="export-option-left">
+                          <span class="export-icon">📝</span>
+                          <div>
+                            <div class="export-format">Summary (MD)</div>
+                            <div class="export-size">~32 KB</div>
+                          </div>
+                        </div>
+                        <span class="export-badge">Quick overview</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <button class="action-btn">View</button>
+                <button class="action-btn danger" onclick="deleteItem(this)">Delete</button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer>
+    <div class="footer-content">
+      <div class="footer-left">
+        <a href="landing-page-framer.html" class="footer-logo">
+          <img src="../../extension/assets/icon-48.png" alt="Mintclip" class="logo-mark">
+          Mintclip
+        </a>
+        <span class="footer-copyright">&copy; 2026 Mintclip. All rights reserved.</span>
+      </div>
+      <div class="footer-links">
+        <a href="#">Privacy Policy</a>
+        <a href="#">Terms of Service</a>
+        <a href="#">Cookie Policy</a>
+        <a href="#">GDPR Compliance</a>
+        <a href="#">Data Processing Agreement</a>
+        <a href="#">Contact Support</a>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // Export dropdown toggle
+    function toggleExport(button) {
+      const dropdown = button.nextElementSibling;
+      const allDropdowns = document.querySelectorAll('.export-dropdown');
+
+      // Close all other dropdowns
+      allDropdowns.forEach(d => {
+        if (d !== dropdown) {
+          d.classList.remove('visible');
+        }
+      });
+
+      // Toggle current dropdown
+      dropdown.classList.toggle('visible');
+
+      // Prevent event bubbling
+      event.stopPropagation();
+    }
+
+    // Close dropdowns when clicking outside
+    document.addEventListener('click', () => {
+      const allDropdowns = document.querySelectorAll('.export-dropdown');
+      allDropdowns.forEach(d => d.classList.remove('visible'));
+    });
+
+    // Export item handler
+    function exportItem(type, format) {
+      console.log(`Exporting ${type} as ${format}`);
+      // Close dropdown after selection
+      const allDropdowns = document.querySelectorAll('.export-dropdown');
+      allDropdowns.forEach(d => d.classList.remove('visible'));
+    }
+
+    // Delete item handler
+    function deleteItem(button) {
+      if (confirm('Are you sure you want to delete this item?')) {
+        const row = button.closest('tr');
+        row.style.opacity = '0';
+        setTimeout(() => row.remove(), 300);
+      }
+    }
+
+    // Filter buttons
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        // Remove active from siblings in same group
+        const group = btn.closest('.filter-group');
+        if (group) {
+          group.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        }
+        btn.classList.add('active');
+      });
+    });
+
+    // Title tooltip functionality - using JavaScript instead of CSS pseudo-elements
+    document.addEventListener('DOMContentLoaded', () => {
+      const thumbnailTitles = document.querySelectorAll('.thumbnail-title');
+      console.log('Found', thumbnailTitles.length, 'thumbnail titles');
+
+      thumbnailTitles.forEach((title, index) => {
+        const fullTitle = title.getAttribute('data-full-title');
+        if (!fullTitle) {
+          console.log('Title', index, 'has no data-full-title attribute');
+          return;
+        }
+
+        console.log('Creating tooltip for:', fullTitle.substring(0, 50) + '...');
+
+        // Create tooltip element
+        const tooltip = document.createElement('div');
+        tooltip.className = 'title-tooltip';
+        tooltip.textContent = fullTitle;
+
+        // Add tooltip to body
+        document.body.appendChild(tooltip);
+
+        // Show tooltip on hover
+        title.addEventListener('mouseenter', (e) => {
+          const rect = title.getBoundingClientRect();
+          tooltip.style.left = rect.left + 'px';
+          tooltip.style.top = (rect.top + window.scrollY - tooltip.offsetHeight - 8) + 'px';
+          tooltip.classList.add('visible');
+          console.log('Tooltip shown for:', fullTitle.substring(0, 30) + '...');
+        });
+
+        title.addEventListener('mouseleave', () => {
+          tooltip.classList.remove('visible');
+          console.log('Tooltip hidden');
+        });
+
+        // Also add click to show/hide for touch devices
+        title.addEventListener('click', (e) => {
+          e.preventDefault();
+          const isVisible = tooltip.classList.contains('visible');
+          if (isVisible) {
+            tooltip.classList.remove('visible');
+          } else {
+            const rect = title.getBoundingClientRect();
+            tooltip.style.left = rect.left + 'px';
+            tooltip.style.top = (rect.top + window.scrollY - tooltip.offsetHeight - 8) + 'px';
+            tooltip.classList.add('visible');
+          }
+        });
+      });
+    });
+  </script>
+</body>
+</html>

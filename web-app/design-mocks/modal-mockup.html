@@ -1,0 +1,872 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mintclip Video Modal - Slide-out Mockup</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+        }
+
+        .demo-content {
+            text-align: center;
+            max-width: 600px;
+        }
+
+        .demo-content h1 {
+            font-size: 32px;
+            margin-bottom: 16px;
+            color: #1a1a1a;
+        }
+
+        .demo-content p {
+            font-size: 16px;
+            color: #666;
+            margin-bottom: 24px;
+            line-height: 1.6;
+        }
+
+        .open-button {
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        .open-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
+        }
+
+        /* Toggle Button (visible when modal is closed) */
+        .toggle-button {
+            position: fixed;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            background-color: #212121;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 12px 16px;
+            color: #fff;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            transition: all 0.2s;
+            z-index: 9999;
+            display: none;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .toggle-button:hover {
+            background-color: #2a2a2a;
+            transform: translateY(-50%) translateX(-4px);
+        }
+
+        .toggle-button svg {
+            width: 20px;
+            height: 20px;
+        }
+
+        /* Modal Overlay */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 10000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease-out;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        /* Slide-out Modal (Dropbox-style, Dark Theme) */
+        .modal-container {
+            position: fixed;
+            top: 0;
+            right: 0;
+            height: 800px;
+            width: 100%;
+            max-width: 600px;
+            background-color: #212121;
+            box-shadow: -4px 0 24px rgba(0, 0, 0, 0.3);
+            z-index: 10001;
+            transform: translateX(100%);
+            transition: transform 0.3s ease-out;
+            display: flex;
+            flex-direction: column;
+            border-left: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .modal-container.active {
+            transform: translateX(0);
+        }
+
+        /* Modal Header */
+        .modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 20px 24px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            background-color: #1a1a1a;
+            flex-shrink: 0;
+        }
+
+        .modal-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #fff;
+            flex: 1;
+            margin-right: 16px;
+            line-height: 1.4;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .close-button {
+            width: 36px;
+            height: 36px;
+            padding: 8px;
+            background-color: transparent;
+            border: none;
+            color: rgba(255, 255, 255, 0.6);
+            cursor: pointer;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .close-button:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+            color: #fff;
+        }
+
+        .close-button svg {
+            width: 20px;
+            height: 20px;
+        }
+
+        /* Tab Navigation */
+        .tab-navigation {
+            display: flex;
+            gap: 4px;
+            padding: 12px 24px 0;
+            background-color: #1a1a1a;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            flex-shrink: 0;
+        }
+
+        .tab-button {
+            padding: 10px 16px;
+            border: none;
+            background: none;
+            font-size: 14px;
+            font-weight: 400;
+            color: rgba(255, 255, 255, 0.6);
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+            border-radius: 6px 6px 0 0;
+        }
+
+        .tab-button:hover {
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .tab-button.active {
+            color: #fff;
+            font-weight: 500;
+            background-color: #212121;
+            border-bottom-color: #667eea;
+        }
+
+        /* Tab Content */
+        .tab-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0;
+            background-color: #212121;
+            display: none;
+        }
+
+        .tab-content.active {
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Transcript Tab - Matching Extension Design */
+        .transcript-controls {
+            padding: 12px 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .search-input {
+            flex: 1;
+            padding: 8px 12px;
+            background-color: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            color: #fff;
+            font-size: 13px;
+            outline: none;
+        }
+
+        .search-input:focus {
+            border-color: #667eea;
+        }
+
+        .search-input::placeholder {
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        .language-display {
+            padding: 8px 12px;
+            background-color: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .icon-button {
+            padding: 8px;
+            background-color: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: border 0.2s;
+            width: 36px;
+            height: 36px;
+        }
+
+        .icon-button:hover {
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .transcript-scrollable {
+            flex: 1;
+            overflow-y: scroll;
+            padding: 16px;
+        }
+
+        .transcript-segment {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 12px;
+            align-items: flex-start;
+        }
+
+        .timestamp {
+            color: #3ea6ff;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: default;
+            transition: all 0.2s ease;
+            border-radius: 2px;
+            padding: 1px 3px;
+            flex-shrink: 0;
+        }
+
+        .timestamp:hover {
+            background-color: rgba(62, 166, 255, 0.1);
+            color: #1a73e8;
+        }
+
+        .transcript-text {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 14px;
+            line-height: 20px;
+        }
+
+        /* Summary Tab - Matching Extension Design */
+        .summary-controls {
+            padding: 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            flex-shrink: 0;
+        }
+
+        .format-selector {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .format-button {
+            flex: 1;
+            padding: 8px 12px;
+            background-color: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 13px;
+            cursor: pointer;
+            font-weight: 400;
+            transition: all 0.2s;
+        }
+
+        .format-button:hover {
+            background-color: rgba(255, 255, 255, 0.08);
+        }
+
+        .format-button.active {
+            background-color: #667eea;
+            border-color: #667eea;
+            color: #fff;
+            font-weight: 600;
+        }
+
+        .summary-scrollable {
+            flex: 1;
+            overflow-y: scroll;
+            padding: 16px;
+        }
+
+        .summary-content-box {
+            background-color: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 8px;
+            padding: 16px;
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 14px;
+        }
+
+        .summary-content-box h4 {
+            font-weight: 700;
+            font-size: 16px;
+            margin-top: 16px;
+            margin-bottom: 8px;
+            color: #fff;
+        }
+
+        .summary-content-box h4:first-child {
+            margin-top: 0;
+        }
+
+        .summary-content-box p {
+            margin-bottom: 8px;
+            line-height: 1.6;
+        }
+
+        .summary-content-box code {
+            background-color: rgba(255, 255, 255, 0.1);
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: monospace;
+            font-size: 13px;
+            color: #667eea;
+        }
+
+        .summary-content-box ul {
+            margin: 8px 0;
+            padding-left: 20px;
+        }
+
+        .summary-content-box li {
+            margin-bottom: 4px;
+        }
+
+        /* Chat Tab - Matching Extension Design */
+        .chat-scrollable {
+            flex: 1;
+            overflow-y: scroll;
+            padding: 16px;
+        }
+
+        .chat-empty-state {
+            text-align: center;
+            color: rgba(255, 255, 255, 0.6);
+            padding: 32px 16px;
+        }
+
+        .chat-empty-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+
+        .chat-message {
+            margin-bottom: 16px;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .chat-message.user {
+            align-items: flex-end;
+        }
+
+        .chat-bubble {
+            max-width: 85%;
+            padding: 10px 14px;
+            border-radius: 12px;
+            color: #fff;
+            font-size: 13px;
+            line-height: 1.5;
+            word-wrap: break-word;
+        }
+
+        .chat-message.user .chat-bubble {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+        }
+
+        .chat-message.assistant .chat-bubble {
+            background-color: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .chat-input-area {
+            padding: 16px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .chat-input-wrapper {
+            display: flex;
+            gap: 8px;
+        }
+
+        .chat-input {
+            flex: 1;
+            padding: 10px 12px;
+            background-color: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            color: #fff;
+            font-size: 13px;
+            resize: none;
+            outline: none;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            min-height: 44px;
+            max-height: 120px;
+        }
+
+        .chat-input::placeholder {
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        .send-button {
+            padding: 10px 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.25);
+        }
+
+        .send-button:disabled {
+            background: rgba(102, 126, 234, 0.3);
+            box-shadow: none;
+            cursor: not-allowed;
+        }
+
+        .chat-hint {
+            margin-top: 8px;
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.4);
+            text-align: center;
+        }
+
+        /* Export dropdown menu */
+        .export-dropdown {
+            position: relative;
+        }
+
+        .export-menu {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            margin-top: 4px;
+            background-color: #2a2a2a;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 8px;
+            min-width: 160px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            z-index: 1000;
+            display: none;
+        }
+
+        .export-menu.active {
+            display: block;
+        }
+
+        .export-menu-item {
+            width: 100%;
+            padding: 8px;
+            background-color: transparent;
+            border: none;
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 13px;
+            cursor: pointer;
+            text-align: left;
+            border-radius: 4px;
+        }
+
+        .export-menu-item:hover {
+            background-color: rgba(255, 255, 255, 0.05);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .modal-container {
+                max-width: 100%;
+            }
+
+            body {
+                padding: 20px;
+            }
+
+            .toggle-button {
+                right: 10px;
+                padding: 10px 12px;
+                font-size: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Demo Content -->
+    <div class="demo-content">
+        <h1>Mintclip Video Modal</h1>
+        <p>Click the button below to open the slide-out modal. This is a Dropbox-style panel that slides in from the right side of the screen.</p>
+        <button class="open-button" onclick="openModal()">Open Video Modal</button>
+    </div>
+
+    <!-- Toggle Button (appears when modal is closed after first open) -->
+    <button class="toggle-button" id="toggleButton" onclick="openModal()">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none">
+            <path d="M3 4h14M3 10h10M3 16h6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        <span>View Video</span>
+    </button>
+
+    <!-- Modal Overlay -->
+    <div class="modal-overlay" id="modalOverlay" onclick="closeModal()"></div>
+
+    <!-- Slide-out Modal Container -->
+    <div class="modal-container" id="modalContainer">
+        <!-- Modal Header -->
+        <div class="modal-header">
+            <h2 class="modal-title">How to Build a REST API with FastAPI - Complete Tutorial</h2>
+            <button class="close-button" onclick="closeModal()" title="Close (Esc)">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none">
+                    <path d="M15 5L5 15M5 5L15 15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+            </button>
+        </div>
+
+        <!-- Tab Navigation -->
+        <div class="tab-navigation">
+            <button class="tab-button active" onclick="switchTab('transcript')">Transcript</button>
+            <button class="tab-button" onclick="switchTab('summary')">Summary</button>
+            <button class="tab-button" onclick="switchTab('chat')">Chat</button>
+        </div>
+
+        <!-- Tab Content - Transcript -->
+        <div class="tab-content active" id="transcript-tab">
+            <!-- Controls: Search, Language Display, Copy -->
+            <div class="transcript-controls">
+                <input type="text" class="search-input" placeholder="Search transcript...">
+
+                <!-- Language Display (NOT selectable - shows saved language) -->
+                <div class="language-display" title="Language">
+                    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.5" fill="none"/>
+                        <path d="M2 8h12M8 2a8 8 0 0 0 0 12M8 2a8 8 0 0 1 0 12" stroke="currentColor" stroke-width="1.5" fill="none"/>
+                    </svg>
+                    <span style="font-weight: 500;">English</span>
+                </div>
+
+                <!-- Export dropdown -->
+                <div class="export-dropdown">
+                    <button class="icon-button" id="transcriptExportButton" onclick="toggleTranscriptExport()" title="Export transcript">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M8 1V10M8 1L5 4M8 1L11 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M2 10V13C2 13.5304 2.21071 14.0391 2.58579 14.4142C2.96086 14.7893 3.46957 15 4 15H12C12.5304 15 13.0391 14.7893 13.4142 14.4142C13.7893 14.0391 14 13.5304 14 13V10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </button>
+                    <div class="export-menu" id="transcriptExportMenu">
+                        <button class="export-menu-item" onclick="exportTranscriptAs('text')">Export as Text</button>
+                        <button class="export-menu-item" onclick="exportTranscriptAs('pdf')">Export as PDF</button>
+                        <button class="export-menu-item" onclick="exportTranscriptAs('markdown')">Export as Markdown</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Transcript Content -->
+            <div class="transcript-scrollable">
+                <div class="transcript-segment">
+                    <span class="timestamp" title="Timestamp: 0:00 (0s)">0:00</span>
+                    <p class="transcript-text">Welcome back to another tutorial. Today we're going to build a REST API using FastAPI, which is one of the fastest and most modern Python web frameworks available.</p>
+                </div>
+
+                <div class="transcript-segment">
+                    <span class="timestamp" title="Timestamp: 0:15 (15s)">0:15</span>
+                    <p class="transcript-text">First, let's talk about what makes FastAPI special. It's built on top of Starlette for the web parts and Pydantic for the data validation, which gives us automatic data validation and serialization.</p>
+                </div>
+
+                <div class="transcript-segment">
+                    <span class="timestamp" title="Timestamp: 0:35 (35s)">0:35</span>
+                    <p class="transcript-text">To get started, you'll need to install FastAPI and uvicorn. Open your terminal and run: pip install fastapi uvicorn. This will install both FastAPI and uvicorn, which is the ASGI server we'll use to run our application.</p>
+                </div>
+
+                <div class="transcript-segment">
+                    <span class="timestamp" title="Timestamp: 1:02 (62s)">1:02</span>
+                    <p class="transcript-text">Now let's create our first endpoint. We'll start with a simple Hello World example to understand the basic structure of a FastAPI application.</p>
+                </div>
+
+                <div class="transcript-segment">
+                    <span class="timestamp" title="Timestamp: 1:18 (78s)">1:18</span>
+                    <p class="transcript-text">One of the best features of FastAPI is the automatic interactive documentation. Once your app is running, you can visit /docs to see an interactive Swagger UI, or /redoc for an alternative documentation interface.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab Content - Summary -->
+        <div class="tab-content" id="summary-tab">
+            <!-- Format Selector and Action Buttons -->
+            <div class="summary-controls">
+                <div class="format-selector">
+                    <button class="format-button active" onclick="setSummaryFormat('short')">Short</button>
+                    <button class="format-button" onclick="setSummaryFormat('topic')">Topics</button>
+                    <button class="format-button" onclick="setSummaryFormat('qa')">Q&A</button>
+
+                    <div style="width: 8px;"></div>
+
+                    <!-- Export dropdown -->
+                    <div class="export-dropdown">
+                        <button class="icon-button" id="exportButton" onclick="toggleExportMenu()" title="Export summary">
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M8 1V10M8 1L5 4M8 1L11 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M2 10V13C2 13.5304 2.21071 14.0391 2.58579 14.4142C2.96086 14.7893 3.46957 15 4 15H12C12.5304 15 13.0391 14.7893 13.4142 14.4142C13.7893 14.0391 14 13.5304 14 13V10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </button>
+                        <div class="export-menu" id="exportMenu">
+                            <button class="export-menu-item" onclick="exportAs('text')">Export as Text</button>
+                            <button class="export-menu-item" onclick="exportAs('pdf')">Export as PDF</button>
+                            <button class="export-menu-item" onclick="exportAs('markdown')">Export as Markdown</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Summary Content -->
+            <div class="summary-scrollable">
+                <div class="summary-content-box">
+                    <h4>Q1: What is FastAPI and why should I use it?</h4>
+                    <p>FastAPI is a modern, high-performance Python web framework for building APIs. It's built on Starlette for web functionality and Pydantic for data validation, offering automatic data validation, serialization, and interactive documentation.</p>
+
+                    <h4>Q2: How do I get started with FastAPI?</h4>
+                    <p>To begin, install FastAPI and uvicorn by running <code>pip install fastapi uvicorn</code>. Then create your first endpoint with a simple Hello World example to understand the basic application structure.</p>
+
+                    <h4>Q3: What are the key features of FastAPI?</h4>
+                    <p>Key features include:</p>
+                    <ul>
+                        <li>Automatic interactive documentation at /docs (Swagger UI) and /redoc</li>
+                        <li>High performance comparable to NodeJS and Go</li>
+                        <li>Built-in data validation using Pydantic</li>
+                        <li>Type hints support for better IDE integration</li>
+                        <li>Async/await support out of the box</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab Content - Chat -->
+        <div class="tab-content" id="chat-tab">
+            <!-- Messages Area -->
+            <div class="chat-scrollable">
+                <!-- Empty State -->
+                <div class="chat-empty-state">
+                    <div class="chat-empty-icon">💬</div>
+                    <div style="font-size: 14px; margin-bottom: 8px;">Ask questions about the video</div>
+                    <div style="font-size: 12px; color: rgba(255, 255, 255, 0.4);">Get AI-powered answers based on the transcript</div>
+                </div>
+
+                <!-- Sample Messages -->
+                <div class="chat-message user">
+                    <div class="chat-bubble">
+                        What are the main advantages of FastAPI over Flask?
+                    </div>
+                </div>
+
+                <div class="chat-message assistant">
+                    <div class="chat-bubble">
+                        Great question! Based on the video, FastAPI has several advantages:<br><br>
+                        1. <strong>Performance</strong>: FastAPI is one of the fastest Python frameworks, comparable to NodeJS and Go<br><br>
+                        2. <strong>Automatic Documentation</strong>: It generates interactive API docs automatically at /docs and /redoc<br><br>
+                        3. <strong>Data Validation</strong>: Built-in validation using Pydantic with automatic error handling<br><br>
+                        4. <strong>Async Support</strong>: Native async/await support for better performance with I/O operations
+                    </div>
+                </div>
+            </div>
+
+            <!-- Input Area -->
+            <div class="chat-input-area">
+                <div class="chat-input-wrapper">
+                    <textarea class="chat-input" placeholder="Ask a question about the video..." rows="1"></textarea>
+
+                    <!-- Export button (only shows when there are messages) -->
+                    <div class="export-dropdown" id="chatExportWrapper">
+                        <button class="icon-button" id="chatExportButton" onclick="toggleChatExport()" title="Export chat">
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M8 1V10M8 1L5 4M8 1L11 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M2 10V13C2 13.5304 2.21071 14.0391 2.58579 14.4142C2.96086 14.7893 3.46957 15 4 15H12C12.5304 15 13.0391 14.7893 13.4142 14.4142C13.7893 14.0391 14 13.5304 14 13V10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </button>
+                        <div class="export-menu" id="chatExportMenu">
+                            <button class="export-menu-item" onclick="exportChatAs('text')">Export as Text</button>
+                            <button class="export-menu-item" onclick="exportChatAs('pdf')">Export as PDF</button>
+                            <button class="export-menu-item" onclick="exportChatAs('markdown')">Export as Markdown</button>
+                        </div>
+                    </div>
+
+                    <button class="send-button">Send</button>
+                </div>
+                <div class="chat-hint">Press Enter to send, Shift + Enter for new line</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let modalOpenedOnce = false;
+
+        function openModal() {
+            document.getElementById('modalOverlay').classList.add('active');
+            document.getElementById('modalContainer').classList.add('active');
+            document.body.style.overflow = 'hidden';
+            modalOpenedOnce = true;
+        }
+
+        function closeModal() {
+            document.getElementById('modalOverlay').classList.remove('active');
+            document.getElementById('modalContainer').classList.remove('active');
+            document.body.style.overflow = 'unset';
+
+            // Show toggle button after first close
+            if (modalOpenedOnce) {
+                setTimeout(() => {
+                    document.getElementById('toggleButton').style.display = 'flex';
+                }, 300);
+            }
+        }
+
+        function switchTab(tabName) {
+            // Hide all tabs
+            document.getElementById('transcript-tab').classList.remove('active');
+            document.getElementById('summary-tab').classList.remove('active');
+            document.getElementById('chat-tab').classList.remove('active');
+
+            // Remove active class from all buttons
+            document.querySelectorAll('.tab-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+
+            // Show selected tab and activate button
+            document.getElementById(tabName + '-tab').classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        function toggleTranscriptExport() {
+            event.stopPropagation();
+            document.getElementById('transcriptExportMenu').classList.toggle('active');
+        }
+
+        function exportTranscriptAs(format) {
+            document.getElementById('transcriptExportMenu').classList.remove('active');
+            alert(`Exporting transcript as ${format.toUpperCase()}...`);
+        }
+
+        function toggleChatExport() {
+            event.stopPropagation();
+            document.getElementById('chatExportMenu').classList.toggle('active');
+        }
+
+        function exportChatAs(format) {
+            document.getElementById('chatExportMenu').classList.remove('active');
+            alert(`Exporting chat as ${format.toUpperCase()}...`);
+        }
+
+        function toggleExportMenu() {
+            event.stopPropagation();
+            document.getElementById('exportMenu').classList.toggle('active');
+        }
+
+        function exportAs(format) {
+            document.getElementById('exportMenu').classList.remove('active');
+            alert(`Exporting summary as ${format.toUpperCase()}...`);
+        }
+
+        function setSummaryFormat(format) {
+            // Update active state
+            document.querySelectorAll('.format-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+
+            // In real app, this would load the appropriate summary format
+            console.log('Setting format to:', format);
+        }
+
+        // Close export menus when clicking outside
+        document.addEventListener('click', function() {
+            document.getElementById('exportMenu')?.classList.remove('active');
+            document.getElementById('transcriptExportMenu')?.classList.remove('active');
+            document.getElementById('chatExportMenu')?.classList.remove('active');
+        });
+
+        // Close modal on escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeModal();
+            }
+        });
+    </script>
+</body>
+</html>

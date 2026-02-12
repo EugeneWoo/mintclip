@@ -49,9 +49,9 @@ class GeminiClient:
 
         try:
             _genai.configure(api_key=api_key)
-            # Use Gemini 2.5 Flash Lite (bigger, faster, optimized for speed)
+            # Use Gemini 2.5 Flash Lite for speed and cost efficiency (switch to 'gemini-2.5-flash' for complex workflows)
             self.model = _genai.GenerativeModel('gemini-2.5-flash-lite')
-            print("Gemini client initialized successfully with gemini-2.5-flash")
+            print("Gemini client initialized successfully with gemini-2.5-flash-lite")
         except Exception as e:
             print(f"Failed to initialize Gemini client: {e}")
             self.model = None
@@ -159,7 +159,7 @@ class GeminiClient:
 
         Args:
             transcript: Full video transcript
-            format: 'qa' or 'topic'
+            format: 'qa' (up to 10 questions), 'topic' (up to 10 topics), or 'short' (exactly 3 sections)
 
         Returns:
             Generated summary or None if error
@@ -169,8 +169,16 @@ class GeminiClient:
         try:
             prompt = get_summary_prompt(format, transcript)
 
-            # Fixed max_tokens for summaries (up to 5 Q&As or 7 topics)
-            max_tokens = 1500
+            # Set max_tokens based on format to ensure complete output
+            # - short: 800 tokens for concise 3-section summary
+            # - qa: 3500 tokens for up to 10 questions with detailed answers and timestamps
+            # - topic: 3500 tokens for up to 10 topics with descriptions and timestamps
+            max_tokens_by_format = {
+                'short': 800,
+                'qa': 3500,
+                'topic': 3500,
+            }
+            max_tokens = max_tokens_by_format.get(format, 1500)
 
             response_text = self.generate_content(
                 prompt=prompt,
@@ -271,8 +279,56 @@ class GeminiClient:
         """
         Translate non-English text to English (synchronous)
 
+        Handles long texts by chunking them to avoid Gemini returning the original text.
+
         Args:
             text: Text to translate (any language)
+
+        Returns:
+            English translation or None if error
+        """
+        if not text or not text.strip():
+            return None
+
+        # For very long texts, chunk them to avoid Gemini returning original
+        MAX_CHARS = 8000  # Safe chunk size
+        if len(text) > MAX_CHARS:
+            # Process in chunks and combine
+            chunks = []
+            words = text.split()
+            current_chunk = []
+            current_length = 0
+
+            for word in words:
+                word_len = len(word) + 1  # +1 for space
+                if current_length + word_len > MAX_CHARS and current_chunk:
+                    chunks.append(' '.join(current_chunk))
+                    current_chunk = [word]
+                    current_length = word_len
+                else:
+                    current_chunk.append(word)
+                    current_length += word_len
+
+            if current_chunk:
+                chunks.append(' '.join(current_chunk))
+
+            # Translate each chunk and combine
+            translated_chunks = []
+            for chunk in chunks:
+                translated = self._translate_single(chunk)
+                if translated:
+                    translated_chunks.append(translated)
+
+            return ' '.join(translated_chunks) if translated_chunks else None
+
+        return self._translate_single(text)
+
+    def _translate_single(self, text: str) -> Optional[str]:
+        """
+        Translate a single chunk of text to English
+
+        Args:
+            text: Text chunk to translate
 
         Returns:
             English translation or None if error
@@ -289,7 +345,7 @@ Text to translate:
             response_text = self.generate_content(
                 prompt=prompt,
                 temperature=0.3,  # Lower temperature for more accurate translation
-                max_tokens=4096,  # Allow for longer transcripts
+                max_tokens=8192,  # Increased from 4096
             )
 
             return response_text

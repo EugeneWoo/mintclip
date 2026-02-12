@@ -1,0 +1,1333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mintclip — Extract Knowledge from YouTube</title>
+  <meta name="description" content="Turn any YouTube video into actionable knowledge. Extract transcripts, generate AI summaries, and learn faster.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #171717;
+      --bg-elevated: #1f1f1f;
+      --bg-card: #262626;
+      --accent: #22c55e;
+      --accent-light: #4ade80;
+      --accent-glow: rgba(34, 197, 94, 0.15);
+      --accent-hover: #16a34a;
+      --text-primary: #ffffff;
+      --text-secondary: #a3a3a3;
+      --text-muted: #737373;
+      --border: rgba(255, 255, 255, 0.08);
+      --border-accent: rgba(34, 197, 94, 0.3);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html {
+      font-size: 16px;
+      scroll-behavior: smooth;
+    }
+
+    html, body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg-dark);
+      color: var(--text-primary);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      overflow-x: hidden;
+    }
+
+    .page-wrapper {
+      position: relative;
+      min-height: 100vh;
+      background: var(--bg-dark);
+    }
+
+    /* Navigation */
+    nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      padding: 1.25rem 2rem;
+    }
+
+    .nav-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(23, 23, 23, 0.8);
+      backdrop-filter: blur(20px);
+      border: 1px solid var(--border);
+      border-radius: 100px;
+      padding: 0.75rem 1rem 0.75rem 1.5rem;
+    }
+
+    .logo {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 1.5rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      color: var(--text-primary);
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .logo-mark {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .nav-links a {
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+      text-decoration: none;
+      padding: 0.75rem 1.25rem;
+      border-radius: 100px;
+      transition: all 0.2s;
+    }
+
+    .nav-links a:hover {
+      color: var(--text-primary);
+      background: var(--bg-card);
+    }
+
+    .btn {
+      font-family: 'Inter', sans-serif;
+      font-size: 0.9rem;
+      font-weight: 600;
+      padding: 0.875rem 1.75rem;
+      border-radius: 100px;
+      cursor: pointer;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      border: none;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #000;
+      font-weight: 600;
+    }
+
+    .btn-primary:hover {
+      background: var(--accent-light);
+      transform: scale(1.02);
+      box-shadow: 0 0 40px var(--accent-glow), 0 0 80px rgba(34, 197, 94, 0.1);
+    }
+
+    .btn-secondary {
+      background: transparent;
+      color: var(--text-primary);
+      border: 1px solid var(--border);
+    }
+
+    .btn-secondary:hover {
+      background: var(--bg-card);
+      border-color: var(--border-accent);
+    }
+
+    /* Hero */
+    .hero {
+      position: relative;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      padding: 10rem 2rem 6rem;
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.625rem;
+      font-size: 0.8rem;
+      font-weight: 500;
+      letter-spacing: 0.02em;
+      color: var(--text-secondary);
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      padding: 0.5rem 1rem;
+      border-radius: 100px;
+      margin-bottom: 2rem;
+      animation: fadeInUp 0.7s ease-out forwards;
+      opacity: 0;
+    }
+
+    .hero-badge-text {
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    .hero h1 {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: clamp(3rem, 8vw, 5.5rem);
+      font-weight: 800;
+      line-height: 1.05;
+      letter-spacing: -0.04em;
+      margin-bottom: 1.5rem;
+      animation: fadeInUp 0.7s 0.1s ease-out forwards;
+      opacity: 0;
+    }
+
+    .hero h1 .highlight {
+      color: var(--accent);
+    }
+
+    .hero-description {
+      font-size: 1.25rem;
+      font-weight: 400;
+      color: var(--text-secondary);
+      max-width: 600px;
+      line-height: 1.7;
+      margin-bottom: 2.5rem;
+      animation: fadeInUp 0.7s 0.2s ease-out forwards;
+      opacity: 0;
+    }
+
+    .hero-actions {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+      justify-content: center;
+      animation: fadeInUp 0.7s 0.3s ease-out forwards;
+      opacity: 0;
+    }
+
+    .hero-actions .btn {
+      padding: 1rem 2rem;
+      font-size: 1rem;
+    }
+
+    .hero-stats {
+      display: flex;
+      gap: 3rem;
+      margin-top: 4rem;
+      animation: fadeInUp 0.7s 0.4s ease-out forwards;
+      opacity: 0;
+    }
+
+    .hero-stat {
+      text-align: center;
+    }
+
+    .hero-stat-value {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 2rem;
+      font-weight: 800;
+      color: var(--accent);
+    }
+
+    .hero-stat-label {
+      font-size: 0.875rem;
+      color: var(--text-muted);
+      margin-top: 0.25rem;
+    }
+
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(32px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* Trusted By Marquee */
+    .trusted-section {
+      padding: 4rem 0;
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      overflow: hidden;
+    }
+
+    .trusted-label {
+      text-align: center;
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      margin-bottom: 2rem;
+    }
+
+    .marquee {
+      display: flex;
+      gap: 4rem;
+      animation: marquee 30s linear infinite;
+    }
+
+    .marquee-item {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      white-space: nowrap;
+      opacity: 0.5;
+    }
+
+    @keyframes marquee {
+      0% { transform: translateX(0); }
+      100% { transform: translateX(-50%); }
+    }
+
+    /* Services Section */
+    .services {
+      padding: 8rem 2rem;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .section-label {
+      font-size: 0.8rem;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 1rem;
+    }
+
+    .section-header {
+      margin-bottom: 4rem;
+    }
+
+    .section-title {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: clamp(2.5rem, 5vw, 3.5rem);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      margin-bottom: 1rem;
+    }
+
+    .section-title .highlight {
+      color: var(--accent);
+    }
+
+    .section-description {
+      font-size: 1.125rem;
+      color: var(--text-secondary);
+      max-width: 500px;
+    }
+
+    .services-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.5rem;
+    }
+
+    .service-card {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 2.5rem;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .service-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--accent), transparent);
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .service-card:hover {
+      border-color: var(--border-accent);
+      transform: translateY(-4px);
+    }
+
+    .service-card:hover::before {
+      opacity: 1;
+    }
+
+    .service-icon {
+      width: 56px;
+      height: 56px;
+      background: var(--accent-glow);
+      border: 1px solid var(--border-accent);
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .service-card h3 {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 1.25rem;
+      font-weight: 700;
+      margin-bottom: 0.75rem;
+      letter-spacing: -0.01em;
+    }
+
+    .service-card p {
+      font-size: 0.95rem;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+
+    /* How It Works */
+    .how-it-works {
+      padding: 8rem 2rem;
+      background: var(--bg-elevated);
+    }
+
+    .how-it-works-content {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 2rem;
+      margin-top: 4rem;
+    }
+
+    .step {
+      display: flex;
+      gap: 1.5rem;
+      padding: 2.5rem;
+      background: var(--bg-dark);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      transition: all 0.3s;
+    }
+
+    .step:hover {
+      border-color: var(--border-accent);
+    }
+
+    .step-number {
+      width: 56px;
+      height: 56px;
+      min-width: 56px;
+      background: var(--accent);
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 1.25rem;
+      font-weight: 800;
+      color: #000;
+    }
+
+    .step-content h3 {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 1.25rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+      letter-spacing: -0.01em;
+    }
+
+    .step-content p {
+      font-size: 0.95rem;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+
+    /* Works/Portfolio Section */
+    .works {
+      padding: 8rem 2rem;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .works-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.5rem;
+      margin-top: 4rem;
+    }
+
+    .work-card {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      overflow: hidden;
+      transition: all 0.3s;
+    }
+
+    .work-card:hover {
+      border-color: var(--border-accent);
+      transform: translateY(-4px);
+    }
+
+    .work-thumbnail {
+      aspect-ratio: 16/9;
+      background: var(--bg-card);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 3rem;
+    }
+
+    .work-info {
+      padding: 1.5rem;
+    }
+
+    .work-info h4 {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+
+    .work-info p {
+      font-size: 0.875rem;
+      color: var(--text-muted);
+    }
+
+    /* Pricing Section */
+    .pricing {
+      padding: 8rem 2rem;
+      background: var(--bg-elevated);
+    }
+
+    .pricing-content {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.5rem;
+      margin-top: 4rem;
+    }
+
+    .pricing-card {
+      background: var(--bg-dark);
+      border: 1px solid var(--border);
+      border-radius: 30px;
+      padding: 2.5rem;
+      transition: all 0.3s;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .pricing-card.featured {
+      border-color: var(--accent);
+      position: relative;
+    }
+
+    .pricing-card.featured::before {
+      content: 'Most Popular';
+      position: absolute;
+      top: -12px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--accent);
+      color: #000;
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 0.375rem 1rem;
+      border-radius: 100px;
+    }
+
+    .pricing-card:hover {
+      border-color: var(--border-accent);
+    }
+
+    .pricing-header {
+      padding-bottom: 1.5rem;
+      margin-bottom: 1.5rem;
+      border-bottom: 1px dashed var(--border);
+    }
+
+    .pricing-name {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 1.125rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+    }
+
+    .pricing-price {
+      display: flex;
+      align-items: baseline;
+      gap: 0.25rem;
+    }
+
+    .pricing-amount {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 3rem;
+      font-weight: 800;
+      color: var(--accent);
+    }
+
+    .pricing-period {
+      font-size: 1rem;
+      color: var(--text-muted);
+    }
+
+    .pricing-description {
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+      margin-top: 0.75rem;
+    }
+
+    .pricing-features {
+      list-style: none;
+      flex: 1;
+      margin-bottom: 2rem;
+    }
+
+    .pricing-features li {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      font-size: 0.95rem;
+      color: var(--text-secondary);
+      padding: 0.625rem 0;
+    }
+
+    .pricing-features li::before {
+      content: '✓';
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    .pricing-card .btn {
+      width: 100%;
+    }
+
+    /* FAQ Section */
+    .faq {
+      padding: 8rem 2rem;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    .faq-header {
+      text-align: center;
+      margin-bottom: 4rem;
+    }
+
+    .faq-list {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .faq-item {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+    }
+
+    .faq-question {
+      width: 100%;
+      padding: 1.5rem 2rem;
+      background: none;
+      border: none;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 1.0625rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      text-align: left;
+    }
+
+    .faq-question:hover {
+      background: var(--bg-card);
+    }
+
+    .faq-icon {
+      font-size: 1.5rem;
+      color: var(--accent);
+      transition: transform 0.3s;
+    }
+
+    .faq-item.active .faq-icon {
+      transform: rotate(45deg);
+    }
+
+    .faq-answer {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s ease-out;
+    }
+
+    .faq-item.active .faq-answer {
+      max-height: 200px;
+    }
+
+    .faq-answer p {
+      padding: 0 2rem 1.5rem;
+      font-size: 0.95rem;
+      color: var(--text-secondary);
+      line-height: 1.7;
+    }
+
+    /* CTA Section */
+    .cta-section {
+      padding: 8rem 2rem;
+      text-align: center;
+      background: var(--bg-elevated);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .cta-section::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 800px;
+      height: 800px;
+      background: radial-gradient(circle, var(--accent-glow) 0%, transparent 70%);
+      pointer-events: none;
+      opacity: 0.5;
+    }
+
+    .cta-content {
+      max-width: 700px;
+      margin: 0 auto;
+      position: relative;
+    }
+
+    .cta-section h2 {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: clamp(2.5rem, 5vw, 3.5rem);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      margin-bottom: 1rem;
+    }
+
+    .cta-section h2 .highlight {
+      color: var(--accent);
+    }
+
+    .cta-section p {
+      font-size: 1.125rem;
+      color: var(--text-secondary);
+      margin-bottom: 2.5rem;
+    }
+
+    .cta-section .btn {
+      padding: 1.125rem 2.5rem;
+      font-size: 1rem;
+    }
+
+    /* Footer */
+    footer {
+      background: var(--bg-dark);
+      border-top: 1px solid var(--border);
+      padding: 5rem 2rem 2rem;
+    }
+
+    .footer-content {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .footer-top {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 4rem;
+      flex-wrap: wrap;
+      gap: 3rem;
+    }
+
+    .footer-brand {
+      max-width: 320px;
+    }
+
+    .footer-brand .logo {
+      margin-bottom: 1.25rem;
+    }
+
+    .footer-brand p {
+      font-size: 0.95rem;
+      color: var(--text-secondary);
+      line-height: 1.7;
+    }
+
+    .footer-links {
+      display: flex;
+      gap: 5rem;
+    }
+
+    .footer-column h4 {
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 1.5rem;
+    }
+
+    .footer-column ul {
+      list-style: none;
+    }
+
+    .footer-column li {
+      margin-bottom: 0.875rem;
+    }
+
+    .footer-column a {
+      font-size: 0.95rem;
+      color: var(--text-secondary);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .footer-column a:hover {
+      color: var(--accent);
+    }
+
+    .footer-bottom {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-top: 2rem;
+      border-top: 1px solid var(--border);
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .footer-copyright {
+      font-size: 0.875rem;
+      color: var(--text-muted);
+    }
+
+    .footer-legal {
+      display: flex;
+      gap: 2rem;
+    }
+
+    .footer-legal a {
+      font-size: 0.875rem;
+      color: var(--text-muted);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .footer-legal a:hover {
+      color: var(--text-primary);
+    }
+
+    /* Responsive */
+    @media (max-width: 1024px) {
+      .services-grid,
+      .pricing-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .works-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 768px) {
+      .nav-container {
+        border-radius: 16px;
+        padding: 0.5rem 1rem;
+      }
+
+      .nav-links a:not(.btn) {
+        display: none;
+      }
+
+      .logo {
+        font-size: 1.25rem;
+      }
+
+      .logo-mark {
+        width: 32px;
+        height: 32px;
+      }
+
+      .hero {
+        padding: 8rem 1.5rem 4rem;
+      }
+
+      .hero-stats {
+        gap: 2rem;
+      }
+
+      .services-grid,
+      .pricing-grid,
+      .works-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .services, .how-it-works, .pricing, .works, .faq, .cta-section {
+        padding: 5rem 1.5rem;
+      }
+
+      .steps {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+      }
+
+      .footer-links {
+        gap: 2rem;
+        flex-wrap: wrap;
+      }
+
+      footer {
+        padding: 3rem 1.5rem 1.5rem;
+      }
+
+      .footer-bottom {
+        flex-direction: column;
+        text-align: center;
+      }
+
+      .footer-legal {
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 1rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page-wrapper">
+
+  <!-- Navigation -->
+  <nav>
+    <div class="nav-container">
+      <a href="landing-page-framer.html" class="logo">
+        <img src="../../extension/assets/icon-48.png" alt="Mintclip" class="logo-mark">
+        Mintclip
+      </a>
+      <div class="nav-links">
+        <a href="#services">Services</a>
+        <a href="#works">Works</a>
+        <a href="#pricing">Pricing</a>
+        <a href="#faq">FAQ</a>
+        <a href="dashboard.html" class="btn btn-primary">Get Started</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Hero -->
+  <section class="hero">
+    <span class="hero-badge">
+      <span class="hero-badge-text">Trusted By 10,000+ Learners</span>
+    </span>
+    <h1>Turn <span class="highlight">YouTube</span> into Knowledge</h1>
+    <p class="hero-description">Extract faster. Learn smarter. Transform any YouTube video into actionable insights with AI-powered transcripts and summaries.</p>
+    <div class="hero-actions">
+      <a href="dashboard.html" class="btn btn-primary">Start for Free</a>
+      <a href="#" class="btn btn-secondary">Install Extension</a>
+    </div>
+    <div class="hero-stats">
+      <div class="hero-stat">
+        <div class="hero-stat-value">50K+</div>
+        <div class="hero-stat-label">Videos Processed</div>
+      </div>
+      <div class="hero-stat">
+        <div class="hero-stat-value">10K+</div>
+        <div class="hero-stat-label">Happy Users</div>
+      </div>
+      <div class="hero-stat">
+        <div class="hero-stat-value">4.9</div>
+        <div class="hero-stat-label">Chrome Store Rating</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Trusted By -->
+  <section class="trusted-section">
+    <div class="trusted-label">Trusted by creators and learners</div>
+    <div class="marquee">
+      <span class="marquee-item">Students</span>
+      <span class="marquee-item">Researchers</span>
+      <span class="marquee-item">Content Creators</span>
+      <span class="marquee-item">Professionals</span>
+      <span class="marquee-item">Entrepreneurs</span>
+      <span class="marquee-item">Educators</span>
+      <span class="marquee-item">Students</span>
+      <span class="marquee-item">Researchers</span>
+      <span class="marquee-item">Content Creators</span>
+      <span class="marquee-item">Professionals</span>
+      <span class="marquee-item">Entrepreneurs</span>
+      <span class="marquee-item">Educators</span>
+    </div>
+  </section>
+
+  <!-- Services -->
+  <section class="services" id="services">
+    <div class="section-header">
+      <div class="section-label">Services</div>
+      <h2 class="section-title">Everything You Need to <span class="highlight">Learn Faster</span></h2>
+      <p class="section-description">Powerful AI tools to extract, summarize, and interact with any YouTube content.</p>
+    </div>
+    <div class="services-grid">
+      <div class="service-card">
+        <div class="service-icon">📄</div>
+        <h3>Instant Transcripts</h3>
+        <p>Full-text transcripts extracted in seconds. Search, highlight, and navigate through any video's content with ease.</p>
+      </div>
+      <div class="service-card">
+        <div class="service-icon">⚡</div>
+        <h3>AI Summaries</h3>
+        <p>Choose your format: key points, detailed breakdown, or quick overview. Tailored to how you learn best.</p>
+      </div>
+      <div class="service-card">
+        <div class="service-icon">💬</div>
+        <h3>Chat with Videos</h3>
+        <p>Ask questions about the content and get instant, contextual answers powered by advanced AI.</p>
+      </div>
+      <div class="service-card">
+        <div class="service-icon">📦</div>
+        <h3>Batch Processing</h3>
+        <p>Process up to 10 videos at once. Perfect for playlists, courses, or deep research projects.</p>
+      </div>
+      <div class="service-card">
+        <div class="service-icon">🗂️</div>
+        <h3>Personal Library</h3>
+        <p>Save and organize your transcripts and summaries. Build a searchable knowledge base over time.</p>
+      </div>
+      <div class="service-card">
+        <div class="service-icon">📥</div>
+        <h3>Export Anywhere</h3>
+        <p>Download as TXT, PDF, or Markdown. Take your extracted knowledge wherever you need it.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- How It Works -->
+  <section class="how-it-works" id="process">
+    <div class="how-it-works-content">
+      <div class="section-header" style="text-align: center;">
+        <div class="section-label">Process</div>
+        <h2 class="section-title">How It <span class="highlight">Works</span>?</h2>
+        <p class="section-description" style="margin: 0 auto;">Four simple steps to unlock any video's knowledge.</p>
+      </div>
+      <div class="steps">
+        <div class="step">
+          <div class="step-number">1</div>
+          <div class="step-content">
+            <h3>Paste a URL</h3>
+            <p>Copy any YouTube video link and drop it into Mintclip. Works with any public video instantly.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-number">2</div>
+          <div class="step-content">
+            <h3>AI Processes Video</h3>
+            <p>Our AI extracts the transcript and analyzes the content in seconds, not minutes.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-number">3</div>
+          <div class="step-content">
+            <h3>Choose Your Format</h3>
+            <p>Select what you need: full transcript, summary format, or start a conversation with the content.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-number">4</div>
+          <div class="step-content">
+            <h3>Save & Export</h3>
+            <p>Keep it in your library for later or download immediately in your preferred format.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Works Section -->
+  <section class="works" id="works">
+    <div class="section-header" style="text-align: center;">
+      <div class="section-label">Our Works</div>
+      <h2 class="section-title">See <span class="highlight">Results</span></h2>
+      <p class="section-description" style="margin: 0 auto;">Real examples of knowledge extracted with Mintclip.</p>
+    </div>
+    <div class="works-grid">
+      <div class="work-card">
+        <div class="work-thumbnail">🎓</div>
+        <div class="work-info">
+          <h4>Online Course Summary</h4>
+          <p>3-hour lecture → 5-minute read</p>
+        </div>
+      </div>
+      <div class="work-card">
+        <div class="work-thumbnail">📊</div>
+        <div class="work-info">
+          <h4>Tech Conference Highlights</h4>
+          <p>Keynote → Key takeaways</p>
+        </div>
+      </div>
+      <div class="work-card">
+        <div class="work-thumbnail">🎙️</div>
+        <div class="work-info">
+          <h4>Podcast Transcript</h4>
+          <p>2-hour episode → Searchable text</p>
+        </div>
+      </div>
+      <div class="work-card">
+        <div class="work-thumbnail">📚</div>
+        <div class="work-info">
+          <h4>Tutorial Notes</h4>
+          <p>Step-by-step → Quick reference</p>
+        </div>
+      </div>
+      <div class="work-card">
+        <div class="work-thumbnail">🔬</div>
+        <div class="work-info">
+          <h4>Research Review</h4>
+          <p>Academic talk → Citation-ready notes</p>
+        </div>
+      </div>
+      <div class="work-card">
+        <div class="work-thumbnail">💼</div>
+        <div class="work-info">
+          <h4>Meeting Recording</h4>
+          <p>Team call → Action items</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Pricing Section -->
+  <section class="pricing" id="pricing">
+    <div class="pricing-content">
+      <div class="section-header" style="text-align: center;">
+        <div class="section-label">Pricing</div>
+        <h2 class="section-title">Simple <span class="highlight">Plans</span></h2>
+        <p class="section-description" style="margin: 0 auto;">Start free, upgrade when you need more.</p>
+      </div>
+      <div class="pricing-grid">
+        <div class="pricing-card">
+          <div class="pricing-header">
+            <div class="pricing-name">Free</div>
+            <div class="pricing-price">
+              <span class="pricing-amount">$0</span>
+              <span class="pricing-period">/month</span>
+            </div>
+            <p class="pricing-description">For casual learners getting started</p>
+          </div>
+          <ul class="pricing-features">
+            <li>10 videos per month</li>
+            <li>Basic AI summaries</li>
+            <li>Transcript export (TXT)</li>
+            <li>Chrome extension</li>
+          </ul>
+          <a href="dashboard.html" class="btn btn-secondary">Get Started</a>
+        </div>
+        <div class="pricing-card featured">
+          <div class="pricing-header">
+            <div class="pricing-name">Pro</div>
+            <div class="pricing-price">
+              <span class="pricing-amount">$9</span>
+              <span class="pricing-period">/month</span>
+            </div>
+            <p class="pricing-description">For serious learners and researchers</p>
+          </div>
+          <ul class="pricing-features">
+            <li>100 videos per month</li>
+            <li>Advanced AI summaries</li>
+            <li>Chat with videos</li>
+            <li>Export to PDF & Markdown</li>
+            <li>Personal library</li>
+            <li>Priority support</li>
+          </ul>
+          <a href="dashboard.html" class="btn btn-primary">Start Free Trial</a>
+        </div>
+        <div class="pricing-card">
+          <div class="pricing-header">
+            <div class="pricing-name">Team</div>
+            <div class="pricing-price">
+              <span class="pricing-amount">$29</span>
+              <span class="pricing-period">/month</span>
+            </div>
+            <p class="pricing-description">For teams and organizations</p>
+          </div>
+          <ul class="pricing-features">
+            <li>Unlimited videos</li>
+            <li>Batch processing (10 at once)</li>
+            <li>Shared team library</li>
+            <li>API access</li>
+            <li>Admin dashboard</li>
+            <li>Dedicated support</li>
+          </ul>
+          <a href="#" class="btn btn-secondary">Contact Sales</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ Section -->
+  <section class="faq" id="faq">
+    <div class="faq-header">
+      <div class="section-label">FAQ</div>
+      <h2 class="section-title"><span class="highlight">Questions</span>? Answers</h2>
+    </div>
+    <div class="faq-list">
+      <div class="faq-item">
+        <button class="faq-question">
+          What types of videos work with Mintclip?
+          <span class="faq-icon">+</span>
+        </button>
+        <div class="faq-answer">
+          <p>Mintclip works with any public YouTube video that has captions or auto-generated subtitles. This includes tutorials, lectures, podcasts, interviews, conferences, and more.</p>
+        </div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-question">
+          How accurate are the AI summaries?
+          <span class="faq-icon">+</span>
+        </button>
+        <div class="faq-answer">
+          <p>Our AI summaries are powered by advanced language models and are highly accurate. They capture key points, main arguments, and important details while filtering out filler content.</p>
+        </div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-question">
+          Can I use Mintclip for non-English videos?
+          <span class="faq-icon">+</span>
+        </button>
+        <div class="faq-answer">
+          <p>Yes! Mintclip supports multiple languages. We automatically detect the video's language and can translate transcripts and summaries to English or keep them in the original language.</p>
+        </div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-question">
+          Is my data secure?
+          <span class="faq-icon">+</span>
+        </button>
+        <div class="faq-answer">
+          <p>We take privacy seriously. Your data is encrypted, never shared with third parties, and you can delete your account and all associated data at any time.</p>
+        </div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-question">
+          Can I cancel my subscription anytime?
+          <span class="faq-icon">+</span>
+        </button>
+        <div class="faq-answer">
+          <p>Yes, you can cancel your subscription at any time with no questions asked. You'll continue to have access until the end of your billing period.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA Section -->
+  <section class="cta-section">
+    <div class="cta-content">
+      <div class="section-label">Get Started</div>
+      <h2>Ready to Learn <span class="highlight">Faster</span>?</h2>
+      <p>Join thousands of learners extracting knowledge from YouTube videos every day. Start for free.</p>
+      <a href="dashboard.html" class="btn btn-primary">Create Free Account</a>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <div class="footer-content">
+      <div class="footer-top">
+        <div class="footer-brand">
+          <a href="landing-page-framer.html" class="logo">
+            <img src="../../extension/assets/icon-48.png" alt="Mintclip" class="logo-mark">
+            Mintclip
+          </a>
+          <p>Transform YouTube videos into actionable knowledge. Extract faster, learn smarter, save time.</p>
+        </div>
+        <div class="footer-links">
+          <div class="footer-column">
+            <h4>Product</h4>
+            <ul>
+              <li><a href="#services">Services</a></li>
+              <li><a href="#pricing">Pricing</a></li>
+              <li><a href="#">Chrome Extension</a></li>
+              <li><a href="#">API</a></li>
+            </ul>
+          </div>
+          <div class="footer-column">
+            <h4>Company</h4>
+            <ul>
+              <li><a href="#">About</a></li>
+              <li><a href="#">Blog</a></li>
+              <li><a href="#">Careers</a></li>
+              <li><a href="#">Contact</a></li>
+            </ul>
+          </div>
+          <div class="footer-column">
+            <h4>Legal</h4>
+            <ul>
+              <li><a href="#">Privacy Policy</a></li>
+              <li><a href="#">Terms of Service</a></li>
+              <li><a href="#">Cookie Policy</a></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <span class="footer-copyright">&copy; 2026 Mintclip. All rights reserved.</span>
+        <div class="footer-legal">
+          <a href="#">Privacy Policy</a>
+          <a href="#">Terms of Service</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+  </div>
+
+  <script>
+    // FAQ Accordion
+    document.querySelectorAll('.faq-question').forEach(button => {
+      button.addEventListener('click', () => {
+        const item = button.parentElement;
+        const isActive = item.classList.contains('active');
+
+        // Close all items
+        document.querySelectorAll('.faq-item').forEach(i => i.classList.remove('active'));
+
+        // Open clicked item if it wasn't active
+        if (!isActive) {
+          item.classList.add('active');
+        }
+      });
+    });
+  </script>
+</body>
+</html>

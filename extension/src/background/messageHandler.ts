@@ -3,7 +3,7 @@
  * Handles communication between content scripts and service worker
  */
 
-import { fetchTranscript, fetchSummary, streamTranscript, fetchChatMessage } from './apiClient';
+import { fetchTranscript, fetchSummary, streamTranscript, fetchChatMessage, getApiUrl } from './apiClient';
 import { requireAuth } from './auth';
 import type {
   TranscriptRequest,
@@ -48,6 +48,10 @@ export interface OpenPopupMessage extends Message {
   type: 'OPEN_POPUP';
 }
 
+export interface GoogleSignInMessage extends Message {
+  type: 'GOOGLE_SIGN_IN';
+}
+
 export interface GetSuggestedQuestionsMessage extends Message {
   type: 'GET_SUGGESTED_QUESTIONS';
   payload: {
@@ -79,6 +83,31 @@ export interface TranslateTranscriptMessage extends Message {
   };
 }
 
+export interface GetWebappAuthTokenMessage extends Message {
+  type: 'GET_WEBAPP_AUTH_TOKEN';
+}
+
+export interface OpenLibraryMessage extends Message {
+  type: 'OPEN_LIBRARY';
+}
+
+export interface SaveItemMessage extends Message {
+  type: 'SAVE_ITEM';
+  payload: {
+    video_id: string;
+    item_type: string;
+    content: any;
+  };
+}
+
+export interface GetSavedItemMessage extends Message {
+  type: 'GET_SAVED_ITEM';
+  payload: {
+    video_id: string;
+    item_type: string;
+  };
+}
+
 export type ExtensionMessage =
   | TranscriptMessage
   | SummaryMessage
@@ -86,10 +115,15 @@ export type ExtensionMessage =
   | ChatMessage
   | CheckAuthMessage
   | OpenPopupMessage
+  | GoogleSignInMessage
   | GetSuggestedQuestionsMessage
   | GetLanguagesMessage
   | SeekVideoMessage
-  | TranslateTranscriptMessage;
+  | TranslateTranscriptMessage
+  | GetWebappAuthTokenMessage
+  | OpenLibraryMessage
+  | SaveItemMessage
+  | GetSavedItemMessage;
 
 /**
  * Handle incoming messages from content scripts
@@ -131,6 +165,7 @@ export async function handleMessage(
             })),
             language: result.language, // Pass through language code
             is_generated: result.is_generated,
+            video_title: result.video_title, // Pass through video title from API
           });
         } else {
           sendResponse({
@@ -354,6 +389,275 @@ export async function handleMessage(
           sendResponse({
             success: false,
             error: 'Please click the extension icon to sign in',
+          });
+        }
+        return true;
+      }
+
+      case 'GOOGLE_SIGN_IN': {
+        // Handle Google OAuth in service worker (persists after popup closes)
+        try {
+          console.log('=== GOOGLE_SIGN_IN HANDLER STARTED ===');
+          console.log('Timestamp:', new Date().toISOString());
+          console.log('Sender:', sender);
+
+          // Get Google token using Chrome Identity API
+          console.log('Calling chrome.identity.getAuthToken({ interactive: true })...');
+          const token = await new Promise<string>((resolve, reject) => {
+            console.log('Inside getAuthToken promise...');
+            chrome.identity.getAuthToken({ interactive: true }, (token) => {
+              console.log('getAuthToken callback fired');
+              console.log('Token received:', token ? 'YES (length: ' + token.length + ')' : 'NO');
+              console.log('lastError:', chrome.runtime.lastError);
+              if (chrome.runtime.lastError) {
+                console.error('getAuthToken error:', chrome.runtime.lastError);
+                reject(new Error(chrome.runtime.lastError.message));
+              } else if (token) {
+                resolve(token);
+              } else {
+                reject(new Error('No token received'));
+              }
+            });
+            console.log('getAuthToken called, waiting for callback...');
+          });
+
+          console.log('Got Google token, verifying with backend...');
+
+          // Send token to backend
+          const response = await fetch('http://localhost:8000/api/auth/google/token', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ google_token: token }),
+          });
+
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.detail || `HTTP ${response.status}`);
+          }
+
+          const data = await response.json();
+
+          if (!data.tokens) {
+            throw new Error(data.error || 'No tokens received from server');
+          }
+
+          // Calculate expiration timestamp
+          const expiresAt = Date.now() + (data.tokens.expires_in * 1000);
+
+          // Save auth state
+          const { saveAuthState } = await import('./storage');
+          await saveAuthState({
+            isAuthenticated: true,
+            accessToken: data.tokens.access_token,
+            refreshToken: data.tokens.refresh_token,
+            userId: data.user?.id,
+            email: data.user?.email,
+            expiresAt,
+          });
+
+          console.log('Google sign-in successful:', data.user?.email);
+
+          sendResponse({
+            success: true,
+            user: data.user,
+          });
+        } catch (error) {
+          console.error('Google sign-in error:', error);
+          sendResponse({
+            success: false,
+            error: error instanceof Error ? error.message : 'Failed to sign in with Google',
+          });
+        }
+        return true;
+      }
+
+      case 'GET_WEBAPP_AUTH_TOKEN': {
+        console.log('[MessageHandler] GET_WEBAPP_AUTH_TOKEN called');
+
+        // Get valid access token (auto-refreshes if expired)
+        const { getValidAccessToken } = await import('./auth');
+        let accessToken = await getValidAccessToken();
+
+        // If token refresh failed, try to get a fresh Google token
+        if (!accessToken) {
+          console.log('[MessageHandler] Token refresh failed, attempting to get fresh Google token');
+          try {
+            const token = await new Promise<string>((resolve, reject) => {
+              chrome.identity.getAuthToken({ interactive: false }, (token) => {
+                if (chrome.runtime.lastError) {
+                  console.error('[MessageHandler] getAuthToken failed:', chrome.runtime.lastError);
+                  reject(new Error(chrome.runtime.lastError.message));
+                } else if (token) {
+                  resolve(token);
+                } else {
+                  reject(new Error('No token received'));
+                }
+              });
+            });
+
+            // Verify the fresh Google token with backend to get JWT
+            const response = await fetch('http://localhost:8000/api/auth/google/token', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ google_token: token }),
+            });
+
+            if (response.ok) {
+              const data = await response.json();
+              const authState = await import('./storage').then(m => m.getAuthState());
+
+              // Update stored auth state with new tokens
+              await import('./storage').then(async ({ setAuthState }) => {
+                await setAuthState({
+                  isAuthenticated: true,
+                  accessToken: data.tokens.access_token,
+                  refreshToken: data.tokens.refresh_token,
+                  userId: data.user?.id,
+                  email: data.user?.email,
+                  expiresAt: Date.now() + (data.tokens.expires_in * 1000),
+                });
+              });
+
+              sendResponse({
+                success: true,
+                token: data.tokens.access_token,
+                user: data.user,
+              });
+              return true;
+            } else {
+              throw new Error('Failed to verify Google token');
+            }
+          } catch (error) {
+            console.error('[MessageHandler] Failed to get fresh token:', error);
+            sendResponse({
+              success: false,
+              error: 'Authentication required. Please sign in to use this feature.',
+              requiresAuth: true,
+            });
+            return true;
+          }
+        }
+
+        const authState = await import('./storage').then(m => m.getAuthState());
+
+        sendResponse({
+          success: true,
+          token: accessToken,
+          user: authState,
+        });
+        return true;
+      }
+
+      case 'SAVE_ITEM': {
+        console.log('[MessageHandler] SAVE_ITEM called');
+        console.log('[MessageHandler] Payload:', message.payload);
+
+        // Get valid access token (auto-refreshes if expired)
+        const { getValidAccessToken } = await import('./auth');
+        const accessToken = await getValidAccessToken();
+
+        if (!accessToken) {
+          console.error('[MessageHandler] Not authenticated or token refresh failed');
+          sendResponse({
+            success: false,
+            error: 'Authentication required. Please sign in to use this feature.',
+            requiresAuth: true,
+          });
+          return true;
+        }
+
+        const { video_id, item_type, content } = message.payload as {
+          video_id: string;
+          item_type: string;
+          content: any;
+        };
+
+        console.log('[MessageHandler] Saving item:', { video_id, item_type });
+
+        try {
+          const url = `${getApiUrl()}/api/saved-items/save`;
+          console.log('[MessageHandler] Fetching:', url);
+
+          const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${accessToken}`,
+            },
+            body: JSON.stringify({
+              video_id,
+              item_type,
+              content,
+              source: 'extension', // Mark as saved from extension (static chat mode)
+            }),
+          });
+
+          console.log('[MessageHandler] Response status:', response.status);
+
+          const data = await response.json();
+          console.log('[MessageHandler] Response data:', data);
+
+          sendResponse(data);
+        } catch (error) {
+          console.error('[MessageHandler] Error saving item:', error);
+          sendResponse({
+            success: false,
+            error: error instanceof Error ? error.message : 'Failed to save item',
+          });
+        }
+        return true;
+      }
+
+      case 'GET_SAVED_ITEM': {
+        // Get valid access token (auto-refreshes if expired)
+        const { getValidAccessToken } = await import('./auth');
+        const accessToken = await getValidAccessToken();
+
+        if (!accessToken) {
+          sendResponse({
+            success: false,
+            error: 'Authentication required. Please sign in to use this feature.',
+            requiresAuth: true,
+          });
+          return true;
+        }
+
+        const { video_id, item_type } = message.payload as {
+          video_id: string;
+          item_type: string;
+        };
+
+        try {
+          const response = await fetch(
+            `${getApiUrl()}/api/saved-items/${video_id}/${item_type}`,
+            {
+              headers: {
+                'Authorization': `Bearer ${accessToken}`,
+              },
+            }
+          );
+
+          const data = await response.json();
+          sendResponse(data);
+        } catch (error) {
+          sendResponse({
+            success: false,
+            error: error instanceof Error ? error.message : 'Failed to get saved item',
+          });
+        }
+        return true;
+      }
+
+      case 'OPEN_LIBRARY': {
+        // Open web app library in a new tab
+        try {
+          const { API_CONFIG } = await import('../config');
+          await chrome.tabs.create({ url: API_CONFIG.webAppUrl });
+          sendResponse({ success: true });
+        } catch (error) {
+          sendResponse({
+            success: false,
+            error: error instanceof Error ? error.message : 'Failed to open library',
           });
         }
         return true;

@@ -79,9 +79,9 @@ export function YouTubeSidebar({ videoId }: YouTubeSidebarProps): React.JSX.Elem
     };
   }, [videoId]); // Re-calculate when video changes
 
-  // Auth state - Set to true for testing (skip authentication)
-  const [isAuthenticated, setIsAuthenticated] = useState(true);
-  const [authChecked, setAuthChecked] = useState(true);
+  // Auth state - Check real authentication status
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [authChecked, setAuthChecked] = useState(false);
 
   // Transcript state
   const [transcript, setTranscript] = useState<any>(null);
@@ -111,10 +111,11 @@ export function YouTubeSidebar({ videoId }: YouTubeSidebarProps): React.JSX.Elem
     console.log('[YouTubeSidebar] State - currentLanguage:', currentLanguage, 'englishTranslation:', englishTranslation ? 'exists' : 'null', 'translating:', translating);
   }, [currentLanguage, englishTranslation, translating]);
 
-  // Get video title from YouTube page
+  // Get video title from YouTube page (fallback only - API response is preferred)
   React.useEffect(() => {
     const titleElement = document.querySelector('h1.ytd-video-primary-info-renderer yt-formatted-string, h1.ytd-watch-metadata yt-formatted-string');
-    if (titleElement) {
+    if (titleElement && !videoTitle) {
+      // Only set from DOM if we don't already have a title from the API
       setVideoTitle(titleElement.textContent || '');
     }
   }, [videoId]);
@@ -128,10 +129,10 @@ export function YouTubeSidebar({ videoId }: YouTubeSidebarProps): React.JSX.Elem
 
         if (result[storageKey]) {
           const videoData = result[storageKey];
-          const ONE_HOUR = 60 * 60 * 1000; // 1 hour in milliseconds
+          const TWENTY_FOUR_HOURS = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
 
-          // Check if data is still valid (1 hour TTL)
-          const isExpired = videoData.lastUpdated && (Date.now() - videoData.lastUpdated > ONE_HOUR);
+          // Check if data is still valid (24 hour TTL for chat)
+          const isExpired = videoData.lastUpdated && (Date.now() - videoData.lastUpdated > TWENTY_FOUR_HOURS);
 
           if (isExpired) {
             console.log('[YouTubeSidebar] Cached data expired, clearing storage');
@@ -206,8 +207,8 @@ export function YouTubeSidebar({ videoId }: YouTubeSidebarProps): React.JSX.Elem
 
     // Listen for auth state changes in storage
     const handleStorageChange = (changes: { [key: string]: chrome.storage.StorageChange }) => {
-      if (changes.auth) {
-        const newAuthState = changes.auth.newValue;
+      if (changes.authState) {
+        const newAuthState = changes.authState.newValue;
         if (newAuthState) {
           setIsAuthenticated(newAuthState.isAuthenticated);
         }
@@ -256,11 +257,14 @@ export function YouTubeSidebar({ videoId }: YouTubeSidebarProps): React.JSX.Elem
       console.log(`  - Length: ${transcript.length} segments`);
       console.log(`  - First segment text: "${transcript[0]?.text?.substring(0, 50)}..."`);
       console.log(`  - Current language: ${currentLanguage}`);
+      console.log(`  - englishTranslation available: ${englishTranslation ? 'YES (' + englishTranslation.length + ' segments)' : 'NO'}`);
+      console.log(`  - transcriptCache keys: ${Object.keys(transcriptCache).join(', ')}`);
+      console.log(`  - transcriptCache[en] available: ${transcriptCache['en'] ? 'YES (' + transcriptCache['en'].length + ' segments)' : 'NO'}`);
     }
-  }, [transcript]);
+  }, [transcript, currentLanguage, englishTranslation, transcriptCache]);
 
   // Poll backend to check if translation is ready
-  const pollForTranslation = async (sourceLanguage: string) => {
+  const pollForTranslation = async () => {
     const maxPolls = 30; // Poll for up to 15 seconds (30 polls x 500ms)
     let pollCount = 0;
 
@@ -311,6 +315,14 @@ export function YouTubeSidebar({ videoId }: YouTubeSidebarProps): React.JSX.Elem
                   console.log('[YouTubeSidebar] Cache updated with AI-translated English. Cache keys:', Object.keys(updated));
                   return updated;
                 });
+
+                // Auto-switch to English if user is still on non-English language
+                // This ensures the translation displays immediately after polling completes
+                if (currentLanguage !== 'en') {
+                  console.log('[YouTubeSidebar] Auto-switching to English after translation completed');
+                  setTranscript([...transcriptResponse.data]);
+                  setCurrentLanguage('en');
+                }
 
                 console.log('[YouTubeSidebar] AI-translated English transcript fetched and cached ✓');
                 console.log('[YouTubeSidebar] englishTranslation state:', transcriptResponse.data ? `${transcriptResponse.data.length} segments` : 'null');
@@ -392,21 +404,60 @@ export function YouTubeSidebar({ videoId }: YouTubeSidebarProps): React.JSX.Elem
               setCurrentLanguage(lang);
               console.log('[YouTubeSidebar] Auto-loaded transcript in language:', lang);
 
+              // Update video title from API response (more reliable than DOM scraping)
+              if (response.video_title) {
+                setVideoTitle(response.video_title);
+                console.log('[YouTubeSidebar] Set video title from API:', response.video_title);
+              }
+
               // Cache the transcript by language code for instant switching
               setTranscriptCache(prev => ({
                 ...prev,
                 [lang]: response.data
               }));
 
-              // Sort languages so current/default language is always first
-              const sortedLanguages = [...languages].sort((a, b) => {
-                // Current language goes first
+              // Filter to only show: native languages + AI-translated English (no other AI translations)
+              const filteredLanguages = languages.filter((l: any) =>
+                !l.is_ai_translated || (l.is_ai_translated && l.code === 'en')
+              );
+
+              // Sort languages with priority order:
+              // 1. Current language (always first)
+              // 2. English (AI-translated) - always second if available and current != English
+              // 3. Other native languages
+              const sortedLanguages = [...filteredLanguages].sort((a, b) => {
+                // Current language always goes first
                 if (a.code === lang && b.code !== lang) return -1;
                 if (b.code === lang && a.code !== lang) return 1;
-                // Then native languages before AI-translated
-                if (!a.is_ai_translated && b.is_ai_translated) return -1;
-                if (a.is_ai_translated && !b.is_ai_translated) return 1;
-                // Otherwise keep original order
+
+                // If current language is NOT English, make English second
+                if (lang !== 'en') {
+                  const aIsAIEn = a.is_ai_translated && a.code === 'en';
+                  const bIsAIEn = b.is_ai_translated && b.code === 'en';
+                  if (aIsAIEn && !bIsAIEn) return -1;
+                  if (bIsAIEn && !aIsAIEn) return 1;
+                }
+
+                // Helper to check if language is native (not AI-translated)
+                const aIsNative = !a.is_ai_translated;
+                const bIsNative = !b.is_ai_translated;
+
+                // Helper to check if AI-translated English
+                const aIsAIEn = a.is_ai_translated && a.code === 'en';
+                const bIsAIEn = b.is_ai_translated && b.code === 'en';
+
+                // Priority: Native > AI-English
+                // Native first
+                if (aIsNative && !bIsNative) return -1;
+                if (!aIsNative && bIsNative) return 1;
+                // Both native: keep original order
+                if (aIsNative && bIsNative) return 0;
+
+                // Native before AI-English
+                if (aIsNative && bIsAIEn) return -1;
+                if (aIsAIEn && bIsNative) return 1;
+
+                // Both same type: keep original order
                 return 0;
               });
 
@@ -420,6 +471,7 @@ export function YouTubeSidebar({ videoId }: YouTubeSidebarProps): React.JSX.Elem
               // Eager pre-fetch all native language transcripts in background
               // This makes switching between languages instant
               const preFetchAllLanguages = async () => {
+                // Filter to only native languages (no AI translations)
                 const nativeLanguages = languages.filter((l: any) => !l.is_ai_translated);
 
                 for (const language of nativeLanguages) {
@@ -466,8 +518,8 @@ export function YouTubeSidebar({ videoId }: YouTubeSidebarProps): React.JSX.Elem
               if (lang !== 'en' && !hasNativeEnglish) {
                 setTranslating(true);
                 // Add English option to show "translating..." status
-                // Re-sort with English (translating...) at the end
-                const languagesWithTranslating = [...sortedLanguages, {
+                // Use filteredLanguages (without auto-generated non-English)
+                const languagesWithTranslating = [...filteredLanguages, {
                   code: 'en',
                   name: 'English (translating...)',
                   is_generated: true,
@@ -476,7 +528,7 @@ export function YouTubeSidebar({ videoId }: YouTubeSidebarProps): React.JSX.Elem
                 }];
                 setAvailableLanguages(languagesWithTranslating);
                 // Start polling for translation completion
-                pollForTranslation(lang);
+                pollForTranslation();
               }
             } else {
               console.log('Background transcript fetch failed:', response.error);
@@ -540,23 +592,36 @@ export function YouTubeSidebar({ videoId }: YouTubeSidebarProps): React.JSX.Elem
     console.log('[YouTubeSidebar] Available cache keys:', Object.keys(transcriptCache));
     console.log('[YouTubeSidebar] englishTranslation state:', englishTranslation ? `${englishTranslation.length} segments` : 'null');
 
-    // Check if switching to AI-translated English
+    // Check if switching to English (either native or AI-translated)
     const selectedLang = availableLanguages.find(l => l.code === languageCode);
     console.log('[YouTubeSidebar] Selected language:', selectedLang);
+    console.log('[YouTubeSidebar] Is AI translated flag?', selectedLang?.is_ai_translated);
 
-    if (languageCode === 'en' && selectedLang?.is_ai_translated) {
+    // Determine if this is AI-translated English by checking:
+    // 1. The language flag is set to true (explicitly check for true value, not truthy)
+    // 2. OR we have englishTranslation state (indicating AI translation was done)
+    // 3. OR we have transcriptCache['en'] but no native English in available languages
+    const isAITranslated = selectedLang?.is_ai_translated === true ||
+                          (englishTranslation && englishTranslation.length > 0) ||
+                          (transcriptCache['en'] && !availableLanguages.some(l => l.code === 'en' && !l.is_ai_translated));
+
+    console.log('[YouTubeSidebar] isAITranslated computed value:', isAITranslated);
+
+    if (languageCode === 'en' && isAITranslated) {
       console.log('[YouTubeSidebar] Attempting to switch to AI-translated English...');
       // Check if AI translation exists in cache or state (with non-empty validation)
       if (englishTranslation && englishTranslation.length > 0) {
         console.log(`[YouTubeSidebar] Using englishTranslation state: ${englishTranslation.length} segments`);
-        console.log('[YouTubeSidebar] First segment before switch:', transcript[0]);
+        console.log('[YouTubeSidebar] First segment before switch:', transcript?.[0]);
         console.log('[YouTubeSidebar] First segment of translation:', englishTranslation[0]);
-        // Force a new array reference to trigger React re-render
-        const newTranscript = [...englishTranslation];
-        setTranscript(newTranscript);
+        // Use functional update to get latest state and avoid stale closures
+        setTranscript(() => {
+          const newTranscript = [...englishTranslation];
+          console.log('[YouTubeSidebar] ✓ Switched to AI-translated English (from englishTranslation state)');
+          console.log('[YouTubeSidebar] New transcript first segment:', newTranscript[0]);
+          return newTranscript;
+        });
         setCurrentLanguage('en');
-        console.log('[YouTubeSidebar] ✓ Switched to AI-translated English (from englishTranslation state)');
-        console.log('[YouTubeSidebar] New transcript first segment:', newTranscript[0]);
       } else if (transcriptCache['en'] && transcriptCache['en'].length > 0) {
         // Try cache fallback - polling stores at 'en' key
         console.log(`[YouTubeSidebar] Using transcriptCache['en']: ${transcriptCache['en'].length} segments`);
@@ -613,6 +678,12 @@ export function YouTubeSidebar({ videoId }: YouTubeSidebarProps): React.JSX.Elem
         setCurrentLanguage(lang);
         console.log('[YouTubeSidebar] Loaded transcript in language:', lang);
 
+        // Update video title from API response (more reliable than DOM scraping)
+        if (response.video_title) {
+          setVideoTitle(response.video_title);
+          console.log('[YouTubeSidebar] Set video title from API:', response.video_title);
+        }
+
         // Cache the transcript by language code for instant switching
         setTranscriptCache(prev => ({
           ...prev,
@@ -646,8 +717,13 @@ export function YouTubeSidebar({ videoId }: YouTubeSidebarProps): React.JSX.Elem
             // Check if English is available natively
             const hasNativeEnglish = languages.some((l: any) => l.code === 'en' && !l.is_ai_translated);
 
-            // Set the full language list
-            setAvailableLanguages(languages);
+            // Filter to only native languages + AI-translated English (no other AI translations)
+            const filteredLanguages = languages.filter((l: any) =>
+              !l.is_ai_translated || (l.is_ai_translated && l.code === 'en')
+            );
+
+            // Set the filtered language list
+            setAvailableLanguages(filteredLanguages);
 
             // Only trigger eager translation if:
             // 1. Current language is not English
@@ -655,7 +731,11 @@ export function YouTubeSidebar({ videoId }: YouTubeSidebarProps): React.JSX.Elem
             if (lang !== 'en' && !hasNativeEnglish) {
               setTranslating(true);
               // Add English option to show "translating..." status
-              setAvailableLanguages([...languages, {
+              // Filter to only native languages + add English (translating...)
+              const filteredForTranslating = languages.filter((l: any) =>
+                !l.is_ai_translated || (l.is_ai_translated && l.code === 'en')
+              );
+              setAvailableLanguages([...filteredForTranslating, {
                 code: 'en',
                 name: 'English (translating...)',
                 is_generated: true,
@@ -663,7 +743,7 @@ export function YouTubeSidebar({ videoId }: YouTubeSidebarProps): React.JSX.Elem
                 is_ai_translated: true
               }]);
               // Start polling for translation completion
-              pollForTranslation(lang);
+              pollForTranslation();
             }
           }
         };
@@ -695,6 +775,12 @@ export function YouTubeSidebar({ videoId }: YouTubeSidebarProps): React.JSX.Elem
         if (transcriptResponse.success && transcriptResponse.data) {
           setTranscript(transcriptResponse.data);
           transcriptSegments = transcriptResponse.data;
+
+          // Update video title from API response (more reliable than DOM scraping)
+          if (transcriptResponse.video_title) {
+            setVideoTitle(transcriptResponse.video_title);
+            console.log('[YouTubeSidebar] Set video title from API:', transcriptResponse.video_title);
+          }
         } else {
           setError('Please fetch transcript first');
           setLoadingFormat(null);
@@ -772,6 +858,12 @@ export function YouTubeSidebar({ videoId }: YouTubeSidebarProps): React.JSX.Elem
         if (transcriptResponse.success && transcriptResponse.data) {
           setTranscript(transcriptResponse.data);
           transcriptText = transcriptResponse.data.map((seg: any) => seg.text).join(' ');
+
+          // Update video title from API response (more reliable than DOM scraping)
+          if (transcriptResponse.video_title) {
+            setVideoTitle(transcriptResponse.video_title);
+            console.log('[YouTubeSidebar] Set video title from API:', transcriptResponse.video_title);
+          }
         } else {
           setError('Please fetch transcript first');
           setQuestionsLoading(false);
@@ -844,6 +936,12 @@ export function YouTubeSidebar({ videoId }: YouTubeSidebarProps): React.JSX.Elem
         if (transcriptResponse.success && transcriptResponse.data) {
           setTranscript(transcriptResponse.data);
           transcriptText = transcriptResponse.data.map((seg: any) => seg.text).join(' ');
+
+          // Update video title from API response (more reliable than DOM scraping)
+          if (transcriptResponse.video_title) {
+            setVideoTitle(transcriptResponse.video_title);
+            console.log('[YouTubeSidebar] Set video title from API:', transcriptResponse.video_title);
+          }
         } else {
           setError('Please fetch transcript first');
           setChatLoading(false);
@@ -911,6 +1009,110 @@ export function YouTubeSidebar({ videoId }: YouTubeSidebarProps): React.JSX.Elem
     }
   };
 
+  // ============================================================================
+  // Save Handlers
+  // ============================================================================
+
+  /**
+   * Helper to check if error is auth-related and prompt re-login
+   */
+  const handleAuthError = (response: any): boolean => {
+    if (response?.error && (
+      response.error.includes('Authentication required') ||
+      response.error.includes('Token expired') ||
+      response.error.includes('Invalid token') ||
+      response.error.includes('Unauthorized')
+    )) {
+      setError('Please re-login to save.');
+      // Auto-open popup for re-login
+      chrome.runtime.sendMessage({ type: 'OPEN_POPUP' });
+      return true;
+    }
+    return false;
+  };
+
+  const handleSaveTranscript = async () => {
+    if (!transcript) {
+      setError('No transcript to save');
+      return;
+    }
+
+    try {
+      const response = await chrome.runtime.sendMessage({
+        type: 'SAVE_ITEM',
+        payload: {
+          video_id: videoId,
+          item_type: 'transcript',
+          content: {
+            videoTitle: videoTitle,
+            savedAt: new Date().toISOString(),
+            language: currentLanguage,
+            text: transcript.map((seg: any) => seg.text).join(' '),
+            segments: transcript,
+          },
+        },
+      });
+
+      if (response?.success) {
+        console.log('[YouTubeSidebar] Transcript saved successfully');
+        // TODO: Show success toast
+      } else if (!handleAuthError(response)) {
+        setError(response?.error || 'Failed to save transcript');
+      }
+    } catch (err) {
+      setError('Failed to save transcript');
+    }
+  };
+
+  const handleSaveSummary = async () => {
+    // Get all generated formats
+    const formatsToSave = [];
+    if (summaries.short) formatsToSave.push('short');
+    if (summaries.topic) formatsToSave.push('topic');
+    if (summaries.qa) formatsToSave.push('qa');
+
+    if (formatsToSave.length === 0) {
+      setError('No summaries to save');
+      return;
+    }
+
+    try {
+      // Save all formats as a single 'summary' record
+      const content: any = {
+        videoTitle: videoTitle,
+        savedAt: new Date().toISOString(),
+        formats: {},
+      };
+
+      // Collect all generated formats
+      formatsToSave.forEach((format) => {
+        const formatKey = format as 'short' | 'topic' | 'qa';
+        content.formats[format] = {
+          summary: summaries[formatKey],
+          is_structured: summaries[`${formatKey}_is_structured` as keyof typeof summaries] || false,
+        };
+      });
+
+      const response = await chrome.runtime.sendMessage({
+        type: 'SAVE_ITEM',
+        payload: {
+          video_id: videoId,
+          item_type: 'summary', // Single item_type for all formats
+          content: content,
+        },
+      });
+
+      if (response?.success) {
+        console.log('[YouTubeSidebar] Summary saved successfully');
+        // TODO: Show success toast
+      } else if (!handleAuthError(response)) {
+        setError(response?.error || 'Failed to save summary');
+      }
+    } catch (err) {
+      setError('Failed to save summary');
+    }
+  };
+
   // Detect light/dark mode
   const isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
 
@@ -971,15 +1173,55 @@ export function YouTubeSidebar({ videoId }: YouTubeSidebarProps): React.JSX.Elem
             Mintclip
           </h3>
         </div>
-        <div
-          style={{
-            color: isDarkMode ? 'rgba(255, 255, 255, 0.5)' : 'rgba(0, 0, 0, 0.5)',
-            fontSize: '12px',
-            transition: 'transform 0.2s',
-            transform: isExpanded ? 'rotate(0deg)' : 'rotate(-90deg)',
-          }}
-        >
-          ▼
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {/* Dashboard Button */}
+          {isAuthenticated && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                console.log('[YouTubeSidebar] Opening dashboard...');
+                chrome.runtime.sendMessage({ type: 'OPEN_LIBRARY' }, (response) => {
+                  if (chrome.runtime.lastError) {
+                    console.error('[YouTubeSidebar] Error opening dashboard:', chrome.runtime.lastError);
+                  } else {
+                    console.log('[YouTubeSidebar] Dashboard opened:', response);
+                  }
+                });
+              }}
+              style={{
+                padding: '6px 12px',
+                background: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)',
+                border: isDarkMode ? '1px solid rgba(255, 255, 255, 0.2)' : '1px solid rgba(0, 0, 0, 0.1)',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                fontSize: '13px',
+                fontWeight: 500,
+                color: isDarkMode ? '#fff' : '#000',
+                transition: 'all 0.2s',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = isDarkMode ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.08)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)';
+              }}
+              title="View your dashboard"
+            >
+              Dashboard
+            </button>
+          )}
+          <div
+            style={{
+              color: isDarkMode ? 'rgba(255, 255, 255, 0.5)' : 'rgba(0, 0, 0, 0.5)',
+              fontSize: '12px',
+              transition: 'transform 0.2s',
+              transform: isExpanded ? 'rotate(0deg)' : 'rotate(-90deg)',
+            }}
+          >
+            ▼
+          </div>
         </div>
       </div>
 
@@ -1060,6 +1302,8 @@ export function YouTubeSidebar({ videoId }: YouTubeSidebarProps): React.JSX.Elem
                     availableLanguages={availableLanguages}
                     onLanguageChange={handleLanguageChange}
                     onFetchLanguages={handleFetchLanguages}
+                    isAuthenticated={isAuthenticated}
+                    onSaveTranscript={handleSaveTranscript}
                   />
                 )}
                 {activeTab === 'summary' && (
@@ -1072,6 +1316,7 @@ export function YouTubeSidebar({ videoId }: YouTubeSidebarProps): React.JSX.Elem
                     summaries={summaries}
                     videoTitle={videoTitle}
                     videoId={videoId}
+                    onSaveSummary={handleSaveSummary}
                   />
                 )}
                 {activeTab === 'chat' && (

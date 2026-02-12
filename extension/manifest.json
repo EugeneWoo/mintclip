@@ -9,8 +9,18 @@
     "storage",
     "identity"
   ],
+  "oauth2": {
+    "client_id": "210145228416-184rhnsd7r0qava7ucpflroauag8bsq7.apps.googleusercontent.com",
+    "scopes": [
+      "https://www.googleapis.com/auth/userinfo.email",
+      "https://www.googleapis.com/auth/userinfo.profile"
+    ]
+  },
   "host_permissions": [
-    "*://*.youtube.com/*"
+    "*://*.youtube.com/*",
+    "http://localhost:5173/*",
+    "http://localhost:5174/*",
+    "https://mintclip.app/*"
   ],
   "background": {
     "service_worker": "src/background/index.ts",
@@ -22,6 +32,15 @@
         "*://*.youtube.com/*"
       ],
       "js": ["src/content/index.tsx"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "http://localhost:5173/*",
+        "http://localhost:5174/*",
+        "https://mintclip.app/*"
+      ],
+      "js": ["src/content-scripts/webapp-bridge.ts"],
       "run_at": "document_idle"
     }
   ],

@@ -25,6 +25,14 @@ function getVideoId(): string | null {
  * Initialize extension UI on YouTube pages
  */
 function initExtensionUI(): void {
+  console.log('[Mintclip] initExtensionUI called', {
+    url: window.location.href,
+    videoId: getVideoId(),
+    sidebarContainerExists: !!sidebarContainer,
+    reactRootExists: !!reactRoot,
+    domContainerExists: !!document.querySelector('#mintclip-sidebar')
+  });
+
   if (!isYouTubePage()) {
     cleanupExtensionUI();
     return;
@@ -37,9 +45,23 @@ function initExtensionUI(): void {
     return;
   }
 
-  // Don't re-initialize if already exists
+  // Aggressive cleanup: Always remove any existing container from DOM
+  // This handles cases where the DOM has an old container but our references are null
+  const existingDomContainer = document.querySelector('#mintclip-sidebar');
+  if (existingDomContainer) {
+    console.log('[Mintclip] Removing existing DOM container');
+    existingDomContainer.remove();
+  }
+
+  // Reset our references if they exist
   if (sidebarContainer) {
-    return;
+    console.log('[Mintclip] Resetting sidebarContainer reference');
+    sidebarContainer = null;
+  }
+  if (reactRoot) {
+    console.log('[Mintclip] Unmounting reactRoot');
+    reactRoot.unmount();
+    reactRoot = null;
   }
 
   console.log('[Mintclip] Injecting UI for video:', videoId);
@@ -48,7 +70,10 @@ function initExtensionUI(): void {
   const secondary = document.querySelector('#secondary');
   if (!secondary) {
     console.log('[Mintclip] Secondary column not found, retrying...');
-    setTimeout(initExtensionUI, 500);
+    setTimeout(() => {
+      console.log('[Mintclip] Retrying initExtensionUI after secondary not found');
+      initExtensionUI();
+    }, 500);
     return;
   }
 
@@ -159,6 +184,12 @@ function initExtensionUI(): void {
  * Cleanup extension UI
  */
 function cleanupExtensionUI(): void {
+  console.log('[Mintclip] cleanupExtensionUI called', {
+    reactRootExists: !!reactRoot,
+    sidebarContainerExists: !!sidebarContainer,
+    domContainerExists: !!document.querySelector('#mintclip-sidebar')
+  });
+
   if (reactRoot) {
     reactRoot.unmount();
     reactRoot = null;
@@ -167,10 +198,20 @@ function cleanupExtensionUI(): void {
     sidebarContainer.remove();
     sidebarContainer = null;
   }
+
+  console.log('[Mintclip] Cleanup complete', {
+    domContainerStillExists: !!document.querySelector('#mintclip-sidebar')
+  });
 }
 
 // Watch for YouTube SPA navigation
-watchYouTubeNavigation(() => {
+watchYouTubeNavigation((url) => {
+  console.log('[Mintclip] Navigation detected', {
+    url,
+    isYouTubePage: isYouTubePage(),
+    videoId: getVideoId()
+  });
+
   cleanupExtensionUI();
   if (isYouTubePage()) {
     // Small delay to ensure DOM is ready

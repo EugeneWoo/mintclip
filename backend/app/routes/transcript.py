@@ -4,12 +4,16 @@ Endpoints for extracting YouTube video transcripts
 """
 
 import logging
-from fastapi import APIRouter, HTTPException
+import uuid
+import asyncio
+from fastapi import APIRouter, HTTPException, BackgroundTasks
 from pydantic import BaseModel
 from typing import Optional, List, Dict, Tuple
 from datetime import datetime, timedelta
 
 from app.services.transcript_extractor import TranscriptExtractor
+from app.utils.url_parser import parse_youtube_urls, validate_batch_input
+from app.services.cache import set_job_status, get_job_status, update_job_progress
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -77,6 +81,10 @@ async def extract_transcript(request: TranscriptRequest):
             # Add a 'cached' flag to the response for clarity
             cached_response = cached_entry['data'].copy()
             cached_response['cached'] = True
+            # Ensure video_title is present in cached response
+            if 'video_title' not in cached_response:
+                video_title = await TranscriptExtractor.get_video_title(video_id)
+                cached_response['video_title'] = video_title or f"Video {video_id}"
             return cached_response
         else:
             # Cache expired, remove it
@@ -85,42 +93,10 @@ async def extract_transcript(request: TranscriptRequest):
     # Cache miss - extract transcript
     logger.info(f"Cache miss for transcript. Fetching for video: {video_id}, languages: {request.languages}")
 
-    # Special handling: If requesting English but AI translation exists, return that
-    if request.languages == ['en']:
-        from app.services.cache import get_cache
-        cache = get_cache()
+    # Fetch video title
+    video_title = await TranscriptExtractor.get_video_title(video_id)
 
-        # Try to get the original transcript first to determine its language
-        temp_result = await TranscriptExtractor.get_transcript(
-            video_id=video_id,
-            languages=None  # Get any available language
-        )
-
-        if temp_result['success'] and temp_result.get('language') != 'en':
-            # Original is not English - check for AI translation
-            source_lang = temp_result['language']
-            translation_cache_key = f"transcript_translation:{video_id}:{source_lang}"
-            cached_translation = cache.get(translation_cache_key)
-
-            if cached_translation:
-                logger.info(f"Found AI-translated English for video {video_id}, returning from cache")
-                result = {
-                    'success': True,
-                    'video_id': video_id,
-                    'language': 'en',
-                    'is_generated': True,  # Indicates AI translation
-                    'transcript': cached_translation,
-                    'full_text': ' '.join([seg.get('text', '') for seg in cached_translation])
-                }
-                # Store in transcript cache for future requests
-                _transcript_cache[cache_key] = {
-                    'data': result,
-                    'timestamp': datetime.now()
-                }
-                result['cached'] = False
-                return result
-
-    # Normal flow: fetch from YouTube
+    # Extract transcript
     result = await TranscriptExtractor.get_transcript(
         video_id=video_id,
         languages=request.languages
@@ -137,6 +113,12 @@ async def extract_transcript(request: TranscriptRequest):
                 status_code=500,
                 detail=result['message']
             )
+
+    # Add video title to result
+    if video_title:
+        result['video_title'] = video_title
+    else:
+        result['video_title'] = f"Video {video_id}"
 
     # Store successful result in cache
     _transcript_cache[cache_key] = {
@@ -407,3 +389,175 @@ async def translate_transcript(request: TranslateRequest):
             'error': str(e),
             'video_id': request.video_id
         }
+
+
+# ===== Batch Processing Endpoints =====
+# DISABLED: Batch processing feature removed for MVP
+# Re-enable in future if needed for bulk transcript extraction
+
+# class BatchTranscriptRequest(BaseModel):
+#     """Request model for batch transcript extraction"""
+#     video_ids: List[str]
+#     languages: Optional[List[str]] = None
+#
+#     class Config:
+#         json_schema_extra = {
+#             "example": {
+#                 "video_ids": ["dQw4w9WgXcQ", "jNQXAC9IVRw", "9bZkp7q19f0"],
+#                 "languages": ["en"]
+#             }
+#         }
+#
+#
+# async def process_batch_job(job_id: str, video_ids: List[str], languages: Optional[List[str]] = None):
+#     """Background task to process batch transcript extraction.
+#
+#     Args:
+#         job_id: Unique job identifier
+#         video_ids: List of YouTube video IDs to process
+#         languages: Optional list of preferred languages
+#     """
+#     logger.info(f"Starting batch job {job_id} for {len(video_ids)} videos")
+#
+#     # Use semaphore to limit concurrent requests (max 3 at a time)
+#     semaphore = asyncio.Semaphore(3)
+#
+#     async def fetch_single_transcript(video_id: str, index: int):
+#         """Fetch transcript for a single video with semaphore control"""
+#         async with semaphore:
+#             try:
+#                 logger.info(f"[Job {job_id}] Processing video {index + 1}/{len(video_ids)}: {video_id}")
+#
+#                 # Fetch transcript
+#                 result = await TranscriptExtractor.get_transcript(
+#                     video_id=video_id,
+#                     languages=languages
+#                 )
+#
+#                 if result['success']:
+#                     # Success - update job with completed video
+#                     update_job_progress(job_id, {
+#                         'video_id': video_id,
+#                         'title': f"Video {video_id}",  # Could fetch from YouTube API if available
+#                         'status': 'completed',
+#                         'transcript': result.get('transcript'),
+#                         'language': result.get('language'),
+#                         'full_text': result.get('full_text')
+#                     })
+#                     logger.info(f"[Job {job_id}] Successfully processed {video_id}")
+#                 else:
+#                     # Failed - update job with error
+#                     error_message = result.get('message', 'Unknown error')
+#                     if result.get('error') == 'no_captions':
+#                         error_message = "No captions available"
+#                     elif 'private' in error_message.lower():
+#                         error_message = "Private video"
+#                     elif 'not found' in error_message.lower():
+#                         error_message = "Video not found"
+#
+#                     update_job_progress(job_id, {
+#                         'video_id': video_id,
+#                         'title': f"Video {video_id}",
+#                         'status': 'failed',
+#                         'error': error_message
+#                     })
+#                     logger.warning(f"[Job {job_id}] Failed to process {video_id}: {error_message}")
+#
+#             except Exception as e:
+#                 # Unexpected error
+#                 logger.error(f"[Job {job_id}] Exception processing {video_id}: {e}")
+#                 update_job_progress(job_id, {
+#                     'video_id': video_id,
+#                     'title': f"Video {video_id}",
+#                     'status': 'failed',
+#                     'error': str(e)
+#                 })
+#
+#     # Process all videos concurrently (with semaphore limit)
+#     tasks = [fetch_single_transcript(vid, idx) for idx, vid in enumerate(video_ids)]
+#     await asyncio.gather(*tasks)
+#
+#     logger.info(f"Batch job {job_id} completed")
+#
+#
+# @router.post("/batch")
+# async def create_batch_job(request: BatchTranscriptRequest, background_tasks: BackgroundTasks):
+#     """
+#     Submit a batch transcript extraction job
+#
+#     Processes multiple videos concurrently (max 3 at a time) and returns immediately
+#     with a job_id that can be used to check progress.
+#
+#     V1 Limit: 5 videos per batch (free tier hard limit)
+#
+#     Args:
+#         request: BatchTranscriptRequest containing list of video IDs
+#
+#     Returns:
+#         Job details with job_id, total_videos, and initial status
+#     """
+#     # Validate input
+#     if not request.video_ids:
+#         raise HTTPException(
+#             status_code=400,
+#             detail="No video IDs provided"
+#         )
+#
+#     # V1 Hard limit: 5 videos per batch
+#     MAX_BATCH_SIZE = 5
+#     if len(request.video_ids) > MAX_BATCH_SIZE:
+#         raise HTTPException(
+#             status_code=400,
+#             detail=f"Batch size exceeds limit. Maximum {MAX_BATCH_SIZE} videos allowed per batch (free tier). You submitted {len(request.video_ids)} videos."
+#         )
+#
+#     # Generate unique job ID
+#     job_id = str(uuid.uuid4())
+#
+#     # Initialize job status
+#     initial_status = {
+#         'job_id': job_id,
+#         'status': 'pending',
+#         'total': len(request.video_ids),
+#         'completed': 0,
+#         'failed': 0,
+#         'results': []
+#     }
+#
+#     # Store initial job status
+#     set_job_status(job_id, initial_status)
+#
+#     # Start background processing
+#     background_tasks.add_task(process_batch_job, job_id, request.video_ids, request.languages)
+#
+#     logger.info(f"Created batch job {job_id} for {len(request.video_ids)} videos")
+#
+#     return {
+#         'job_id': job_id,
+#         'total_videos': len(request.video_ids),
+#         'status': 'pending'
+#     }
+#
+#
+# @router.get("/batch/{job_id}/status")
+# async def get_batch_job_status(job_id: str):
+#     """
+#     Get status of a batch transcript extraction job
+#
+#     Poll this endpoint to check progress. Updates every 2-3 seconds on the client.
+#
+#     Args:
+#         job_id: Unique job identifier returned from /batch endpoint
+#
+#     Returns:
+#         Job status with progress details and results
+#     """
+#     job_status = get_job_status(job_id)
+#
+#     if not job_status:
+#         raise HTTPException(
+#             status_code=404,
+#             detail=f"Job {job_id} not found or expired (jobs expire after 24 hours)"
+#         )
+#
+#     return job_status

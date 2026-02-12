@@ -40,6 +40,8 @@ interface TranscriptTabProps {
   availableLanguages?: Language[];
   onLanguageChange?: (languageCode: string) => void;
   onFetchLanguages?: () => void;
+  isAuthenticated?: boolean; // Add auth check to prevent auto-fetching for non-logged-in users
+  onSaveTranscript?: () => void; // Save transcript to Supabase
 }
 
 // ClickableTimestamp component
@@ -124,17 +126,21 @@ export function TranscriptTab({
   availableLanguages = [],
   onLanguageChange,
   onFetchLanguages,
+  isAuthenticated = false,
+  onSaveTranscript,
 }: TranscriptTabProps): React.JSX.Element {
   const [searchQuery, setSearchQuery] = useState('');
   const [showCopyFeedback, setShowCopyFeedback] = useState(false);
+  const [showSaveFeedback, setShowSaveFeedback] = useState(false);
   const [showLanguageDropdown, setShowLanguageDropdown] = useState(false);
 
   // Fetch available languages when videoId changes or transcript loads
+  // ONLY for authenticated users to avoid YouTube API rate limit issues
   useEffect(() => {
-    if (videoId && transcript && onFetchLanguages && availableLanguages.length === 0) {
+    if (isAuthenticated && videoId && transcript && onFetchLanguages && availableLanguages.length === 0) {
       onFetchLanguages();
     }
-  }, [videoId, transcript, onFetchLanguages, availableLanguages.length]);
+  }, [isAuthenticated, videoId, transcript, onFetchLanguages, availableLanguages.length]);
 
   // Smart paragraph grouping based on pauses, punctuation, and length constraints
   const groupedTranscript = useMemo(() => {
@@ -223,6 +229,14 @@ export function TranscriptTab({
     navigator.clipboard.writeText(text);
     setShowCopyFeedback(true);
     setTimeout(() => setShowCopyFeedback(false), 1000);
+  };
+
+  const handleSave = () => {
+    if (onSaveTranscript && transcript) {
+      onSaveTranscript();
+      setShowSaveFeedback(true);
+      setTimeout(() => setShowSaveFeedback(false), 2000);
+    }
   };
 
   return (
@@ -427,6 +441,33 @@ export function TranscriptTab({
                 <rect x="5" y="5" width="9" height="9" rx="1.5" stroke="currentColor" strokeWidth="1.5" fill="none"/>
                 <path d="M3 10V3C3 2.44772 3.44772 2 4 2H10" stroke="currentColor" strokeWidth="1.5" fill="none"/>
               </svg>
+            </button>
+
+            <button
+              onClick={handleSave}
+              disabled={!onSaveTranscript}
+              style={{
+                padding: '8px 12px',
+                backgroundColor: showSaveFeedback ? '#4ade80' : 'rgba(255, 255, 255, 0.05)',
+                border: showSaveFeedback
+                  ? '1px solid #4ade80'
+                  : '1px solid rgba(255, 255, 255, 0.1)',
+                borderRadius: '6px',
+                color: showSaveFeedback ? '#fff' : 'rgba(255, 255, 255, 0.7)',
+                fontSize: '13px',
+                fontWeight: 600,
+                cursor: onSaveTranscript ? 'pointer' : 'not-allowed',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'all 0.2s',
+                boxShadow: showSaveFeedback ? '0 0 0 0.5px #4ade80' : 'none',
+                height: '36px',
+                whiteSpace: 'nowrap',
+              }}
+              title="Save transcript to library"
+            >
+              {showSaveFeedback ? '✓ Saved' : 'Save'}
             </button>
           </div>
 

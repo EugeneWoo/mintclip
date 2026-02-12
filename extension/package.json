@@ -5,7 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "vite build --watch --mode development",
-    "build": "vite build",
+    "build": "npm run build:prod",
+    "build:local": "vite build --mode development",
+    "build:dev": "vite build --mode development",
+    "build:prod": "vite build --mode production",
     "test": "jest",
     "lint": "eslint . --ext .ts,.tsx",
     "format": "prettier --write \"**/*.{ts,tsx,json,md}\""
