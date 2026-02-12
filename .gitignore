@@ -68,3 +68,8 @@ coverage/
 
 # Local environment scripts
 *.env.sh
+
+# Backend .md files
+backend/manual_tests/*.json
+backend/manual_tests/*.txt
+backend/docs/
