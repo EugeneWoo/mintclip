@@ -1,16 +1,28 @@
 """
-In-Memory Cache Service
-Simple dict-based caching with TTL support for MVP
-Will be replaced with Redis in production
+Cache Service with Redis support
+Automatically uses Redis if REDIS_URL is available, falls back to in-memory cache
 """
 
 from datetime import datetime, timedelta
 from typing import Optional, Any
 import threading
+import os
+import json
+import logging
+
+logger = logging.getLogger(__name__)
+
+# Try to import Redis, but don't fail if not available
+try:
+    import redis
+    REDIS_AVAILABLE = True
+except ImportError:
+    REDIS_AVAILABLE = False
+    logger.warning("Redis not installed. Using in-memory cache fallback.")
 
 
 class SimpleCache:
-    """Thread-safe in-memory cache with TTL expiration"""
+    """Thread-safe in-memory cache with TTL expiration (fallback when Redis unavailable)"""
 
     def __init__(self):
         self._cache: dict[str, tuple[Any, datetime]] = {}
@@ -60,15 +72,98 @@ class SimpleCache:
             return len(self._cache)
 
 
+class RedisCache:
+    """Redis-backed cache with JSON serialization"""
+
+    def __init__(self, redis_url: str):
+        """Initialize Redis connection"""
+        try:
+            self.redis_client = redis.from_url(
+                redis_url,
+                decode_responses=True,  # Automatically decode bytes to strings
+                socket_connect_timeout=5,
+                socket_timeout=5
+            )
+            # Test connection
+            self.redis_client.ping()
+            logger.info(f"Connected to Redis successfully")
+        except Exception as e:
+            logger.error(f"Failed to connect to Redis: {e}")
+            raise
+
+    def get(self, key: str) -> Optional[Any]:
+        """Get value from Redis cache"""
+        try:
+            value = self.redis_client.get(key)
+            if value is None:
+                return None
+            # Deserialize JSON
+            return json.loads(value)
+        except Exception as e:
+            logger.error(f"Redis GET error for key {key}: {e}")
+            return None
+
+    def set(self, key: str, value: Any, ttl_seconds: int):
+        """Set value in Redis cache with TTL"""
+        try:
+            # Serialize to JSON
+            serialized = json.dumps(value)
+            self.redis_client.setex(key, ttl_seconds, serialized)
+        except Exception as e:
+            logger.error(f"Redis SET error for key {key}: {e}")
+
+    def delete(self, key: str):
+        """Delete key from Redis"""
+        try:
+            self.redis_client.delete(key)
+        except Exception as e:
+            logger.error(f"Redis DELETE error for key {key}: {e}")
+
+    def clear_expired(self):
+        """Redis automatically handles expiration, so this is a no-op"""
+        return 0
+
+    def clear_all(self):
+        """Clear entire Redis cache (use with caution!)"""
+        try:
+            self.redis_client.flushdb()
+            logger.warning("Redis cache cleared")
+        except Exception as e:
+            logger.error(f"Redis FLUSHDB error: {e}")
+
+    def size(self) -> int:
+        """Get number of keys in Redis"""
+        try:
+            return self.redis_client.dbsize()
+        except Exception as e:
+            logger.error(f"Redis DBSIZE error: {e}")
+            return 0
+
+
 # Global cache instance
-_cache_instance: Optional[SimpleCache] = None
+_cache_instance: Optional[Any] = None
 
 
-def get_cache() -> SimpleCache:
-    """Get or create global cache instance"""
+def get_cache():
+    """Get or create global cache instance (Redis if available, otherwise in-memory)"""
     global _cache_instance
-    if _cache_instance is None:
-        _cache_instance = SimpleCache()
+
+    if _cache_instance is not None:
+        return _cache_instance
+
+    # Try Redis first
+    redis_url = os.getenv("REDIS_URL")
+    if redis_url and REDIS_AVAILABLE:
+        try:
+            _cache_instance = RedisCache(redis_url)
+            logger.info("Using Redis cache")
+            return _cache_instance
+        except Exception as e:
+            logger.warning(f"Failed to initialize Redis cache: {e}. Falling back to in-memory cache.")
+
+    # Fallback to in-memory cache
+    _cache_instance = SimpleCache()
+    logger.info("Using in-memory cache (fallback)")
     return _cache_instance
 
 

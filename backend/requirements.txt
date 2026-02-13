@@ -42,3 +42,6 @@ rank-bm25>=0.2.2
 
 # Background task scheduler
 apscheduler>=3.10.0
+
+# Redis cache
+redis>=5.0.0
