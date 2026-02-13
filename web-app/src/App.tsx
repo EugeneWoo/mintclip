@@ -4,6 +4,7 @@ import { Landing } from './components/Landing'
 import { Dashboard } from './components/Dashboard'
 import { Library } from './components/Library'
 import { AuthCallback } from './components/AuthCallback'
+import { Privacy } from './components/Privacy'
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -51,6 +52,9 @@ function App() {
 
         {/* Auth callback */}
         <Route path="/auth/callback" element={<AuthCallback />} />
+
+        {/* Public routes */}
+        <Route path="/privacy" element={<Privacy />} />
 
         {/* Protected routes */}
         <Route

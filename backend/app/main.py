@@ -88,3 +88,18 @@ async def health():
             "chat": "available"
         }
     }
+
+
+@app.get("/debug/proxy-config")
+async def debug_proxy_config():
+    """Debug endpoint to check proxy configuration"""
+    ws_user = os.getenv("WS_USER")
+    ws_pass = os.getenv("WS_PASS")
+
+    return {
+        "proxy_enabled": bool(ws_user and ws_pass),
+        "ws_user_set": bool(ws_user),
+        "ws_pass_set": bool(ws_pass),
+        "ws_user_preview": ws_user[:8] + "..." if ws_user else None,
+        "environment": os.getenv("ENVIRONMENT", "unknown")
+    }

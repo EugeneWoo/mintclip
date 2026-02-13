@@ -1,0 +1,14 @@
+# Railway Nixpacks Configuration for Vite React App
+
+[phases.setup]
+nixPkgs = ["nodejs_20"]
+
+[phases.install]
+cmds = ["npm ci"]
+
+[phases.build]
+cmds = ["npm run build"]
+
+[start]
+# Use serve to handle SPA routing (React Router)
+cmd = "npx serve -s dist -l $PORT"
