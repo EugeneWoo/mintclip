@@ -1,5 +1,26 @@
 # Mintclip Backend Deployment Guide
 
+## Quick Reference
+
+### Production URLs
+- **Backend API**: `https://mintclip-production.up.railway.app`
+- **Health Check**: `https://mintclip-production.up.railway.app/health`
+- **Debug Endpoint**: `https://mintclip-production.up.railway.app/debug/proxy-config`
+
+### Extension Configuration
+Update `extension/src/config.ts`:
+```typescript
+const defaultBackendUrl = 'https://mintclip-production.up.railway.app'
+```
+
+### Web App Configuration
+Set environment variables:
+```bash
+VITE_API_BASE_URL=https://mintclip-production.up.railway.app
+```
+
+---
+
 ## Overview
 
 This document outlines the deployment steps for the Mintclip backend (FastAPI) and extension (Chrome Extension) to Railway.
@@ -10,6 +31,8 @@ This document outlines the deployment steps for the Mintclip backend (FastAPI) a
 - GitHub repository with code
 - Google Cloud project with OAuth 2.0 credentials
 - Supabase project for database
+- Webshare proxy account (for YouTube API)
+- Redis database (auto-provisioned on Railway)
 
 ---
 
@@ -76,13 +99,61 @@ This document outlines the deployment steps for the Mintclip backend (FastAPI) a
 3. Add `GOOGLE_OAUTH_CLIENT_ID` and `GOOGLE_OAUTH_CLIENT_SECRET` to Railway env vars
 4. Update `FRONTEND_URL` env var to match your web app domain
 
-### Step 7: Get Backend URL
+### Step 7: Setup Redis Cache (Required)
+
+**Status:** ✅ COMPLETED
+
+1. **Add Redis Database to Railway Project**
+   - Click **New** → **Database** → **Add Redis**
+   - Railway auto-provisions Redis with environment variables
+
+2. **Connect Backend to Redis**
+   - Go to **Backend Service** → **Variables** tab
+   - Add variable: `REDIS_URL`
+   - Value: Copy the **REDIS_PUBLIC_URL** from Redis service variables
+   - Example: `redis://default:password@redis-abc123.railway.app:6379`
+
+3. **Verify Redis Connection**
+   ```bash
+   curl https://mintclip-production.up.railway.app/debug/proxy-config
+   # Should show: "cache_type": "RedisCache", "redis_url_set": true
+   ```
+
+**Cache Configuration:**
+- **Transcripts:** 30-day TTL (never change)
+- **Summaries:** 7-day TTL
+- **Chat Messages:** 24-hour TTL
+- **Automatic Expiration:** Redis handles cleanup
+
+**Note:** Private network (`redis.railway.internal`) may not work due to DNS resolution. Use **public URL** instead.
+
+### Step 8: Configure Webshare Proxy (Required for YouTube API)
+
+**Status:** ✅ COMPLETED
+
+1. **Add Proxy Credentials to Railway**
+   - Go to **Backend Service** → **Variables** tab
+   - Add variable: `WS_USER` (e.g., `ivpzpnvq-rotate`)
+   - Add variable: `WS_PASS` (your Webshare password)
+
+2. **Verify Proxy is Working**
+   ```bash
+   curl https://mintclip-production.up.railway.app/debug/proxy-config
+   # Should show: "proxy_enabled": true
+   ```
+
+**Proxy Provider:** Webshare rotating proxy (prevents YouTube rate limiting)
+
+### Step 9: Get Backend URL
 
 After deployment:
 1. Go to Railway dashboard
 2. Click on backend service
-3. Copy the domain (e.g., `https://mintclip-api-production.up.railway.app`)
-4. Test health check: `curl https://[your-backend-url]/api/health`
+3. Copy the domain (e.g., `https://mintclip-production.up.railway.app`)
+4. Test health check: `curl https://mintclip-production.up.railway.app/health`
+5. Test debug endpoint: `curl https://mintclip-production.up.railway.app/debug/proxy-config`
+
+**Production URL:** `https://mintclip-production.up.railway.app`
 
 ---
 
@@ -185,7 +256,12 @@ app.add_middleware(
 
 ### Backend
 
-- [ ] Health check returns 200: `curl https://[backend-url]/api/health`
+- [x] Health check returns 200: `curl https://mintclip-production.up.railway.app/health`
+- [x] Redis cache working: `curl https://mintclip-production.up.railway.app/debug/proxy-config`
+  - Should show: `"cache_type": "RedisCache"`, `"redis_url_set": true`
+- [x] Webshare proxy enabled: Check `"proxy_enabled": true` in debug endpoint
+- [x] Transcript extraction works: Test with `/api/transcript/extract`
+- [x] Cache persistence verified: Second request returns `"cached": true`
 - [ ] Google OAuth redirects work: Visit `/api/auth/google/login`
 - [ ] Token refresh endpoint works
 - [ ] Supabase connection successful
@@ -219,8 +295,15 @@ app.add_middleware(
    - Monitor CPU/memory usage
    - Check deployment logs
    - Set up alerts for failures
+   - **Redis Cache Status:** Check `/debug/proxy-config` endpoint
 
-2. **Web App Service:**
+2. **Redis Service:**
+   - Monitor memory usage (free tier: 512MB)
+   - Track cache hit/miss rates
+   - Check connection count
+   - Note: UI may show "empty" but cache is working
+
+3. **Web App Service:**
    - Monitor build logs
    - Check preview server status
    - Track bandwidth usage
@@ -270,6 +353,9 @@ app.add_middleware(
 | `JWT_ALGORITHM` | JWT algorithm | `HS256` |
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | Access token expiry | `60` |
 | `REFRESH_TOKEN_EXPIRE_DAYS` | Refresh token expiry | `90` |
+| `REDIS_URL` | Redis connection URL | `redis://default:pass@redis-abc.railway.app:6379` |
+| `WS_USER` | Webshare proxy username | `username-rotate` |
+| `WS_PASS` | Webshare proxy password | `password` |
 
 ### Extension (`extension/.env.production`)
 
