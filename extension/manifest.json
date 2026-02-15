@@ -20,7 +20,8 @@
     "*://*.youtube.com/*",
     "http://localhost:5173/*",
     "http://localhost:5174/*",
-    "https://mintclip.app/*"
+    "https://mintclip.app/*",
+    "https://mintclip.up.railway.app/*"
   ],
   "background": {
     "service_worker": "src/background/index.ts",
@@ -38,7 +39,8 @@
       "matches": [
         "http://localhost:5173/*",
         "http://localhost:5174/*",
-        "https://mintclip.app/*"
+        "https://mintclip.app/*",
+        "https://mintclip.up.railway.app/*"
       ],
       "js": ["src/content-scripts/webapp-bridge.ts"],
       "run_at": "document_idle"
