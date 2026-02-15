@@ -10,7 +10,7 @@ interface VideoCardProps {
   item: {
     id: string;
     video_id: string;
-    item_type: 'transcript' | 'summary';
+    item_type: 'transcript' | 'summary' | 'chat';
     content: any;
     created_at: string;
     source: 'extension' | 'upload';

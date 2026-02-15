@@ -45,7 +45,7 @@ function transcriptToMarkdown(content: any, videoTitle: string): string {
   md += `---\n\n## Transcript\n\n`;
 
   if (content.segments && Array.isArray(content.segments)) {
-    content.segments.forEach((segment: any, index: number) => {
+    content.segments.forEach((segment: any) => {
       const timestamp = segment.start || segment.offset || '';
       const timeStr = timestamp ? `[${formatTimestamp(timestamp)}] ` : '';
       const text = segment.text || '';
@@ -59,7 +59,7 @@ function transcriptToMarkdown(content: any, videoTitle: string): string {
 /**
  * Convert summary to markdown format
  */
-function summaryToMarkdown(content: any, videoTitle: string, itemType: string): string {
+function summaryToMarkdown(content: any, videoTitle: string): string {
   console.log('[summaryToMarkdown] Input content:', {
     content_keys: Object.keys(content || {}),
     has_summary: !!content?.summary,
@@ -161,10 +161,8 @@ function formatTimestamp(seconds: number): string {
  * Export all saved items for a video as a ZIP file
  */
 export async function exportVideoAsZip(
-  videoId: string,
   videoTitle: string,
-  items: SavedItem[],
-  token: string
+  items: SavedItem[]
 ): Promise<void> {
   console.log('[exportVideoAsZip] Processing items:', items.map(item => ({ item_type: item.item_type, id: item.id })));
 
@@ -210,7 +208,7 @@ export async function exportVideoAsZip(
         // Case 1: Root-level format + summary (one format per row)
         if (item.content?.format && item.content?.summary) {
           const formatType = item.content.format; // 'short', 'topic', or 'qa'
-          const content = summaryToMarkdown(item.content, videoTitle, item.item_type);
+          const content = summaryToMarkdown(item.content, videoTitle);
           const filename = `summary_${formatType}_${sanitizedName}.md`;
           console.log(`[exportVideoAsZip] Adding summary_${formatType}: ${filename}`);
           zip.file(filename, content);
@@ -221,7 +219,7 @@ export async function exportVideoAsZip(
           const formats = item.content.formats;
           if (formats.short?.summary) {
             const contentForShort = { ...item.content, format: 'short', summary: formats.short.summary };
-            const content = summaryToMarkdown(contentForShort, videoTitle, item.item_type);
+            const content = summaryToMarkdown(contentForShort, videoTitle);
             const filename = `summary_short_${sanitizedName}.md`;
             console.log(`[exportVideoAsZip] Adding summary_short: ${filename}`);
             zip.file(filename, content);
@@ -229,7 +227,7 @@ export async function exportVideoAsZip(
           }
           if (formats.topic?.summary) {
             const contentForTopic = { ...item.content, format: 'topic', summary: formats.topic.summary };
-            const content = summaryToMarkdown(contentForTopic, videoTitle, item.item_type);
+            const content = summaryToMarkdown(contentForTopic, videoTitle);
             const filename = `summary_topic_${sanitizedName}.md`;
             console.log(`[exportVideoAsZip] Adding summary_topic: ${filename}`);
             zip.file(filename, content);
@@ -237,7 +235,7 @@ export async function exportVideoAsZip(
           }
           if (formats.qa?.summary) {
             const contentForQa = { ...item.content, format: 'qa', summary: formats.qa.summary };
-            const content = summaryToMarkdown(contentForQa, videoTitle, item.item_type);
+            const content = summaryToMarkdown(contentForQa, videoTitle);
             const filename = `summary_qa_${sanitizedName}.md`;
             console.log(`[exportVideoAsZip] Adding summary_qa: ${filename}`);
             zip.file(filename, content);
@@ -248,21 +246,21 @@ export async function exportVideoAsZip(
         else if (item.content?.summaries) {
           if (item.content.summaries.short) {
             const contentForShort = { ...item.content, format: 'short', summary: item.content.summaries.short };
-            const content = summaryToMarkdown(contentForShort, videoTitle, item.item_type);
+            const content = summaryToMarkdown(contentForShort, videoTitle);
             const filename = `summary_short_${sanitizedName}.md`;
             zip.file(filename, content);
             addedFiles.push(filename);
           }
           if (item.content.summaries.topic) {
             const contentForTopic = { ...item.content, format: 'topic', summary: item.content.summaries.topic };
-            const content = summaryToMarkdown(contentForTopic, videoTitle, item.item_type);
+            const content = summaryToMarkdown(contentForTopic, videoTitle);
             const filename = `summary_topic_${sanitizedName}.md`;
             zip.file(filename, content);
             addedFiles.push(filename);
           }
           if (item.content.summaries.qa) {
             const contentForQa = { ...item.content, format: 'qa', summary: item.content.summaries.qa };
-            const content = summaryToMarkdown(contentForQa, videoTitle, item.item_type);
+            const content = summaryToMarkdown(contentForQa, videoTitle);
             const filename = `summary_qa_${sanitizedName}.md`;
             zip.file(filename, content);
             addedFiles.push(filename);
@@ -270,7 +268,7 @@ export async function exportVideoAsZip(
         }
         // Case 4: Direct summary field (no format info)
         else if (item.content?.summary) {
-          const content = summaryToMarkdown(item.content, videoTitle, item.item_type);
+          const content = summaryToMarkdown(item.content, videoTitle);
           const filename = `summary_${sanitizedName}.md`;
           console.log(`[exportVideoAsZip] Adding summary (no format): ${filename}`);
           zip.file(filename, content);

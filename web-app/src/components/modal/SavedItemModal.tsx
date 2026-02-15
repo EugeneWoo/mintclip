@@ -29,7 +29,7 @@ interface SavedItemData {
   video_id: string;
   video_title: string;
   video_thumbnail?: string;
-  item_type: 'transcript' | 'summary';
+  item_type: 'transcript' | 'summary' | 'chat';
   content: {
     // Transcript format
     videoTitle?: string;
@@ -1569,7 +1569,7 @@ export function SavedItemModal({
                       rows={1}
                     />
                     <button
-                      onClick={handleSendChatMessage}
+                      onClick={() => handleSendChatMessage()}
                       disabled={!chatInput.trim() || isLoadingChat}
                       style={{
                         padding: '10px 20px',

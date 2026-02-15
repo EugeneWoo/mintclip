@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+// import { Link } from 'react-router-dom';
 import { VideoCard } from './VideoCard';
 import { SavedItemModal } from './modal/SavedItemModal';
 import { UserProfileDropdown } from './UserProfileDropdown';
@@ -187,7 +187,7 @@ if (item.item_type === 'summary') {
         }, {});
 
         // Convert back to array
-        const mergedItems = Object.values(itemsByVideo);
+        const mergedItems = Object.values(itemsByVideo) as SavedItem[];
         console.log('[Dashboard] Merged items:', mergedItems);
         setSavedItems(mergedItems);
       } else {
@@ -371,7 +371,7 @@ if (item.item_type === 'summary') {
         item_types: allItems.map(i => i.item_type)
       });
 
-      await exportVideoAsZip(item.video_id, videoTitle, allItems, token);
+      await exportVideoAsZip(videoTitle, allItems);
     } catch (error) {
       console.error('[Dashboard] Export failed:', error);
       alert('Failed to export. Please try again.');

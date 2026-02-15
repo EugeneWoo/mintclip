@@ -98,7 +98,7 @@ export function Library(): React.JSX.Element {
       console.log('[Library handleExport] Fetched items:', allVideoItems);
 
       // Export as ZIP
-      await exportVideoAsZip(item.video_id, videoTitle, allVideoItems, token);
+      await exportVideoAsZip(videoTitle, allVideoItems);
     } catch (error) {
       console.error('Export failed:', error);
       alert('Export failed. Please try again.');

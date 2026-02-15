@@ -58,7 +58,7 @@ export function AuthCallback(): React.JSX.Element {
 
       if (!response.ok) {
         const errorData = await response.json();
-        const errorMessage = errorData.detail || errorData.message || 'Failed to authenticate';
+        // const errorMessage = errorData.detail || errorData.message || 'Failed to authenticate';
         console.error('[AuthCallback] Backend auth error:', {
           status: response.status,
           statusText: response.statusText,
