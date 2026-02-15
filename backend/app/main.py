@@ -29,12 +29,22 @@ app = FastAPI(
     version="0.1.0"
 )
 
-# Configure CORS for Chrome extension
-allowed_origins = os.getenv("ALLOWED_ORIGINS", "chrome-extension://*").split(",")
+# Configure CORS for Chrome extension and web app
+allowed_origins = [
+    "http://localhost:5173",  # Local development
+    "http://127.0.0.1:5173",  # Local development
+    "https://mintclip.up.railway.app",  # Production web app
+    "chrome-extension://*",  # Chrome extension (wildcard for extension ID)
+]
+
+# Add any additional origins from environment variable
+env_origins = os.getenv("ALLOWED_ORIGINS", "")
+if env_origins:
+    allowed_origins.extend(env_origins.split(","))
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allow all origins for Chrome extensions (they use chrome-extension:// protocol)
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
