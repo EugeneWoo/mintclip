@@ -3,6 +3,8 @@
  * Handles JWT token management with automatic refresh
  */
 
+import { BACKEND_URL } from '../config';
+
 interface AuthResponse {
   success: boolean;
   token?: string;
@@ -106,7 +108,7 @@ class ExtensionAuth {
     try {
       console.log('[Auth] Refreshing access token...');
 
-      const response = await fetch('http://localhost:8000/api/auth/refresh', {
+      const response = await fetch(`${BACKEND_URL}/api/auth/refresh`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
