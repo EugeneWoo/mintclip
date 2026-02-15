@@ -607,7 +607,8 @@ export async function handleMessage(
               'http://localhost:5173/*',
               'http://localhost:5174/*',
               'https://mintclip.app/*',
-              'https://*.mintclip.app/*'
+              'https://*.mintclip.app/*',
+              'https://mintclip.up.railway.app/*'
             ];
 
             chrome.tabs.query({ url: webappUrls }, (tabs) => {
