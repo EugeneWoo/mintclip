@@ -1,6 +1,7 @@
 /**
  * Landing Page Component
  * Homepage with Google OAuth sign-in
+ * Mobile-responsive for Safari and Chrome
  */
 
 import React, { useEffect, useState } from 'react';
@@ -9,7 +10,18 @@ import { Footer } from './Footer';
 
 export function Landing(): React.JSX.Element {
   const [authError, setAuthError] = useState<string | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
   const navigate = useNavigate();
+
+  // Detect mobile on mount
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   // Check for auth error from URL params
   useEffect(() => {
@@ -49,16 +61,17 @@ export function Landing(): React.JSX.Element {
     >
       {/* Navigation */}
       <nav
+        className="nav-mobile"
         style={{
           position: 'fixed',
           top: 0,
           left: 0,
           right: 0,
           zIndex: 100,
-          padding: '1.25rem 2rem',
         }}
       >
         <div
+          className="nav-content"
           style={{
             maxWidth: '1400px',
             margin: '0 auto',
@@ -69,50 +82,43 @@ export function Landing(): React.JSX.Element {
             backdropFilter: 'blur(20px)',
             border: '1px solid rgba(255, 255, 255, 0.08)',
             borderRadius: '100px',
-            padding: '0.75rem 1rem 0.75rem 1.5rem',
           }}
         >
           <div
+            className="logo"
             style={{
               fontFamily: 'Plus Jakarta Sans, sans-serif',
-              fontSize: '1.5rem',
               fontWeight: 800,
               letterSpacing: '-0.02em',
               color: '#ffffff',
               display: 'flex',
               alignItems: 'center',
-              gap: '0.75rem',
             }}
           >
             <img
               src="/icon-48.png"
               alt="Mintclip"
-              style={{ width: '40px', height: '40px', borderRadius: '10px' }}
+              style={{ borderRadius: '10px' }}
             />
-            Mintclip
+            {!isMobile && 'Mintclip'}
           </div>
 
           <button
             onClick={handleSignIn}
             style={{
-              padding: '0.5rem 1.25rem',
+              padding: isMobile ? '0.5rem 1rem' : '0.5rem 1.25rem',
               background: '#22c55e',
               color: '#ffffff',
               border: 'none',
               borderRadius: '8px',
-              fontSize: '0.9rem',
+              fontSize: isMobile ? '0.85rem' : '0.9rem',
               fontWeight: 500,
               cursor: 'pointer',
               transition: 'all 0.2s',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = '#16a34a';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = '#22c55e';
+              whiteSpace: 'nowrap',
             }}
           >
-            Sign In with Google
+            {isMobile ? 'Sign In' : 'Sign In with Google'}
           </button>
         </div>
       </nav>
@@ -124,10 +130,10 @@ export function Landing(): React.JSX.Element {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          paddingTop: '100px',
-          paddingBottom: '4rem',
-          paddingLeft: '2rem',
-          paddingRight: '2rem',
+          paddingTop: isMobile ? '120px' : '100px',
+          paddingBottom: isMobile ? '3rem' : '4rem',
+          paddingLeft: isMobile ? '1.5rem' : '2rem',
+          paddingRight: isMobile ? '1.5rem' : '2rem',
         }}
       >
         <div
@@ -139,7 +145,7 @@ export function Landing(): React.JSX.Element {
           {/* Logo/Icon */}
           <div
             style={{
-              marginBottom: '2rem',
+              marginBottom: isMobile ? '1.5rem' : '2rem',
               display: 'flex',
               justifyContent: 'center',
             }}
@@ -148,9 +154,9 @@ export function Landing(): React.JSX.Element {
               src="/icon-128.png"
               alt="Mintclip"
               style={{
-                width: '120px',
-                height: '120px',
-                borderRadius: '30px',
+                width: isMobile ? '80px' : '120px',
+                height: isMobile ? '80px' : '120px',
+                borderRadius: isMobile ? '20px' : '30px',
                 boxShadow: '0 20px 60px rgba(34, 197, 94, 0.3)',
               }}
             />
@@ -158,9 +164,9 @@ export function Landing(): React.JSX.Element {
 
           {/* Headline */}
           <h1
+            className="heading-xl"
             style={{
               fontFamily: 'Plus Jakarta Sans, sans-serif',
-              fontSize: '3.5rem',
               fontWeight: 800,
               letterSpacing: '-0.02em',
               marginBottom: '1rem',
@@ -176,9 +182,9 @@ export function Landing(): React.JSX.Element {
           {/* Subheadline */}
           <p
             style={{
-              fontSize: '1.25rem',
+              fontSize: isMobile ? '1rem' : '1.25rem',
               color: 'rgba(255, 255, 255, 0.7)',
-              marginBottom: '3rem',
+              marginBottom: isMobile ? '2rem' : '3rem',
               lineHeight: '1.6',
             }}
           >
@@ -190,12 +196,12 @@ export function Landing(): React.JSX.Element {
           <button
             onClick={handleSignIn}
             style={{
-              padding: '1rem 2.5rem',
+              padding: isMobile ? '0.875rem 2rem' : '1rem 2.5rem',
               background: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)',
               color: '#ffffff',
               border: 'none',
               borderRadius: '12px',
-              fontSize: '1.125rem',
+              fontSize: isMobile ? '1rem' : '1.125rem',
               fontWeight: 600,
               cursor: 'pointer',
               boxShadow: '0 8px 24px rgba(34, 197, 94, 0.4)',
@@ -203,14 +209,8 @@ export function Landing(): React.JSX.Element {
               display: 'inline-flex',
               alignItems: 'center',
               gap: '0.75rem',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'translateY(-2px)';
-              e.currentTarget.style.boxShadow = '0 12px 32px rgba(34, 197, 94, 0.5)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = '0 8px 24px rgba(34, 197, 94, 0.4)';
+              width: isMobile ? '100%' : 'auto',
+              justifyContent: 'center',
             }}
           >
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
@@ -255,78 +255,73 @@ export function Landing(): React.JSX.Element {
 
           {/* Features */}
           <div
+            className="grid"
             style={{
-              marginTop: '5rem',
-              display: 'grid',
-              gridTemplateColumns: 'repeat(3, 1fr)',
-              gap: '2rem',
+              marginTop: isMobile ? '3rem' : '5rem',
             }}
           >
             <div
+              className="card"
               style={{
-                padding: '1.5rem',
                 background: 'rgba(255, 255, 255, 0.03)',
                 border: '1px solid rgba(255, 255, 255, 0.08)',
-                borderRadius: '12px',
               }}
             >
               <div style={{ fontSize: '2.5rem', marginBottom: '0.75rem' }}>📝</div>
               <h3
                 style={{
-                  fontSize: '1.125rem',
+                  fontSize: isMobile ? '1rem' : '1.125rem',
                   fontWeight: 600,
                   marginBottom: '0.5rem',
                 }}
               >
                 Instant Transcripts
               </h3>
-              <p style={{ fontSize: '0.875rem', color: 'rgba(255, 255, 255, 0.6)' }}>
+              <p style={{ fontSize: '0.875rem', color: 'rgba(255, 255, 255, 0.6)', margin: 0 }}>
                 Get accurate transcripts from any YouTube video with timestamps
               </p>
             </div>
 
             <div
+              className="card"
               style={{
-                padding: '1.5rem',
                 background: 'rgba(255, 255, 255, 0.03)',
                 border: '1px solid rgba(255, 255, 255, 0.08)',
-                borderRadius: '12px',
               }}
             >
               <div style={{ fontSize: '2.5rem', marginBottom: '0.75rem' }}>✨</div>
               <h3
                 style={{
-                  fontSize: '1.125rem',
+                  fontSize: isMobile ? '1rem' : '1.125rem',
                   fontWeight: 600,
                   marginBottom: '0.5rem',
                 }}
               >
                 AI Summaries
               </h3>
-              <p style={{ fontSize: '0.875rem', color: 'rgba(255, 255, 255, 0.6)' }}>
+              <p style={{ fontSize: '0.875rem', color: 'rgba(255, 255, 255, 0.6)', margin: 0 }}>
                 Generate smart summaries in multiple formats with one click
               </p>
             </div>
 
             <div
+              className="card"
               style={{
-                padding: '1.5rem',
                 background: 'rgba(255, 255, 255, 0.03)',
                 border: '1px solid rgba(255, 255, 255, 0.08)',
-                borderRadius: '12px',
               }}
             >
               <div style={{ fontSize: '2.5rem', marginBottom: '0.75rem' }}>💬</div>
               <h3
                 style={{
-                  fontSize: '1.125rem',
+                  fontSize: isMobile ? '1rem' : '1.125rem',
                   fontWeight: 600,
                   marginBottom: '0.5rem',
                 }}
               >
                 Interactive Chat
               </h3>
-              <p style={{ fontSize: '0.875rem', color: 'rgba(255, 255, 255, 0.6)' }}>
+              <p style={{ fontSize: '0.875rem', color: 'rgba(255, 255, 255, 0.6)', margin: 0 }}>
                 Ask questions and get AI-powered answers about video content
               </p>
             </div>
