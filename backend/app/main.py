@@ -5,6 +5,8 @@ FastAPI server for transcript extraction, summarization, and chat
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.requests import Request
 from dotenv import load_dotenv
 import os
 import logging
@@ -29,26 +31,37 @@ app = FastAPI(
     version="0.1.0"
 )
 
-# Configure CORS for Chrome extension and web app
-allowed_origins = [
-    "http://localhost:5173",  # Local development
-    "http://127.0.0.1:5173",  # Local development
-    "https://mintclip.up.railway.app",  # Production web app
-    "chrome-extension://*",  # Chrome extension (wildcard for extension ID)
-]
+# Custom CORS middleware to handle chrome-extension:// origins
+class CustomCORSMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        origin = request.headers.get("origin")
 
-# Add any additional origins from environment variable
-env_origins = os.getenv("ALLOWED_ORIGINS", "")
-if env_origins:
-    allowed_origins.extend(env_origins.split(","))
+        # Handle preflight requests
+        if request.method == "OPTIONS":
+            from starlette.responses import Response
+            response = Response(status_code=200)
+            # Set CORS headers
+            if origin:
+                response.headers["Access-Control-Allow-Origin"] = origin
+                response.headers["Access-Control-Allow-Credentials"] = "true"
+                response.headers["Access-Control-Allow-Methods"] = "*"
+                response.headers["Access-Control-Allow-Headers"] = "*"
+            return response
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=allowed_origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+        # Process regular requests
+        response = await call_next(request)
+
+        # Allow chrome-extension:// and http(s):// origins
+        if origin:
+            response.headers["Access-Control-Allow-Origin"] = origin
+            response.headers["Access-Control-Allow-Credentials"] = "true"
+            response.headers["Access-Control-Allow-Methods"] = "*"
+            response.headers["Access-Control-Allow-Headers"] = "*"
+
+        return response
+
+# Add custom CORS middleware
+app.add_middleware(CustomCORSMiddleware)
 
 # Include routers
 app.include_router(auth.router, prefix="/api/auth", tags=["Authentication"])

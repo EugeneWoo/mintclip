@@ -181,7 +181,7 @@ export async function handleMessage(
         const { videoId } = message.payload as { videoId: string };
 
         try {
-          const response = await fetch(`http://localhost:8000/api/transcript/languages-with-translation/${videoId}`);
+          const response = await fetch(`${getApiUrl()}/api/transcript/languages-with-translation/${videoId}`);
           const data = await response.json();
           sendResponse(data);
         } catch (error) {
@@ -202,7 +202,7 @@ export async function handleMessage(
         };
 
         try {
-          const response = await fetch(`http://localhost:8000/api/transcript/translate`, {
+          const response = await fetch(`${getApiUrl()}/api/transcript/translate`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -335,7 +335,7 @@ export async function handleMessage(
         // Skip authentication - suggested questions are publicly available
         const { videoId, transcript } = message.payload as { videoId: string; transcript: string };
         try {
-          const response = await fetch(`http://localhost:8000/api/chat/suggested-questions`, {
+          const response = await fetch(`${getApiUrl()}/api/chat/suggested-questions`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -424,7 +424,7 @@ export async function handleMessage(
           console.log('Got Google token, verifying with backend...');
 
           // Send token to backend
-          const response = await fetch('http://localhost:8000/api/auth/google/token', {
+          const response = await fetch('${getApiUrl()}/api/auth/google/token', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ google_token: token }),
@@ -496,7 +496,7 @@ export async function handleMessage(
             });
 
             // Verify the fresh Google token with backend to get JWT
-            const response = await fetch('http://localhost:8000/api/auth/google/token', {
+            const response = await fetch('${getApiUrl()}/api/auth/google/token', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ google_token: token }),

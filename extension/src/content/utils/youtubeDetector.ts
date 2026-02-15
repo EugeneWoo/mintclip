@@ -79,18 +79,42 @@ export function watchYouTubeNavigation(
   callback: (url: string) => void
 ): () => void {
   let lastUrl = location.href;
-  
-  const observer = new MutationObserver(() => {
+
+  // Handler for URL changes
+  const handleUrlChange = () => {
     const url = location.href;
     if (url !== lastUrl) {
       lastUrl = url;
       callback(url);
     }
-  });
+  };
 
-  observer.observe(document, { subtree: true, childList: true });
+  // 1. Listen to YouTube's native navigation event (most reliable)
+  document.addEventListener('yt-navigate-finish', handleUrlChange);
+
+  // 2. Intercept History API (fallback for edge cases)
+  const originalPushState = history.pushState;
+  const originalReplaceState = history.replaceState;
+
+  history.pushState = function(...args) {
+    originalPushState.apply(this, args);
+    handleUrlChange();
+  };
+
+  history.replaceState = function(...args) {
+    originalReplaceState.apply(this, args);
+    handleUrlChange();
+  };
+
+  // 3. Listen to popstate (browser back/forward)
+  window.addEventListener('popstate', handleUrlChange);
 
   // Return cleanup function
-  return () => observer.disconnect();
+  return () => {
+    document.removeEventListener('yt-navigate-finish', handleUrlChange);
+    window.removeEventListener('popstate', handleUrlChange);
+    history.pushState = originalPushState;
+    history.replaceState = originalReplaceState;
+  };
 }
 

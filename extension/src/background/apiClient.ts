@@ -3,6 +3,8 @@
  * Handles all API calls to the backend service
  */
 
+import { API_CONFIG } from '../config';
+
 export interface TranscriptRequest {
   videoId: string;
   videoUrl?: string;
@@ -60,9 +62,7 @@ export interface ChatMessageResponse {
  * Get backend API URL from environment or use default
  */
 export function getApiUrl(): string {
-  // For development, use localhost. For production, use deployed backend
-  // TODO: Make this configurable in extension options
-  return 'http://localhost:8000';
+  return API_CONFIG.backendUrl;
 }
 
 // ============================================

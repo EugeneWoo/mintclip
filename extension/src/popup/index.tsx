@@ -59,12 +59,15 @@ function Popup(): React.JSX.Element {
           padding: '60px 20px',
           fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
           textAlign: 'center',
+          backgroundColor: '#000000',
+          minHeight: '100vh',
         }}
       >
         <div
           style={{
             fontSize: '64px',
             marginBottom: '20px',
+            color: '#22c55e',
           }}
         >
           ✓
@@ -79,7 +82,7 @@ function Popup(): React.JSX.Element {
         >
           You're signed in!
         </h2>
-        <p style={{ color: '#666', fontSize: '14px', margin: 0 }}>
+        <p style={{ color: '#ffffff', fontSize: '14px', margin: 0 }}>
           This window will close automatically...
         </p>
       </div>
@@ -92,6 +95,8 @@ function Popup(): React.JSX.Element {
         width: '400px',
         padding: '40px 20px',
         fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        backgroundColor: '#000000',
+        minHeight: '100vh',
       }}
     >
       {/* Header */}
@@ -106,9 +111,9 @@ function Popup(): React.JSX.Element {
             borderRadius: '16px',
           }}
         />
-        <h1 style={{ margin: '0 0 8px 0', fontSize: '32px', fontWeight: 600 }}>Mintclip</h1>
-        <p style={{ color: '#666', fontSize: '16px', margin: 0 }}>
-          AI-powered YouTube learning
+        <h1 style={{ margin: '0 0 8px 0', fontSize: '32px', fontWeight: 600, color: '#ffffff' }}>Mintclip</h1>
+        <p style={{ color: '#ffffff', fontSize: '16px', margin: 0 }}>
+          AI-Powered YouTube Learning
         </p>
       </div>
 
@@ -117,10 +122,10 @@ function Popup(): React.JSX.Element {
         <div style={{ display: 'flex', gap: '12px', marginBottom: '12px' }}>
           <span style={{ fontSize: '20px' }}>📝</span>
           <div>
-            <div style={{ fontWeight: 600, fontSize: '14px', marginBottom: '4px' }}>
+            <div style={{ fontWeight: 600, fontSize: '14px', marginBottom: '4px', color: '#ffffff' }}>
               Instant Transcripts
             </div>
-            <div style={{ fontSize: '13px', color: '#666' }}>
+            <div style={{ fontSize: '13px', color: '#ffffff' }}>
               Get video transcripts with one click
             </div>
           </div>
@@ -128,22 +133,22 @@ function Popup(): React.JSX.Element {
         <div style={{ display: 'flex', gap: '12px', marginBottom: '12px' }}>
           <span style={{ fontSize: '20px' }}>✨</span>
           <div>
-            <div style={{ fontWeight: 600, fontSize: '14px', marginBottom: '4px' }}>
+            <div style={{ fontWeight: 600, fontSize: '14px', marginBottom: '4px', color: '#ffffff' }}>
               AI Summaries
             </div>
-            <div style={{ fontSize: '13px', color: '#666' }}>
-              Generate intelligent summaries and key insights
+            <div style={{ fontSize: '13px', color: '#ffffff' }}>
+              Generate smart summaries in multiple formats
             </div>
           </div>
         </div>
         <div style={{ display: 'flex', gap: '12px' }}>
           <span style={{ fontSize: '20px' }}>💬</span>
           <div>
-            <div style={{ fontWeight: 600, fontSize: '14px', marginBottom: '4px' }}>
+            <div style={{ fontWeight: 600, fontSize: '14px', marginBottom: '4px', color: '#ffffff' }}>
               Chat with Videos
             </div>
-            <div style={{ fontSize: '13px', color: '#666' }}>
-              Ask questions and get timestamp-referenced answers
+            <div style={{ fontSize: '13px', color: '#ffffff' }}>
+              Ask questions and get AI-powered answers about the video
             </div>
           </div>
         </div>
@@ -206,10 +211,10 @@ function Popup(): React.JSX.Element {
           style={{
             marginTop: '16px',
             padding: '12px',
-            backgroundColor: '#fee',
-            border: '1px solid #fcc',
+            backgroundColor: '#1a0000',
+            border: '1px solid #ff4444',
             borderRadius: '6px',
-            color: '#c33',
+            color: '#ff6666',
             fontSize: '13px',
           }}
         >
@@ -221,7 +226,7 @@ function Popup(): React.JSX.Element {
       <p
         style={{
           fontSize: '12px',
-          color: '#999',
+          color: '#888888',
           textAlign: 'center',
           marginTop: '24px',
           lineHeight: '1.5',

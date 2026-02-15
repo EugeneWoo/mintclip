@@ -3,6 +3,8 @@
  * Handles Google OAuth flow using Chrome Identity API
  */
 
+import { API_CONFIG } from '../config';
+
 export interface AuthResult {
   success: boolean;
   token?: string;
@@ -64,7 +66,7 @@ export async function signInWithGoogle(): Promise<AuthResult> {
     console.log('Got Google OAuth token, verifying with backend...');
 
     // Send the Google token to our backend to create/verify user
-    const response = await fetch('http://localhost:8000/api/auth/google/token', {
+    const response = await fetch(`${API_CONFIG.backendUrl}/api/auth/google/token`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -189,7 +191,7 @@ export async function signUpWithEmail(email: string, password: string): Promise<
     }
 
     // Call backend signup endpoint
-    const response = await fetch('http://localhost:8000/api/auth/signup', {
+    const response = await fetch(`${API_CONFIG.backendUrl}/api/auth/signup`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -286,7 +288,7 @@ export async function signInWithEmail(email: string, password: string): Promise<
     }
 
     // Call backend login endpoint
-    const response = await fetch('http://localhost:8000/api/auth/login', {
+    const response = await fetch(`${API_CONFIG.backendUrl}/api/auth/login`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -365,7 +367,7 @@ export async function resetPassword(email: string): Promise<AuthResult> {
     }
 
     // Call backend password reset endpoint
-    const response = await fetch('http://localhost:8000/api/auth/reset-password', {
+    const response = await fetch(`${API_CONFIG.backendUrl}/api/auth/reset-password`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
