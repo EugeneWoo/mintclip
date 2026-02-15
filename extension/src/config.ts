@@ -12,11 +12,11 @@ const isDevelopment = import.meta.env.MODE !== 'production';
 
 const defaultBackendUrl = isDevelopment
   ? 'http://localhost:8000'
-  : 'https://mintclip-api.railway.app'; // Backend API URL on Railway
+  : 'https://mintclip-production.up.railway.app'; // Backend API URL on Railway
 
 const defaultWebAppUrl = isDevelopment
   ? 'http://127.0.0.1:5173'
-  : 'https://mintclip-webapp.railway.app'; // Web app URL on Railway
+  : 'https://mintclip.up.railway.app'; // Web app URL on Railway
 
 // Alternative: Use environment variables at build time
 // const defaultBackendUrl = isDevelopment
