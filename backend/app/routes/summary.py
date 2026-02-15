@@ -67,8 +67,9 @@ async def generate_summary(request: SummaryRequest):
 
         cached_summary = cache.get(cache_key)
         if cached_summary:
-            # Check if this is a structured summary (with clickable timestamps)
-            is_structured = "(MM:SS)" in cached_summary
+            # Check if this is a structured summary (with clickable timestamp links)
+            # Look for markdown link pattern that includes youtube.com/watch?v=
+            is_structured = "youtube.com/watch?v=" in cached_summary
             return SummaryResponse(
                 success=True,
                 summary=cached_summary,
@@ -152,8 +153,10 @@ async def generate_summary(request: SummaryRequest):
             )
 
         # If structured input, convert timestamps to clickable links
+        final_is_structured = False
         if is_structured:
             summary = convert_timestamps_to_links(summary, request.video_id)
+            final_is_structured = True
 
         # Cache the result for 7 days
         cache.set(cache_key, summary, TTL_SUMMARY)
@@ -163,7 +166,7 @@ async def generate_summary(request: SummaryRequest):
             summary=summary,
             cached=False,
             format=request.format,
-            is_structured=True
+            is_structured=final_is_structured
         )
 
     except HTTPException:
