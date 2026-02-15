@@ -692,34 +692,39 @@ if (item.item_type === 'summary') {
             </div>
           ) : (
             <>
-              {/* Filter Bar (Library-style) */}
+              {/* Filter Bar (Library-style) - Mobile Responsive */}
               <div style={{
                 background: '#262626',
                 border: '1px solid rgba(255, 255, 255, 0.08)',
                 borderRadius: '12px',
-                padding: '1rem 1.5rem',
+                padding: '1rem',
                 marginBottom: '2rem',
                 display: 'flex',
-                gap: '2rem',
-                alignItems: 'center',
+                flexDirection: window.innerWidth < 640 ? 'column' : 'row',
+                gap: window.innerWidth < 640 ? '1rem' : '2rem',
+                alignItems: window.innerWidth < 640 ? 'stretch' : 'center',
                 flexWrap: 'wrap',
               }}>
                 {/* Content Type Filter */}
                 <div style={{
                   display: 'flex',
-                  alignItems: 'center',
-                  gap: '1rem',
+                  gap: '0.75rem',
+                  flexDirection: window.innerWidth < 640 ? 'column' : 'row',
+                  alignItems: window.innerWidth < 640 ? 'flex-start' : 'center',
                 }}>
                   <span style={{
                     fontSize: '0.875rem',
                     color: 'rgba(255, 255, 255, 0.6)',
                     fontWeight: 500,
+                    flexShrink: 0,
                   }}>
                     Filter by:
                   </span>
                   <div style={{
                     display: 'flex',
                     gap: '0.5rem',
+                    flexWrap: 'wrap',
+                    width: window.innerWidth < 640 ? '100%' : 'auto',
                   }}>
                     {(['all', 'transcript', 'summary'] as const).map(filter => (
                       <button
@@ -736,6 +741,7 @@ if (item.item_type === 'summary') {
                           cursor: 'pointer',
                           transition: 'all 0.2s',
                           textTransform: 'capitalize',
+                          flex: window.innerWidth < 640 ? '1' : 'none',
                         }}
                         onMouseEnter={(e) => {
                           if (contentFilter !== filter) {
@@ -757,20 +763,23 @@ if (item.item_type === 'summary') {
                 {/* Date Order Filter */}
                 <div style={{
                   display: 'flex',
-                  alignItems: 'center',
-                  gap: '1rem',
-                  marginLeft: 'auto',
+                  gap: '0.75rem',
+                  flexDirection: window.innerWidth < 640 ? 'column' : 'row',
+                  alignItems: window.innerWidth < 640 ? 'flex-start' : 'center',
+                  marginLeft: window.innerWidth < 640 ? '0' : 'auto',
                 }}>
                   <span style={{
                     fontSize: '0.875rem',
                     color: 'rgba(255, 255, 255, 0.6)',
                     fontWeight: 500,
+                    flexShrink: 0,
                   }}>
                     Sort by:
                   </span>
                   <div style={{
                     display: 'flex',
                     gap: '0.5rem',
+                    width: window.innerWidth < 640 ? '100%' : 'auto',
                   }}>
                     {(['latest', 'earliest'] as const).map(order => (
                       <button
@@ -787,6 +796,7 @@ if (item.item_type === 'summary') {
                           cursor: 'pointer',
                           transition: 'all 0.2s',
                           textTransform: 'capitalize',
+                          flex: window.innerWidth < 640 ? '1' : 'none',
                         }}
                         onMouseEnter={(e) => {
                           if (dateOrder !== order) {
@@ -806,12 +816,11 @@ if (item.item_type === 'summary') {
                 </div>
               </div>
 
-              {/* Video Grid - 4 columns, shows 9 cards initially */}
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(4, 1fr)',
+              {/* Video Grid - Responsive: 1 col mobile, 2 tablet, 3 desktop, 4 wide */}
+              <div className="grid" style={{
                 gap: '1.5rem',
                 alignItems: 'start',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 280px), 1fr))',
               }}>
                 {getDisplayedItems().map((item) => (
                   <VideoCard
