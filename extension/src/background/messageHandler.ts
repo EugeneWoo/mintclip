@@ -603,7 +603,6 @@ export async function handleMessage(
 
             // Find all tabs with webapp open
             const webappUrls = [
-              'http://localhost:3000/*',
               'http://localhost:5173/*',
               'http://localhost:5174/*',
               'https://mintclip.app/*',
