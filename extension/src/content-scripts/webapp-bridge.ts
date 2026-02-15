@@ -11,7 +11,8 @@ const VALID_ORIGINS = [
   'http://localhost:5173',
   'http://localhost:5174',
   'https://mintclip.app', // Production domain
-  'https://*.mintclip.app' // Subdomains
+  'https://*.mintclip.app', // Subdomains
+  'https://mintclip.up.railway.app' // Railway production
 ];
 
 function isValidOrigin(origin: string): boolean {
