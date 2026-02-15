@@ -74,6 +74,17 @@ window.addEventListener('message', async (event) => {
   }
 });
 
+// Listen for messages from extension background (for item saved notifications)
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.type === 'ITEM_SAVED_NOTIFICATION') {
+    // Forward the notification to the webapp page
+    window.postMessage({
+      type: 'MINTCLIP_ITEM_SAVED',
+      data: message.data,
+    }, window.location.origin);
+  }
+});
+
 // Notify page that bridge is ready
 window.postMessage({
   type: 'MINTCLIP_BRIDGE_READY',

@@ -54,6 +54,25 @@ export function Dashboard(): React.JSX.Element {
     }
   }, [isAuthenticated]);
 
+  // Listen for item saved notifications from extension
+  useEffect(() => {
+    const handleItemSaved = (event: MessageEvent) => {
+      if (event.data.type === 'MINTCLIP_ITEM_SAVED') {
+        console.log('[Dashboard] Item saved notification received:', event.data.data);
+        // Reload saved items to show the new item
+        if (isAuthenticated) {
+          loadSavedItems();
+        }
+      }
+    };
+
+    window.addEventListener('message', handleItemSaved);
+
+    return () => {
+      window.removeEventListener('message', handleItemSaved);
+    };
+  }, [isAuthenticated]);
+
   const checkAuth = async () => {
     try {
       const token = localStorage.getItem('mintclip_access_token');

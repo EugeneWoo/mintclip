@@ -597,6 +597,38 @@ export async function handleMessage(
           const data = await response.json();
           console.log('[MessageHandler] Response data:', data);
 
+          // If save was successful, notify webapp tabs to refresh
+          if (data.success) {
+            console.log('[MessageHandler] Item saved successfully, notifying webapp tabs');
+
+            // Find all tabs with webapp open
+            const webappUrls = [
+              'http://localhost:3000/*',
+              'http://localhost:5173/*',
+              'http://localhost:5174/*',
+              'https://mintclip.app/*',
+              'https://*.mintclip.app/*'
+            ];
+
+            chrome.tabs.query({ url: webappUrls }, (tabs) => {
+              tabs.forEach((tab) => {
+                if (tab.id) {
+                  chrome.tabs.sendMessage(tab.id, {
+                    type: 'ITEM_SAVED_NOTIFICATION',
+                    data: {
+                      video_id,
+                      item_type,
+                      timestamp: new Date().toISOString(),
+                    },
+                  }).catch((err) => {
+                    // Ignore errors for tabs that don't have content script loaded
+                    console.log('[MessageHandler] Could not send notification to tab:', err.message);
+                  });
+                }
+              });
+            });
+          }
+
           sendResponse(data);
         } catch (error) {
           console.error('[MessageHandler] Error saving item:', error);
