@@ -72,3 +72,12 @@ coverage/
 # Backend test files and docs
 backend/manual_tests/
 backend/docs/
+
+# Agent-os specs and planning
+agent-os/
+
+# Web-app documentation
+web-app/docs/
+
+# Project instructions (auto-generated)
+CLAUDE.md
