@@ -7,6 +7,8 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { VideoCard } from './VideoCard';
 import { SavedItemModal } from './modal/SavedItemModal';
+import { UserProfileDropdown } from './UserProfileDropdown';
+import { Footer } from './Footer';
 import { getAuthToken } from '../utils/auth';
 
 interface SavedItem {
@@ -514,19 +516,7 @@ if (item.item_type === 'summary') {
             gap: '1rem',
           }}>
             {isAuthenticated ? (
-              <div style={{
-                width: '36px',
-                height: '36px',
-                borderRadius: '50%',
-                background: 'linear-gradient(135deg, #22c55e, #16a34a)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '0.9rem',
-                fontWeight: 600,
-              }}>
-                U
-              </div>
+              <UserProfileDropdown onDeleteAccount={() => loadSavedItems()} />
             ) : (
               <button
                 onClick={handleSignIn}
@@ -866,6 +856,9 @@ if (item.item_type === 'summary') {
           isAuthenticated={isAuthenticated}
         />
       )}
+
+      {/* Footer */}
+      <Footer />
     </div>
   );
 }

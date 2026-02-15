@@ -3,11 +3,10 @@
  * Handles Google OAuth redirect and exchanges code for JWT token
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 export function AuthCallback(): React.JSX.Element {
-  const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -21,19 +20,31 @@ export function AuthCallback(): React.JSX.Element {
       const code = params.get('code');
       const errorParam = params.get('error');
 
+      console.log('[AuthCallback] Processing OAuth callback', {
+        hasCode: !!code,
+        hasError: !!errorParam,
+        url: window.location.href
+      });
+
       if (errorParam) {
-        setError(`Authentication failed: ${errorParam}`);
-        setTimeout(() => navigate('/'), 3000);
+        const errorDescription = params.get('error_description') || errorParam;
+        console.error('[AuthCallback] OAuth error from Google:', errorParam, errorDescription);
+        // Redirect immediately to landing with error param (no visible error screen)
+        navigate('/?auth_error=true', { replace: true });
         return;
       }
 
       if (!code) {
-        setError('No authorization code received');
-        setTimeout(() => navigate('/'), 3000);
+        console.error('[AuthCallback] No authorization code in URL');
+        // Redirect immediately to landing with error param (no visible error screen)
+        navigate('/?auth_error=true', { replace: true });
         return;
       }
 
       // Exchange code for JWT token via backend
+      console.log('[AuthCallback] Exchanging code for tokens...');
+      const redirectUri = window.location.origin + '/auth/callback';
+
       const response = await fetch('http://localhost:8000/api/auth/google/code', {
         method: 'POST',
         headers: {
@@ -41,15 +52,33 @@ export function AuthCallback(): React.JSX.Element {
         },
         body: JSON.stringify({
           code: code,
-          redirect_uri: window.location.origin + '/auth/callback',
+          redirect_uri: redirectUri,
         }),
       });
 
+      if (!response.ok) {
+        const errorData = await response.json();
+        const errorMessage = errorData.detail || errorData.message || 'Failed to authenticate';
+        console.error('[AuthCallback] Backend auth error:', {
+          status: response.status,
+          statusText: response.statusText,
+          error: errorData
+        });
+        // Redirect immediately to landing with error param (no visible error screen)
+        navigate('/?auth_error=true', { replace: true });
+        return;
+      }
+
       const data = await response.json();
+      console.log('[AuthCallback] Token exchange successful', {
+        hasTokens: !!data.tokens,
+        hasUser: !!data.user
+      });
 
       if (!data.tokens || !data.tokens.access_token) {
-        setError(data.message || 'Failed to authenticate');
-        setTimeout(() => navigate('/'), 3000);
+        console.error('[AuthCallback] No tokens in response:', data);
+        // Redirect immediately to landing with error param (no visible error screen)
+        navigate('/?auth_error=true', { replace: true });
         return;
       }
 
@@ -62,12 +91,17 @@ export function AuthCallback(): React.JSX.Element {
         localStorage.setItem('mintclip_user', JSON.stringify(data.user));
       }
 
-      // Redirect to dashboard directly (forces page reload to update auth state)
-      window.location.href = '/dashboard';
+      console.log('[AuthCallback] Auth successful, redirecting to dashboard');
+
+      // Dispatch custom event to notify App.tsx that auth state changed
+      window.dispatchEvent(new Event('auth-changed'));
+
+      // Navigate to dashboard using React Router (no flash of error screen)
+      navigate('/dashboard', { replace: true });
     } catch (error) {
-      console.error('Auth callback error:', error);
-      setError(error instanceof Error ? error.message : 'Authentication failed');
-      setTimeout(() => navigate('/'), 3000);
+      console.error('[AuthCallback] Unexpected error:', error);
+      // Redirect immediately to landing with error param (no visible error screen)
+      navigate('/?auth_error=true', { replace: true });
     }
   };
 
@@ -85,51 +119,22 @@ export function AuthCallback(): React.JSX.Element {
         textAlign: 'center',
         padding: '2rem',
       }}>
-        {error ? (
-          <>
-            <div style={{
-              fontSize: '3rem',
-              marginBottom: '1rem',
-            }}>❌</div>
-            <h1 style={{
-              fontSize: '1.5rem',
-              marginBottom: '1rem',
-            }}>
-              Authentication Failed
-            </h1>
-            <p style={{
-              color: 'rgba(255, 255, 255, 0.6)',
-            }}>
-              {error}
-            </p>
-            <p style={{
-              marginTop: '1rem',
-              color: 'rgba(255, 255, 255, 0.4)',
-              fontSize: '0.9rem',
-            }}>
-              Redirecting to home...
-            </p>
-          </>
-        ) : (
-          <>
-            <div style={{
-              fontSize: '3rem',
-              marginBottom: '1rem',
-              animation: 'spin 1s linear infinite',
-            }}>⚙️</div>
-            <h1 style={{
-              fontSize: '1.5rem',
-              marginBottom: '1rem',
-            }}>
-              Signing you in...
-            </h1>
-            <p style={{
-              color: 'rgba(255, 255, 255, 0.6)',
-            }}>
-              Please wait while we complete authentication
-            </p>
-          </>
-        )}
+        <div style={{
+          fontSize: '3rem',
+          marginBottom: '1rem',
+          animation: 'spin 1s linear infinite',
+        }}>⚙️</div>
+        <h1 style={{
+          fontSize: '1.5rem',
+          marginBottom: '1rem',
+        }}>
+          Signing you in...
+        </h1>
+        <p style={{
+          color: 'rgba(255, 255, 255, 0.6)',
+        }}>
+          Please wait while we complete authentication
+        </p>
       </div>
     </div>
   );

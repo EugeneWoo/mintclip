@@ -1,17 +1,14 @@
-import React from 'react';
+import React, { useEffect } from 'react';
+import { Header } from '../Header';
 
 export default function DataProcessingAgreement() {
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   return (
     <div style={{ minHeight: '100vh', background: '#171717', color: '#ffffff', fontFamily: 'Inter, sans-serif' }}>
-      <nav style={{ position: 'fixed', top: '2rem', left: '50%', transform: 'translateX(-50%)', width: '100%', maxWidth: '1200px', padding: '0 2rem', zIndex: 1000 }}>
-        <div style={{ background: 'rgba(23, 23, 23, 0.8)', backdropFilter: 'blur(20px)', borderRadius: '100px', padding: '1rem 1.5rem', border: '1px solid rgba(255, 255, 255, 0.08)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <a href="/" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', textDecoration: 'none' }}>
-            <div style={{ width: '40px', height: '40px', background: '#22c55e', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem' }}>📹</div>
-            <span style={{ fontFamily: 'Plus Jakarta Sans, sans-serif', fontSize: '1.5rem', fontWeight: 800, color: '#ffffff' }}>Mintclip</span>
-          </a>
-          <a href="/" style={{ color: '#a3a3a3', textDecoration: 'none', fontSize: '0.9375rem', fontWeight: 500 }}>← Back to Home</a>
-        </div>
-      </nav>
+      <Header backText="← Back to Home" backUrl="/" />
 
       <main style={{ maxWidth: '900px', margin: '0 auto', padding: '8rem 2rem 4rem' }}>
         <h1 style={{ fontFamily: 'Plus Jakarta Sans, sans-serif', fontSize: 'clamp(2.5rem, 5vw, 3.5rem)', fontWeight: 800, letterSpacing: '-0.03em', marginBottom: '1rem', background: 'linear-gradient(135deg, #22c55e 0%, #4ade80 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
@@ -98,7 +95,7 @@ export default function DataProcessingAgreement() {
           <section style={{ marginBottom: '3rem' }}>
             <h2 style={{ fontFamily: 'Plus Jakarta Sans, sans-serif', fontSize: '1.75rem', fontWeight: 700, marginBottom: '1rem', color: '#22c55e' }}>6. Data Subject Rights</h2>
             <p style={{ color: '#e5e5e5', marginBottom: '1rem' }}>
-              To assist with GDPR rights requests, contact: <a href="mailto:dpo@mintclip.ai" style={{ color: '#22c55e', textDecoration: 'underline' }}>dpo@mintclip.ai</a>
+              To assist with GDPR rights requests, contact: <a href="mailto:getmintclip@gmail.com" style={{ color: '#22c55e', textDecoration: 'underline' }}>getmintclip@gmail.com</a>
             </p>
             <p style={{ color: '#e5e5e5', marginBottom: '1rem' }}>
               We will respond within 30 days and provide necessary data exports in JSON format.
@@ -117,14 +114,6 @@ export default function DataProcessingAgreement() {
               <li>Likely consequences</li>
               <li>Measures taken or proposed to address the breach</li>
             </ul>
-          </section>
-
-          <section style={{ marginBottom: '3rem' }}>
-            <h2 style={{ fontFamily: 'Plus Jakarta Sans, sans-serif', fontSize: '1.75rem', fontWeight: 700, marginBottom: '1rem', color: '#22c55e' }}>8. Contact</h2>
-            <div style={{ background: '#1f1f1f', border: '1px solid rgba(255, 255, 255, 0.08)', borderRadius: '16px', padding: '1.5rem', marginTop: '1rem' }}>
-              <p style={{ color: '#e5e5e5', marginBottom: '0.5rem' }}><strong>Email:</strong> <a href="mailto:dpo@mintclip.ai" style={{ color: '#22c55e', textDecoration: 'underline' }}>dpo@mintclip.ai</a></p>
-              <p style={{ color: '#e5e5e5', marginBottom: '0' }}><strong>Subject Line:</strong> "DPA Request - [Your Company Name]"</p>
-            </div>
           </section>
         </div>
       </main>

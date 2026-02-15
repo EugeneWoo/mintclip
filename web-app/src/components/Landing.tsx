@@ -3,10 +3,29 @@
  * Homepage with Google OAuth sign-in
  */
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Footer } from './Footer';
 
 export function Landing(): React.JSX.Element {
+  const [authError, setAuthError] = useState<string | null>(null);
+  const navigate = useNavigate();
+
+  // Check for auth error from URL params
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const error = params.get('auth_error');
+    if (error) {
+      setAuthError('Oops your sign-in failed. Try again later!');
+      // Clear the error from URL without page reload
+      navigate('/', { replace: true });
+    }
+  }, [navigate]);
+
   const handleSignIn = () => {
+    // Clear any previous error
+    setAuthError(null);
+
     // Redirect to Google OAuth
     const CLIENT_ID = '210145228416-krofb2li6a68ng13el76rs301e6tgmb2.apps.googleusercontent.com';
     const REDIRECT_URI = encodeURIComponent(window.location.origin + '/auth/callback');
@@ -215,6 +234,25 @@ export function Landing(): React.JSX.Element {
             Get Started with Google
           </button>
 
+          {/* Error Message */}
+          {authError && (
+            <div
+              style={{
+                marginTop: '1rem',
+                padding: '0.75rem 1.5rem',
+                background: 'rgba(239, 68, 68, 0.1)',
+                border: '1px solid rgba(239, 68, 68, 0.3)',
+                borderRadius: '8px',
+                color: '#ef4444',
+                fontSize: '0.9rem',
+                fontWeight: 500,
+                textAlign: 'center',
+              }}
+            >
+              {authError}
+            </div>
+          )}
+
           {/* Features */}
           <div
             style={{
@@ -297,17 +335,7 @@ export function Landing(): React.JSX.Element {
       </main>
 
       {/* Footer */}
-      <footer
-        style={{
-          padding: '2rem',
-          textAlign: 'center',
-          color: 'rgba(255, 255, 255, 0.4)',
-          fontSize: '0.875rem',
-          borderTop: '1px solid rgba(255, 255, 255, 0.08)',
-        }}
-      >
-        <p>© 2026 Mintclip. All rights reserved.</p>
-      </footer>
+      <Footer />
     </div>
   );
 }

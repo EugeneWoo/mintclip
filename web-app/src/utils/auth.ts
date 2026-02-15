@@ -167,6 +167,9 @@ class ExtensionAuth {
       token: undefined,
       user: null,
     };
+
+    // Dispatch event to notify App.tsx that auth state changed
+    window.dispatchEvent(new Event('auth-changed'));
   }
 
   /**

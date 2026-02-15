@@ -1,37 +1,14 @@
-import React from 'react';
+import React, { useEffect } from 'react';
+import { Header } from '../Header';
 
 export default function CookiePolicy() {
-  const navStyle = {
-    position: 'fixed' as const,
-    top: '2rem',
-    left: '50%',
-    transform: 'translateX(-50%)',
-    width: '100%',
-    maxWidth: '1200px',
-    padding: '0 2rem',
-    zIndex: 1000
-  };
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
 
   return (
     <div style={{ minHeight: '100vh', background: '#171717', color: '#ffffff', fontFamily: 'Inter, sans-serif' }}>
-      <nav style={navStyle}>
-        <div style={{
-          background: 'rgba(23, 23, 23, 0.8)',
-          backdropFilter: 'blur(20px)',
-          borderRadius: '100px',
-          padding: '1rem 1.5rem',
-          border: '1px solid rgba(255, 255, 255, 0.08)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between'
-        }}>
-          <a href="/" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', textDecoration: 'none' }}>
-            <div style={{ width: '40px', height: '40px', background: '#22c55e', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem' }}>📹</div>
-            <span style={{ fontFamily: 'Plus Jakarta Sans, sans-serif', fontSize: '1.5rem', fontWeight: 800, color: '#ffffff' }}>Mintclip</span>
-          </a>
-          <a href="/" style={{ color: '#a3a3a3', textDecoration: 'none', fontSize: '0.9375rem', fontWeight: 500 }}>← Back to Home</a>
-        </div>
-      </nav>
+      <Header backText="← Back to Home" backUrl="/" />
 
       <main style={{ maxWidth: '900px', margin: '0 auto', padding: '8rem 2rem 4rem' }}>
         <h1 style={{
@@ -101,7 +78,7 @@ export default function CookiePolicy() {
 
           <section style={{ marginBottom: '3rem' }}>
             <h2 style={{ fontFamily: 'Plus Jakarta Sans, sans-serif', fontSize: '1.75rem', fontWeight: 700, marginBottom: '1rem', color: '#22c55e' }}>5. Contact Us</h2>
-            <p style={{ color: '#e5e5e5', marginBottom: '1rem' }}>Questions about cookies? Contact: <a href="mailto:privacy@mintclip.ai" style={{ color: '#22c55e', textDecoration: 'underline' }}>privacy@mintclip.ai</a></p>
+            <p style={{ color: '#e5e5e5', marginBottom: '1rem' }}>Questions about cookies? Contact: <a href="mailto:getmintclip@gmail.com" style={{ color: '#22c55e', textDecoration: 'underline' }}>getmintclip@gmail.com</a></p>
           </section>
         </div>
       </main>

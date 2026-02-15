@@ -86,12 +86,18 @@ font-weight: 500;
 
 ### Layout Components
 
-#### 1. Navigation
+#### 1. Navigation / Header Component
 - **Position**: Fixed top, glassmorphism effect
 - **Container**: Max-width 1200px, pill-shaped (border-radius: 100px)
 - **Background**: `rgba(23, 23, 23, 0.8)` with `backdrop-filter: blur(20px)`
-- **Logo Size**: 40px × 40px (increased from 28px)
-- **Logo Text**: 1.5rem, weight 800
+- **Logo**:
+  - Image: `/icon-128.png` (40px × 40px, border-radius 12px)
+  - Text: "Mintclip" (1.5rem, weight 800, Plus Jakarta Sans)
+- **Back Button**:
+  - Text: "← Back to Dashboard" or "← Back to Home"
+  - Font size: 0.9375rem, weight 500
+  - Color: #a3a3a3 (muted gray)
+  - Used on: Privacy, Notifications, Legal pages
 
 #### 2. Hero Section
 - **Min Height**: 100vh
@@ -183,9 +189,16 @@ font-weight: 500;
 
 #### 10. Footer
 - **Layout**: Two-tier structure
-  - Top: Brand + 3 link columns
-  - Bottom: Copyright + legal links
-- **Spacing**: 5rem top, 2rem bottom padding
+  - Left: Brand (logo + copyright)
+  - Right: Legal links (horizontal)
+- **Spacing**: 3rem top/bottom padding
+- **Links**:
+  - Privacy Policy, Terms of Service, Cookie Policy, GDPR, DPA, Support
+  - Font weight: 600 (semi-bold)
+  - Font size: 0.875rem
+  - Color: #737373 (muted) → #22c55e (green) on hover
+  - Support: mailto:getmintclip@gmail.com
+- **Mobile**: Stacks vertically, centers alignment
 
 ### Button Styles
 
@@ -273,7 +286,7 @@ Same as landing page:
 - **Active State**: Green pill background with black text
 - **Account Dropdown**: Enhanced with user profile section
 
-#### Account Dropdown Structure
+#### Account Dropdown Structure (UserProfileDropdown)
 ```
 ┌──────────────────────────┐
 │ Profile Header           │
@@ -281,17 +294,23 @@ Same as landing page:
 │ • Email (muted)          │
 ├──────────────────────────┤
 │ Account Section          │
-│ • Dashboard              │
-│ • Settings               │
-│ • Billing                │
+│ • 🔔 Notifications       │
+│ • 🛡️ Privacy Settings    │
 ├──────────────────────────┤
-│ Support Section          │
-│ • Help Center            │
-│ • Contact                │
+│ Data & Privacy Section   │
+│ • 📊 Export My Data      │
+│ • 🗑️ Delete Account (red)│
 ├──────────────────────────┤
-│ Sign Out (danger color)  │
+│ → Sign Out               │
 └──────────────────────────┘
 ```
+
+**Menu Items**:
+- **Notifications**: Links to `/notifications` (marketing preferences)
+- **Privacy Settings**: Links to `/privacy`
+- **Export My Data**: GDPR data export (JSON download)
+- **Delete Account**: GDPR account deletion (double confirmation)
+- **Sign Out**: Clears auth state, redirects to landing
 
 **Dropdown Styling**:
 ```css
@@ -906,7 +925,38 @@ animation: slideIn 0.3s ease-out;
 - **Interactive** (`source='upload'`): Full generate/chat functionality
 - **View-Only** (`source='extension'`): Read-only, no generate buttons
 
-## 12. Legal Pages
+## 12. Notifications Page
+
+### Notifications Component (`/notifications`)
+**Purpose**: GDPR-compliant marketing consent management
+
+**Layout:**
+- Uses shared Header component (← Back to Dashboard)
+- Max-width 800px content area
+- 8rem top padding (accounts for fixed header)
+
+**Marketing Communications Section:**
+```css
+background: #1f1f1f;
+border: 1px solid rgba(255, 255, 255, 0.08);
+border-radius: 16px;
+padding: 2rem;
+```
+
+**Toggle Slider:**
+- Width: 56px, Height: 32px
+- Background: #404040 (disabled) → #22c55e (enabled)
+- Knob: 24px white circle
+- Transition: 0.2s smooth
+- Label: "Enabled" / "Disabled" (font-size: 0.75rem)
+
+**Features:**
+- Loads current `marketing_consent` state from `/api/auth/me`
+- Updates via `PUT /api/auth/gdpr/marketing-consent?consent=true/false`
+- Success feedback: "✓ Opted in/out" message (3s auto-hide)
+- GDPR info box with privacy policy link
+
+## 13. Legal Pages
 
 ### Legal Component Structure
 All legal pages follow the same design system:

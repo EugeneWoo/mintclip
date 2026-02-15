@@ -1,6 +1,11 @@
-import React from 'react';
+import React, { useEffect } from 'react';
+import { Header } from '../Header';
 
 export default function PrivacyPolicy() {
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   return (
     <div style={{
       minHeight: '100vh',
@@ -9,53 +14,7 @@ export default function PrivacyPolicy() {
       fontFamily: 'Inter, sans-serif'
     }}>
       {/* Navigation */}
-      <nav style={{
-        position: 'fixed',
-        top: '2rem',
-        left: '50%',
-        transform: 'translateX(-50%)',
-        width: '100%',
-        maxWidth: '1200px',
-        padding: '0 2rem',
-        zIndex: 1000
-      }}>
-        <div style={{
-          background: 'rgba(23, 23, 23, 0.8)',
-          backdropFilter: 'blur(20px)',
-          borderRadius: '100px',
-          padding: '1rem 1.5rem',
-          border: '1px solid rgba(255, 255, 255, 0.08)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between'
-        }}>
-          <a href="/" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', textDecoration: 'none' }}>
-            <div style={{
-              width: '40px',
-              height: '40px',
-              background: '#22c55e',
-              borderRadius: '12px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '1.5rem'
-            }}>📹</div>
-            <span style={{
-              fontFamily: 'Plus Jakarta Sans, sans-serif',
-              fontSize: '1.5rem',
-              fontWeight: 800,
-              color: '#ffffff'
-            }}>Mintclip</span>
-          </a>
-          <a href="/" style={{
-            color: '#a3a3a3',
-            textDecoration: 'none',
-            fontSize: '0.9375rem',
-            fontWeight: 500,
-            transition: 'color 0.2s'
-          }}>← Back to Home</a>
-        </div>
-      </nav>
+      <Header backText="← Back to Home" backUrl="/" />
 
       {/* Main Content */}
       <main style={{
@@ -282,7 +241,7 @@ export default function PrivacyPolicy() {
               <li><strong>Object:</strong> Opt-out of certain data processing activities</li>
             </ul>
             <p style={{ color: '#e5e5e5', marginBottom: '1rem' }}>
-              To exercise these rights, contact us at <a href="mailto:privacy@mintclip.ai" style={{ color: '#22c55e', textDecoration: 'underline' }}>privacy@mintclip.ai</a>
+              To exercise these rights, contact us at <a href="mailto:getmintclip@gmail.com" style={{ color: '#22c55e', textDecoration: 'underline' }}>getmintclip@gmail.com</a>
             </p>
           </section>
 
@@ -358,9 +317,7 @@ export default function PrivacyPolicy() {
               padding: '1.5rem',
               marginTop: '1rem'
             }}>
-              <p style={{ color: '#e5e5e5', marginBottom: '0.5rem' }}><strong>Email:</strong> <a href="mailto:privacy@mintclip.ai" style={{ color: '#22c55e', textDecoration: 'underline' }}>privacy@mintclip.ai</a></p>
-              <p style={{ color: '#e5e5e5', marginBottom: '0.5rem' }}><strong>Address:</strong> [Your Company Address]</p>
-              <p style={{ color: '#e5e5e5', marginBottom: '0' }}><strong>Data Protection Officer:</strong> [DPO Name]</p>
+              <p style={{ color: '#e5e5e5', marginBottom: '0' }}><strong>Email:</strong> <a href="mailto:getmintclip@gmail.com" style={{ color: '#22c55e', textDecoration: 'underline' }}>getmintclip@gmail.com</a></p>
             </div>
           </section>
         </div>
