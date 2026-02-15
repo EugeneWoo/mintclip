@@ -106,7 +106,10 @@ class ExtensionAuth {
     try {
       console.log('[Auth] Refreshing access token...');
 
-      const response = await fetch('http://localhost:8000/api/auth/refresh', {
+      // Import dynamically to avoid circular dependency
+      const { BACKEND_URL } = await import('../config');
+
+      const response = await fetch(`${BACKEND_URL}/api/auth/refresh`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -6,6 +6,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { signOut, getAuthToken } from '../utils/auth';
+import { BACKEND_URL } from '../config';
 
 interface UserProfile {
   id: string;
@@ -48,7 +49,7 @@ export function UserProfileDropdown({ onDeleteAccount }: UserProfileDropdownProp
   const loadUserProfile = async () => {
     try {
       const token = await getAuthToken();
-      const response = await fetch('http://localhost:8000/api/auth/me', {
+      const response = await fetch(`${BACKEND_URL}/api/auth/me`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -91,7 +92,7 @@ export function UserProfileDropdown({ onDeleteAccount }: UserProfileDropdownProp
       const token = await getAuthToken();
 
       // Call backend logout endpoint
-      await fetch('http://localhost:8000/api/auth/logout', {
+      await fetch(`${BACKEND_URL}/api/auth/logout`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -128,7 +129,7 @@ export function UserProfileDropdown({ onDeleteAccount }: UserProfileDropdownProp
     try {
       const token = await getAuthToken();
 
-      const response = await fetch('http://localhost:8000/api/auth/gdpr/delete', {
+      const response = await fetch(`${BACKEND_URL}/api/auth/gdpr/delete`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -157,7 +158,7 @@ export function UserProfileDropdown({ onDeleteAccount }: UserProfileDropdownProp
     try {
       const token = await getAuthToken();
 
-      const response = await fetch('http://localhost:8000/api/auth/gdpr/export', {
+      const response = await fetch(`${BACKEND_URL}/api/auth/gdpr/export`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },

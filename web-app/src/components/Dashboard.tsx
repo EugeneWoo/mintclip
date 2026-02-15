@@ -10,6 +10,7 @@ import { SavedItemModal } from './modal/SavedItemModal';
 import { UserProfileDropdown } from './UserProfileDropdown';
 import { Footer } from './Footer';
 import { getAuthToken } from '../utils/auth';
+import { BACKEND_URL } from '../config';
 
 interface SavedItem {
   id: string;
@@ -99,7 +100,7 @@ export function Dashboard(): React.JSX.Element {
       setIsLoadingItems(true);
       const token = await getAuthToken();
 
-      const response = await fetch('http://localhost:8000/api/saved-items/list', {
+      const response = await fetch(`${BACKEND_URL}/api/saved-items/list`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -265,7 +266,7 @@ if (item.item_type === 'summary') {
       // User confirmed - delete existing items for this video first
       try {
         const token = await getAuthToken();
-        const deleteResponse = await fetch(`http://localhost:8000/api/saved-items/video/${videoId}`, {
+        const deleteResponse = await fetch(`${BACKEND_URL}/api/saved-items/video/${videoId}`, {
           method: 'DELETE',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -290,7 +291,7 @@ if (item.item_type === 'summary') {
       const token = await getAuthToken();
 
       // Extract transcript
-      const extractResponse = await fetch('http://localhost:8000/api/transcript/extract', {
+      const extractResponse = await fetch(`${BACKEND_URL}/api/transcript/extract`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -310,7 +311,7 @@ if (item.item_type === 'summary') {
       }
 
       // Save to Supabase with source='upload'
-      const saveResponse = await fetch('http://localhost:8000/api/saved-items/save', {
+      const saveResponse = await fetch(`${BACKEND_URL}/api/saved-items/save`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -410,7 +411,7 @@ if (item.item_type === 'summary') {
     try {
       const token = await getAuthToken();
 
-      const response = await fetch(`http://localhost:8000/api/saved-items/video/${item.video_id}`, {
+      const response = await fetch(`${BACKEND_URL}/api/saved-items/video/${item.video_id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,

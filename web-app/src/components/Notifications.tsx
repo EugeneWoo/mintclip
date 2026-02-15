@@ -7,6 +7,7 @@
 import React, { useState, useEffect } from 'react';
 import { getAuthToken } from '../utils/auth';
 import { Header } from './Header';
+import { BACKEND_URL } from '../config';
 
 export function Notifications(): React.JSX.Element {
   const [marketingConsent, setMarketingConsent] = useState(false);
@@ -22,7 +23,7 @@ export function Notifications(): React.JSX.Element {
   const loadMarketingPreference = async () => {
     try {
       const token = await getAuthToken();
-      const response = await fetch('http://localhost:8000/api/auth/me', {
+      const response = await fetch(`${BACKEND_URL}/api/auth/me`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -45,7 +46,7 @@ export function Notifications(): React.JSX.Element {
 
     try {
       const token = await getAuthToken();
-      const response = await fetch(`http://localhost:8000/api/auth/gdpr/marketing-consent?consent=${newValue}`, {
+      const response = await fetch(`${BACKEND_URL}/api/auth/gdpr/marketing-consent?consent=${newValue}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,

@@ -5,6 +5,7 @@
 
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { BACKEND_URL } from '../config';
 
 export function AuthCallback(): React.JSX.Element {
   const navigate = useNavigate();
@@ -45,7 +46,7 @@ export function AuthCallback(): React.JSX.Element {
       console.log('[AuthCallback] Exchanging code for tokens...');
       const redirectUri = window.location.origin + '/auth/callback';
 
-      const response = await fetch('http://localhost:8000/api/auth/google/code', {
+      const response = await fetch(`${BACKEND_URL}/api/auth/google/code`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

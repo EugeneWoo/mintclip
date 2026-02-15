@@ -8,6 +8,7 @@ import { VideoCard } from './VideoCard';
 import { SavedItemModal } from './modal/SavedItemModal';
 import { extensionAuth, getAuthToken } from '../utils/auth';
 import { exportVideoAsZip, fetchAllItemsForVideo } from '../utils/export';
+import { BACKEND_URL } from '../config';
 
 interface SavedItem {
   id: string;
@@ -57,7 +58,7 @@ export function Library(): React.JSX.Element {
       setIsLoadingItems(true);
       const token = await getAuthToken();
 
-      const response = await fetch('http://localhost:8000/api/saved-items/list', {
+      const response = await fetch(`${BACKEND_URL}/api/saved-items/list`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },

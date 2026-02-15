@@ -3,6 +3,7 @@
  */
 
 import JSZip from 'jszip';
+import { BACKEND_URL } from '../config';
 
 export interface SavedItem {
   id: string;
@@ -306,7 +307,7 @@ export async function fetchAllItemsForVideo(
   videoId: string,
   token: string
 ): Promise<SavedItem[]> {
-  const response = await fetch('http://localhost:8000/api/saved-items/list', {
+  const response = await fetch(`${BACKEND_URL}/api/saved-items/list`, {
     headers: {
       'Authorization': `Bearer ${token}`,
     },
