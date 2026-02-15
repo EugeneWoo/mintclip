@@ -1,33 +1,47 @@
 /**
  * Footer Component
  * Reusable footer with legal links and copyright
+ * Mobile-responsive layout
  */
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 
 export function Footer(): React.JSX.Element {
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
   return (
     <footer style={{
       background: '#1f1f1f',
       borderTop: '1px solid rgba(255, 255, 255, 0.08)',
-      padding: '3rem 2rem',
+      padding: isMobile ? '2rem 1.5rem' : '3rem 2rem',
       marginTop: 'auto',
     }}>
       <div style={{
         maxWidth: '1400px',
         margin: '0 auto',
         display: 'flex',
-        justifyContent: 'space-between',
+        flexDirection: isMobile ? 'column' : 'row',
+        justifyContent: isMobile ? 'center' : 'space-between',
         alignItems: 'center',
-        flexWrap: 'wrap',
-        gap: '1.5rem',
+        gap: isMobile ? '2rem' : '1.5rem',
+        textAlign: isMobile ? 'center' : 'left',
       }}>
         {/* Left side - Logo and Copyright */}
         <div style={{
           display: 'flex',
+          flexDirection: isMobile ? 'column' : 'row',
           alignItems: 'center',
-          gap: '2rem',
+          gap: isMobile ? '1rem' : '2rem',
         }}>
           <Link
             to="/"
@@ -36,7 +50,7 @@ export function Footer(): React.JSX.Element {
               alignItems: 'center',
               gap: '0.75rem',
               fontFamily: 'Plus Jakarta Sans, sans-serif',
-              fontSize: '1.25rem',
+              fontSize: isMobile ? '1.125rem' : '1.25rem',
               fontWeight: 700,
               color: '#ffffff',
               textDecoration: 'none',
@@ -61,11 +75,13 @@ export function Footer(): React.JSX.Element {
           </span>
         </div>
 
-        {/* Right side - Legal Links */}
+        {/* Right side - Legal Links - Stacked Grid on Mobile */}
         <div style={{
-          display: 'flex',
-          gap: '2rem',
-          flexWrap: 'wrap',
+          display: 'grid',
+          gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'auto',
+          gap: isMobile ? '1rem' : '2rem',
+          width: isMobile ? '100%' : 'auto',
+          maxWidth: isMobile ? '400px' : 'none',
         }}>
           <Link
             to="/legal/privacy-policy"
@@ -75,6 +91,7 @@ export function Footer(): React.JSX.Element {
               fontSize: '0.875rem',
               fontWeight: 600,
               transition: 'color 0.2s',
+              padding: isMobile ? '0.5rem' : '0',
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.color = '#22c55e';
@@ -93,6 +110,7 @@ export function Footer(): React.JSX.Element {
               fontSize: '0.875rem',
               fontWeight: 600,
               transition: 'color 0.2s',
+              padding: isMobile ? '0.5rem' : '0',
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.color = '#22c55e';
@@ -111,6 +129,7 @@ export function Footer(): React.JSX.Element {
               fontSize: '0.875rem',
               fontWeight: 600,
               transition: 'color 0.2s',
+              padding: isMobile ? '0.5rem' : '0',
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.color = '#22c55e';
@@ -129,6 +148,7 @@ export function Footer(): React.JSX.Element {
               fontSize: '0.875rem',
               fontWeight: 600,
               transition: 'color 0.2s',
+              padding: isMobile ? '0.5rem' : '0',
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.color = '#22c55e';
@@ -147,6 +167,7 @@ export function Footer(): React.JSX.Element {
               fontSize: '0.875rem',
               fontWeight: 600,
               transition: 'color 0.2s',
+              padding: isMobile ? '0.5rem' : '0',
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.color = '#22c55e';
@@ -165,6 +186,7 @@ export function Footer(): React.JSX.Element {
               fontSize: '0.875rem',
               fontWeight: 600,
               transition: 'color 0.2s',
+              padding: isMobile ? '0.5rem' : '0',
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.color = '#22c55e';
@@ -177,26 +199,6 @@ export function Footer(): React.JSX.Element {
           </a>
         </div>
       </div>
-
-      {/* Mobile responsive styles */}
-      <style>{`
-        @media (max-width: 768px) {
-          footer > div {
-            flex-direction: column;
-            text-align: center;
-          }
-
-          footer > div > div:first-child {
-            flex-direction: column;
-            gap: 1rem;
-          }
-
-          footer > div > div:last-child {
-            justify-content: center;
-            gap: 1rem 1.5rem;
-          }
-        }
-      `}</style>
     </footer>
   );
 }
