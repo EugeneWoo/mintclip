@@ -56,11 +56,10 @@ function Popup(): React.JSX.Element {
       <div
         style={{
           width: '400px',
-          padding: '60px 20px',
+          padding: '40px 20px',
           fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
           textAlign: 'center',
-          backgroundColor: '#000000',
-          minHeight: '100vh',
+          backgroundColor: '#212121',
         }}
       >
         <div
@@ -93,10 +92,9 @@ function Popup(): React.JSX.Element {
     <div
       style={{
         width: '400px',
-        padding: '40px 20px',
+        padding: '32px 20px',
         fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-        backgroundColor: '#000000',
-        minHeight: '100vh',
+        backgroundColor: '#212121',
       }}
     >
       {/* Header */}
