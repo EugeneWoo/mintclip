@@ -567,20 +567,21 @@ if (item.item_type === 'summary') {
 
       {/* Main Content */}
       <main style={{
-        paddingTop: '120px',
-        paddingBottom: '4rem',
-        paddingLeft: '2rem',
-        paddingRight: '2rem',
+        paddingTop: window.innerWidth < 768 ? '100px' : '120px',
+        paddingBottom: window.innerWidth < 768 ? '2rem' : '4rem',
+        paddingLeft: window.innerWidth < 768 ? '1rem' : '2rem',
+        paddingRight: window.innerWidth < 768 ? '1rem' : '2rem',
       }}>
         <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
           {/* URL Input Section */}
           <div style={{
-            marginBottom: '3rem',
+            marginBottom: window.innerWidth < 768 ? '2rem' : '3rem',
             textAlign: 'center',
+            padding: window.innerWidth < 768 ? '0 0.5rem' : '0',
           }}>
             <h1 style={{
               fontFamily: 'Plus Jakarta Sans, sans-serif',
-              fontSize: '2.5rem',
+              fontSize: window.innerWidth < 768 ? '1.75rem' : '2.5rem',
               fontWeight: 800,
               letterSpacing: '-0.02em',
               marginBottom: '0.5rem',
@@ -588,9 +589,9 @@ if (item.item_type === 'summary') {
               Extract YouTube Content
             </h1>
             <p style={{
-              fontSize: '1.1rem',
+              fontSize: window.innerWidth < 768 ? '0.95rem' : '1.1rem',
               color: 'rgba(255, 255, 255, 0.6)',
-              marginBottom: '2rem',
+              marginBottom: window.innerWidth < 768 ? '1.5rem' : '2rem',
             }}>
               Paste a YouTube URL to extract transcripts, summaries, and chat
             </p>
@@ -599,6 +600,7 @@ if (item.item_type === 'summary') {
               maxWidth: '600px',
               margin: '0 auto',
               display: 'flex',
+              flexDirection: window.innerWidth < 640 ? 'column' : 'row',
               gap: '0.75rem',
             }}>
               <input
@@ -614,12 +616,12 @@ if (item.item_type === 'summary') {
                 disabled={isExtracting}
                 style={{
                   flex: 1,
-                  padding: '0.875rem 1.25rem',
+                  padding: window.innerWidth < 640 ? '1rem 1.25rem' : '0.875rem 1.25rem',
                   background: '#262626',
                   border: '1px solid rgba(255, 255, 255, 0.1)',
                   borderRadius: '12px',
                   color: '#ffffff',
-                  fontSize: '1rem',
+                  fontSize: '16px', /* Prevent zoom on iOS */
                   outline: 'none',
                   transition: 'all 0.2s',
                 }}
@@ -634,7 +636,7 @@ if (item.item_type === 'summary') {
                 onClick={handleExtract}
                 disabled={isExtracting || !url.trim()}
                 style={{
-                  padding: '0.875rem 2rem',
+                  padding: window.innerWidth < 640 ? '1rem 2rem' : '0.875rem 2rem',
                   background: isExtracting || !url.trim() ? '#404040' : '#22c55e',
                   color: '#ffffff',
                   border: 'none',
@@ -644,6 +646,7 @@ if (item.item_type === 'summary') {
                   cursor: isExtracting || !url.trim() ? 'not-allowed' : 'pointer',
                   transition: 'all 0.2s',
                   whiteSpace: 'nowrap',
+                  minHeight: '48px', /* Touch-friendly height */
                 }}
                 onMouseEnter={(e) => {
                   if (!isExtracting && url.trim()) {
