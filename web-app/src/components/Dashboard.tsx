@@ -601,7 +601,8 @@ if (item.item_type === 'summary') {
               margin: '0 auto',
               display: 'flex',
               flexDirection: window.innerWidth < 640 ? 'column' : 'row',
-              gap: '0.75rem',
+              gap: window.innerWidth < 640 ? '0.875rem' : '0.75rem',
+              alignItems: window.innerWidth < 640 ? 'center' : 'flex-start',
             }}>
               <input
                 type="text"
@@ -615,7 +616,8 @@ if (item.item_type === 'summary') {
                 placeholder="https://www.youtube.com/watch?v=..."
                 disabled={isExtracting}
                 style={{
-                  flex: 1,
+                  width: window.innerWidth < 640 ? '100%' : 'auto',
+                  flex: window.innerWidth < 640 ? 'none' : 1,
                   padding: window.innerWidth < 640 ? '1rem 1.25rem' : '0.875rem 1.25rem',
                   background: '#262626',
                   border: '1px solid rgba(255, 255, 255, 0.1)',
@@ -636,7 +638,7 @@ if (item.item_type === 'summary') {
                 onClick={handleExtract}
                 disabled={isExtracting || !url.trim()}
                 style={{
-                  padding: window.innerWidth < 640 ? '1rem 2rem' : '0.875rem 2rem',
+                  padding: window.innerWidth < 640 ? '1rem 2.5rem' : '0.875rem 2rem',
                   background: isExtracting || !url.trim() ? '#404040' : '#22c55e',
                   color: '#ffffff',
                   border: 'none',
