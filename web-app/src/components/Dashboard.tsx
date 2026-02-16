@@ -74,6 +74,36 @@ export function Dashboard(): React.JSX.Element {
     };
   }, [isAuthenticated]);
 
+  // Auto-refresh when tab becomes visible (for cross-device sync)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden && isAuthenticated) {
+        console.log('[Dashboard] Tab became visible, refreshing items...');
+        loadSavedItems();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [isAuthenticated]);
+
+  // Periodic polling for real-time sync (every 30 seconds when tab is visible)
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    const pollInterval = setInterval(() => {
+      if (!document.hidden) {
+        console.log('[Dashboard] Polling for new items...');
+        loadSavedItems();
+      }
+    }, 30000); // 30 seconds
+
+    return () => clearInterval(pollInterval);
+  }, [isAuthenticated]);
+
   const checkAuth = async () => {
     try {
       const token = localStorage.getItem('mintclip_access_token');
