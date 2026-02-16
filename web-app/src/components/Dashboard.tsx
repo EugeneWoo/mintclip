@@ -255,6 +255,10 @@ if (item.item_type === 'summary') {
     return pattern.test(url);
   };
 
+  const isShortsUrl = (url: string): boolean => {
+    return url.toLowerCase().includes('/shorts/');
+  };
+
   const extractVideoId = (url: string): string | null => {
     const regExp = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*/;
     const match = url.match(regExp);
@@ -264,6 +268,12 @@ if (item.item_type === 'summary') {
   const handleExtract = async () => {
     if (!url.trim()) {
       setExtractError('Please enter a YouTube URL');
+      return;
+    }
+
+    // Check for Shorts URL first
+    if (isShortsUrl(url)) {
+      setExtractError('YouTube Shorts are not supported. Please paste a regular YouTube video URL.');
       return;
     }
 
