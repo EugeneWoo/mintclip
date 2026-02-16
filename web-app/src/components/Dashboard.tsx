@@ -567,7 +567,7 @@ if (item.item_type === 'summary') {
 
       {/* Main Content */}
       <main style={{
-        paddingTop: window.innerWidth < 768 ? '100px' : '120px',
+        paddingTop: window.innerWidth < 768 ? '140px' : '170px',
         paddingBottom: window.innerWidth < 768 ? '2rem' : '4rem',
         paddingLeft: window.innerWidth < 768 ? '1rem' : '2rem',
         paddingRight: window.innerWidth < 768 ? '1rem' : '2rem',
