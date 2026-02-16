@@ -3,6 +3,7 @@
  * Displays and generates content for saved items
  * - source='extension': View-only mode
  * - source='upload': Interactive mode (generate summaries)
+ * Mobile-optimized with fixed scrolling and responsive layout
  */
 
 import React, { useState, useEffect, useRef } from 'react';
