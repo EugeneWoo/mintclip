@@ -55,11 +55,18 @@ async def extract_transcript(request: TranscriptRequest):
     """
     # Extract video ID from URL if provided
     if request.video_url:
-        video_id = TranscriptExtractor.extract_video_id(request.video_url)
-        if not video_id:
+        try:
+            video_id = TranscriptExtractor.extract_video_id(request.video_url)
+            if not video_id:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Invalid YouTube URL. Please provide a valid YouTube video URL."
+                )
+        except ValueError as e:
+            # Catch Shorts URL error with specific message
             raise HTTPException(
                 status_code=400,
-                detail="Invalid YouTube URL. Please provide a valid YouTube video URL."
+                detail=str(e)
             )
     elif request.video_id:
         video_id = request.video_id

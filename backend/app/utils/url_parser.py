@@ -55,6 +55,28 @@ def parse_youtube_urls(input_text: str) -> List[str]:
     return video_ids
 
 
+def is_shorts_url(url: str) -> bool:
+    """Check if URL is a YouTube Shorts URL.
+
+    Args:
+        url: YouTube URL to check
+
+    Returns:
+        True if URL is a Shorts URL, False otherwise
+
+    Examples:
+        >>> is_shorts_url("https://www.youtube.com/shorts/dQw4w9WgXcQ")
+        True
+
+        >>> is_shorts_url("https://youtube.com/shorts/abc123")
+        True
+
+        >>> is_shorts_url("https://www.youtube.com/watch?v=dQw4w9WgXcQ")
+        False
+    """
+    return '/shorts/' in url.lower()
+
+
 def extract_video_id(url_or_id: str) -> str | None:
     """Extract video ID from YouTube URL or validate direct video ID.
 
@@ -78,6 +100,10 @@ def extract_video_id(url_or_id: str) -> str | None:
         None
     """
     url_or_id = url_or_id.strip()
+
+    # Check if it's a Shorts URL and reject it
+    if is_shorts_url(url_or_id):
+        raise ValueError("YouTube Shorts are not supported. Please paste a regular YouTube video URL.")
 
     # If it looks like a direct video ID (11 chars, alphanumeric + _ -), validate it
     if is_valid_video_id(url_or_id):
@@ -107,12 +133,6 @@ def extract_video_id(url_or_id: str) -> str | None:
             # Embed URL: /embed/{VIDEO_ID}
             elif '/embed/' in parsed.path:
                 video_id = parsed.path.split('/embed/')[-1]
-                if is_valid_video_id(video_id):
-                    return video_id
-
-            # Shorts URL: /shorts/{VIDEO_ID}
-            elif '/shorts/' in parsed.path:
-                video_id = parsed.path.split('/shorts/')[-1]
                 if is_valid_video_id(video_id):
                     return video_id
 
