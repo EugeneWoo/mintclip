@@ -828,7 +828,8 @@ export function SavedItemModal({
           position: 'fixed',
           top: 0,
           right: 0,
-          height: '800px',
+          bottom: 0,
+          height: '100vh',
           width: '100%',
           maxWidth: '600px',
           backgroundColor: '#212121',
@@ -1115,6 +1116,8 @@ export function SavedItemModal({
                   flex: 1,
                   overflowY: 'scroll',
                   padding: '16px',
+                  paddingBottom: '80px', // Extra bottom padding for mobile scrolling
+                  WebkitOverflowScrolling: 'touch', // Smooth scrolling on iOS
                 }}
               >
                 {(() => {
@@ -1324,6 +1327,8 @@ export function SavedItemModal({
                 flex: 1,
                 overflowY: 'scroll',
                 padding: '16px',
+                paddingBottom: '80px', // Extra bottom padding for mobile scrolling
+                WebkitOverflowScrolling: 'touch', // Smooth scrolling on iOS
               }}>
                 {/* Generate button (upload items only) - Full width like extension */}
                 {isInteractive && !generatedSummaries[currentFormat] && !isSummaryLoading && (
@@ -1452,6 +1457,8 @@ export function SavedItemModal({
                     flex: 1,
                     overflowY: 'scroll',
                     padding: '16px',
+                    paddingBottom: '80px', // Extra bottom padding for mobile scrolling
+                    WebkitOverflowScrolling: 'touch', // Smooth scrolling on iOS
                   }}
                 >
                   {/* Empty State */}
