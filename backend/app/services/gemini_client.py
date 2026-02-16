@@ -171,12 +171,12 @@ class GeminiClient:
 
             # Set max_tokens based on format to ensure complete output
             # - short: 800 tokens for concise 3-section summary
-            # - qa: 3500 tokens for up to 10 questions with detailed answers and timestamps
-            # - topic: 3500 tokens for up to 10 topics with descriptions and timestamps
+            # - qa: 4500 tokens for up to 10 questions with detailed answers and timestamps
+            # - topic: 4500 tokens for up to 10 topics with descriptions, key insights, and timestamps
             max_tokens_by_format = {
                 'short': 800,
-                'qa': 3500,
-                'topic': 3500,
+                'qa': 4500,
+                'topic': 4500,
             }
             max_tokens = max_tokens_by_format.get(format, 1500)
 
@@ -185,6 +185,18 @@ class GeminiClient:
                 temperature=0.7,
                 max_tokens=max_tokens,
             )
+
+            # Check if response appears truncated (ends with header or incomplete sentence)
+            if response_text:
+                lines = response_text.strip().split('\n')
+                last_line = lines[-1] if lines else ''
+                ends_with_header = last_line.startswith('#')
+
+                if ends_with_header:
+                    print(f"⚠️  WARNING: Summary for format '{format}' appears truncated (ends with header)")
+                    print(f"   Last line: {last_line[:100]}")
+                    print(f"   Response length: {len(response_text)} chars")
+                    print(f"   Consider increasing max_tokens (current: {max_tokens})")
 
             return response_text
 

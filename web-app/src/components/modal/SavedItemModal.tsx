@@ -479,13 +479,21 @@ export function SavedItemModal({
 
   // Render summary with markdown, clickable timestamps, and headers
   const renderSummary = (text: string) => {
+    // Debug log to check if text is complete
+    console.log('[SavedItemModal] Rendering summary:', {
+      length: text.length,
+      lines: text.split('\n').length,
+      endsWithNewline: text.endsWith('\n'),
+      lastChars: text.slice(-50)
+    });
+
     const lines = text.split('\n');
     const elements: React.ReactNode[] = [];
     const isStructured = getIsStructured();
 
     lines.forEach((line, index) => {
       if (!line.trim()) {
-        elements.push(<div key={index} style={{ height: '4px' }} />);
+        elements.push(<div key={index} style={{ height: '8px' }} />);
         return;
       }
 
@@ -584,8 +592,8 @@ export function SavedItemModal({
               style={{
                 fontWeight: 700,
                 fontSize: '16px',
-                marginTop: index > 0 ? '16px' : '0',
-                marginBottom: '8px',
+                marginTop: index > 0 ? '20px' : '0',
+                marginBottom: '10px',
                 color: '#fff',
               }}
             >
@@ -599,9 +607,9 @@ export function SavedItemModal({
               key={index}
               style={{
                 fontWeight: 700,
-                fontSize: '16px',
-                marginTop: index > 0 ? '18px' : '0',
-                marginBottom: '10px',
+                fontSize: '17px',
+                marginTop: index > 0 ? '22px' : '0',
+                marginBottom: '12px',
                 color: '#fff',
               }}
             >
@@ -616,8 +624,8 @@ export function SavedItemModal({
               style={{
                 fontWeight: 700,
                 fontSize: '18px',
-                marginTop: index > 0 ? '20px' : '0',
-                marginBottom: '12px',
+                marginTop: index > 0 ? '24px' : '0',
+                marginBottom: '14px',
                 color: '#fff',
               }}
             >
@@ -626,7 +634,7 @@ export function SavedItemModal({
           );
         } else {
           elements.push(
-            <div key={index} style={{ marginBottom: '8px', lineHeight: '1.6' }}>
+            <div key={index} style={{ marginBottom: '10px', lineHeight: '1.6' }}>
               {renderLineWithLinks(line)}
             </div>
           );
@@ -988,15 +996,17 @@ export function SavedItemModal({
                 gap: '8px',
                 alignItems: 'center',
                 flexShrink: 0,
+                flexWrap: 'wrap',
               }}>
-                {/* Search Input */}
+                {/* Search Input - Full width on mobile */}
                 <input
                   type="text"
                   placeholder="Search transcript..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   style={{
-                    flex: 1,
+                    flex: window.innerWidth < 500 ? '1 1 100%' : '1',
+                    minWidth: window.innerWidth < 500 ? '100%' : '0',
                     padding: '8px 12px',
                     backgroundColor: 'rgba(255, 255, 255, 0.05)',
                     border: '1px solid rgba(255, 255, 255, 0.1)',
@@ -1007,24 +1017,27 @@ export function SavedItemModal({
                   }}
                 />
 
-                {/* Language Display */}
-                <div style={{
-                  padding: '8px 12px',
-                  backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                  border: '1px solid rgba(255, 255, 255, 0.1)',
-                  borderRadius: '6px',
-                  color: 'rgba(255, 255, 255, 0.7)',
-                  fontSize: '13px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                }}>
-                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
-                    <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="1.5" fill="none"/>
-                    <path d="M2 8h12M8 2a8 8 0 0 0 0 12M8 2a8 8 0 0 1 0 12" stroke="currentColor" strokeWidth="1.5" fill="none"/>
-                  </svg>
-                  <span style={{ fontWeight: 500 }}>{item.content.language || 'English'}</span>
-                </div>
+                {/* Language Display - Hidden on very small screens */}
+                {window.innerWidth >= 400 && (
+                  <div style={{
+                    padding: '8px 12px',
+                    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    borderRadius: '6px',
+                    color: 'rgba(255, 255, 255, 0.7)',
+                    fontSize: '13px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    whiteSpace: 'nowrap',
+                  }}>
+                    <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                      <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="1.5" fill="none"/>
+                      <path d="M2 8h12M8 2a8 8 0 0 0 0 12M8 2a8 8 0 0 1 0 12" stroke="currentColor" strokeWidth="1.5" fill="none"/>
+                    </svg>
+                    <span style={{ fontWeight: 500 }}>{item.content.language || 'EN'}</span>
+                  </div>
+                )}
 
                 {/* Copy Button */}
                 <button
@@ -1041,7 +1054,7 @@ export function SavedItemModal({
                     justifyContent: 'center',
                     width: '36px',
                     height: '36px',
-                    position: 'relative',
+                    flexShrink: 0,
                   }}
                   title={copySuccess === 'transcript' ? 'Copied!' : 'Copy transcript'}
                   onMouseEnter={(e) => {
@@ -1078,6 +1091,7 @@ export function SavedItemModal({
                     justifyContent: 'center',
                     width: '36px',
                     height: '36px',
+                    flexShrink: 0,
                   }}
                   title="Export as Markdown"
                   onMouseEnter={(e) => {
@@ -1365,16 +1379,42 @@ export function SavedItemModal({
 
                 {/* Summary Content */}
                 {getCurrentSummary() && !isSummaryLoading && (
-                  <div style={{
-                    backgroundColor: 'rgba(255, 255, 255, 0.03)',
-                    border: '1px solid rgba(255, 255, 255, 0.08)',
-                    borderRadius: '8px',
-                    padding: '16px',
-                    color: 'rgba(255, 255, 255, 0.8)',
-                    fontSize: '14px',
-                  }}>
-                    {renderSummary(getCurrentSummary()!)}
-                  </div>
+                  <>
+                    <div style={{
+                      backgroundColor: 'rgba(255, 255, 255, 0.03)',
+                      border: '1px solid rgba(255, 255, 255, 0.08)',
+                      borderRadius: '8px',
+                      padding: '16px',
+                      color: 'rgba(255, 255, 255, 0.8)',
+                      fontSize: '14px',
+                    }}>
+                      {renderSummary(getCurrentSummary()!)}
+                    </div>
+                    {/* Debug info - shows if summary appears incomplete */}
+                    {(() => {
+                      const summary = getCurrentSummary()!;
+                      const lastLine = summary.trim().split('\n').pop() || '';
+                      const endsWithHeader = lastLine.match(/^#{1,3}\s/);
+                      const seemsIncomplete = endsWithHeader || (!lastLine && summary.length > 100);
+
+                      if (seemsIncomplete) {
+                        return (
+                          <div style={{
+                            marginTop: '12px',
+                            padding: '12px',
+                            backgroundColor: 'rgba(251, 191, 36, 0.1)',
+                            border: '1px solid rgba(251, 191, 36, 0.3)',
+                            borderRadius: '6px',
+                            fontSize: '12px',
+                            color: 'rgba(251, 191, 36, 0.9)',
+                          }}>
+                            ⚠️ This summary may be incomplete. The AI generation might have been cut off.
+                          </div>
+                        );
+                      }
+                      return null;
+                    })()}
+                  </>
                 )}
 
                 {/* Empty state */}

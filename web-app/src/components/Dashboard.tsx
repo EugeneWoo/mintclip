@@ -11,6 +11,7 @@ import { UserProfileDropdown } from './UserProfileDropdown';
 import { Footer } from './Footer';
 import { getAuthToken } from '../utils/auth';
 import { BACKEND_URL } from '../config';
+import { subscribeToSavedItems } from '../utils/supabase';
 
 interface SavedItem {
   id: string;
@@ -90,19 +91,66 @@ export function Dashboard(): React.JSX.Element {
     };
   }, [isAuthenticated]);
 
-  // Periodic polling for real-time sync (every 30 seconds when tab is visible and modal is closed)
+  // Real-time sync via Supabase Realtime (replaces polling)
   useEffect(() => {
     if (!isAuthenticated) return;
 
-    const pollInterval = setInterval(() => {
-      // Only poll if tab is visible AND modal is not open (prevents disrupting user viewing content)
-      if (!document.hidden && !isModalOpen) {
-        console.log('[Dashboard] Polling for new items...');
-        loadSavedItems();
-      }
-    }, 30000); // 30 seconds
+    let unsubscribe: (() => void) | null = null;
 
-    return () => clearInterval(pollInterval);
+    // Get user ID from token to filter Realtime updates
+    const getUserId = async () => {
+      try {
+        const token = await getAuthToken();
+        // Decode JWT to get user_id (simple parse, no verification needed on client)
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        return payload.sub || payload.user_id;
+      } catch (error) {
+        console.error('[Dashboard] Failed to get user ID:', error);
+        return null;
+      }
+    };
+
+    const setupRealtimeOrFallback = async () => {
+      const userId = await getUserId();
+      if (!userId) {
+        console.warn('[Dashboard] No user ID - Realtime sync disabled');
+        return;
+      }
+
+      // Try to subscribe to Realtime updates
+      const unsubscribeFn = await subscribeToSavedItems(userId, () => {
+        // Only refresh if modal is not open (prevents disrupting user viewing content)
+        if (!isModalOpen) {
+          console.log('[Dashboard] Realtime update - refreshing items...');
+          loadSavedItems();
+        }
+      });
+
+      // If Realtime subscription succeeded, use it
+      if (unsubscribeFn) {
+        unsubscribe = unsubscribeFn;
+        return;
+      }
+
+      // Fallback: If Realtime is not available, use polling as backup
+      console.log('[Dashboard] Realtime not available - using polling fallback');
+      const pollInterval = setInterval(() => {
+        if (!document.hidden && !isModalOpen) {
+          console.log('[Dashboard] Polling for new items...');
+          loadSavedItems();
+        }
+      }, 30000); // 30 seconds
+
+      unsubscribe = () => clearInterval(pollInterval);
+    };
+
+    setupRealtimeOrFallback();
+
+    return () => {
+      if (unsubscribe) {
+        unsubscribe();
+      }
+    };
   }, [isAuthenticated, isModalOpen]);
 
   const checkAuth = async () => {
@@ -675,35 +723,78 @@ if (item.item_type === 'summary') {
                   e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)';
                 }}
               />
-              <button
-                onClick={handleExtract}
-                disabled={isExtracting || !url.trim()}
-                style={{
-                  padding: window.innerWidth < 640 ? '1rem 2.5rem' : '0.875rem 2rem',
-                  background: isExtracting || !url.trim() ? '#404040' : '#22c55e',
-                  color: '#ffffff',
-                  border: 'none',
-                  borderRadius: '12px',
-                  fontSize: '1rem',
-                  fontWeight: 600,
-                  cursor: isExtracting || !url.trim() ? 'not-allowed' : 'pointer',
-                  transition: 'all 0.2s',
-                  whiteSpace: 'nowrap',
-                  minHeight: '48px', /* Touch-friendly height */
-                }}
-                onMouseEnter={(e) => {
-                  if (!isExtracting && url.trim()) {
-                    e.currentTarget.style.background = '#16a34a';
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (!isExtracting && url.trim()) {
-                    e.currentTarget.style.background = '#22c55e';
-                  }
-                }}
-              >
-                {isExtracting ? 'Extracting...' : 'Extract'}
-              </button>
+              <div style={{
+                display: 'flex',
+                gap: '0.75rem',
+                width: window.innerWidth < 640 ? '100%' : 'auto',
+              }}>
+                {/* Clear Button - Only show when URL has content */}
+                {url.trim() && (
+                  <button
+                    onClick={() => {
+                      setUrl('');
+                      setExtractError(null);
+                    }}
+                    disabled={isExtracting}
+                    style={{
+                      padding: window.innerWidth < 640 ? '1rem 1.5rem' : '0.875rem 1.5rem',
+                      background: 'transparent',
+                      color: 'rgba(255, 255, 255, 0.7)',
+                      border: '1px solid rgba(255, 255, 255, 0.2)',
+                      borderRadius: '12px',
+                      fontSize: '1rem',
+                      fontWeight: 600,
+                      cursor: isExtracting ? 'not-allowed' : 'pointer',
+                      transition: 'all 0.2s',
+                      whiteSpace: 'nowrap',
+                      minHeight: '48px',
+                      flex: window.innerWidth < 640 ? '1' : 'none',
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!isExtracting) {
+                        e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
+                        e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.3)';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = 'transparent';
+                      e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+                    }}
+                  >
+                    Clear
+                  </button>
+                )}
+                <button
+                  onClick={handleExtract}
+                  disabled={isExtracting || !url.trim()}
+                  style={{
+                    padding: window.innerWidth < 640 ? '1rem 1.5rem' : '0.875rem 1.5rem',
+                    background: isExtracting || !url.trim() ? '#404040' : '#22c55e',
+                    color: '#ffffff',
+                    border: 'none',
+                    borderRadius: '12px',
+                    fontSize: '1rem',
+                    fontWeight: 600,
+                    cursor: isExtracting || !url.trim() ? 'not-allowed' : 'pointer',
+                    transition: 'all 0.2s',
+                    whiteSpace: 'nowrap',
+                    minHeight: '48px',
+                    flex: window.innerWidth < 640 ? '1' : 'none',
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isExtracting && url.trim()) {
+                      e.currentTarget.style.background = '#16a34a';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isExtracting && url.trim()) {
+                      e.currentTarget.style.background = '#22c55e';
+                    }
+                  }}
+                >
+                  {isExtracting ? 'Extracting...' : 'Extract'}
+                </button>
+              </div>
             </div>
 
             {extractError && (
