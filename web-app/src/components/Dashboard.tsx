@@ -90,19 +90,20 @@ export function Dashboard(): React.JSX.Element {
     };
   }, [isAuthenticated]);
 
-  // Periodic polling for real-time sync (every 30 seconds when tab is visible)
+  // Periodic polling for real-time sync (every 30 seconds when tab is visible and modal is closed)
   useEffect(() => {
     if (!isAuthenticated) return;
 
     const pollInterval = setInterval(() => {
-      if (!document.hidden) {
+      // Only poll if tab is visible AND modal is not open (prevents disrupting user viewing content)
+      if (!document.hidden && !isModalOpen) {
         console.log('[Dashboard] Polling for new items...');
         loadSavedItems();
       }
     }, 30000); // 30 seconds
 
     return () => clearInterval(pollInterval);
-  }, [isAuthenticated]);
+  }, [isAuthenticated, isModalOpen]);
 
   const checkAuth = async () => {
     try {
