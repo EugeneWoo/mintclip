@@ -302,48 +302,7 @@ class GeminiClient:
         if not text or not text.strip():
             return None
 
-        # For very long texts, chunk them to avoid Gemini returning original
-        MAX_CHARS = 8000  # Safe chunk size
-        if len(text) > MAX_CHARS:
-            # Process in chunks and combine
-            chunks = []
-            words = text.split()
-            current_chunk = []
-            current_length = 0
-
-            for word in words:
-                word_len = len(word) + 1  # +1 for space
-                if current_length + word_len > MAX_CHARS and current_chunk:
-                    chunks.append(' '.join(current_chunk))
-                    current_chunk = [word]
-                    current_length = word_len
-                else:
-                    current_chunk.append(word)
-                    current_length += word_len
-
-            if current_chunk:
-                chunks.append(' '.join(current_chunk))
-
-            # Translate each chunk and combine
-            translated_chunks = []
-            for chunk in chunks:
-                translated = self._translate_single(chunk)
-                if translated:
-                    # Validate each chunk is actually translated (not returned unchanged)
-                    src_sample = chunk[:100].lower().strip()
-                    trn_sample = translated[:100].lower().strip()
-                    if trn_sample == src_sample:
-                        logger.warning(f"Chunk translation returned same text as source - retrying once")
-                        translated = self._translate_single(chunk)
-                        if translated:
-                            trn_sample = translated[:100].lower().strip()
-                            if trn_sample == src_sample:
-                                logger.error(f"Chunk translation failed after retry - skipping chunk")
-                                continue
-                    translated_chunks.append(translated)
-
-            return ' '.join(translated_chunks) if translated_chunks else None
-
+        # Feed entire transcript to Gemini in one call - Gemini 2.5 Flash handles large contexts natively
         return self._translate_single(text)
 
     def _translate_single(self, text: str) -> Optional[str]:
