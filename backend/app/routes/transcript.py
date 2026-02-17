@@ -180,27 +180,34 @@ async def extract_transcript(request: TranscriptRequest):
                         translated_text = gemini_client.translate_to_english(transcript_text)
 
                         if translated_text:
-                            # Split translated text back into segments
-                            original_segments = result['transcript']
-                            translated_words = translated_text.split()
-                            translated_segments = []
-                            word_index = 0
+                            # Validate translation is actually different from source
+                            # Gemini sometimes returns the original text unchanged when overwhelmed
+                            source_sample = transcript_text[:200].lower().strip()
+                            translated_sample = translated_text[:200].lower().strip()
+                            if translated_sample == source_sample:
+                                logger.warning(f"Translation returned same text as source for {video_id} - skipping cache")
+                            else:
+                                # Split translated text back into segments
+                                original_segments = result['transcript']
+                                translated_words = translated_text.split()
+                                translated_segments = []
+                                word_index = 0
 
-                            for seg in original_segments:
-                                original_word_count = len(seg.get('text', '').split())
-                                segment_words = translated_words[word_index:word_index + max(1, original_word_count)]
-                                word_index += len(segment_words)
+                                for seg in original_segments:
+                                    original_word_count = len(seg.get('text', '').split())
+                                    segment_words = translated_words[word_index:word_index + max(1, original_word_count)]
+                                    word_index += len(segment_words)
 
-                                translated_segments.append({
-                                    'timestamp': seg.get('timestamp'),
-                                    'start_seconds': seg.get('start_seconds'),
-                                    'duration': seg.get('duration'),
-                                    'text': ' '.join(segment_words)
-                                })
+                                    translated_segments.append({
+                                        'timestamp': seg.get('timestamp'),
+                                        'start_seconds': seg.get('start_seconds'),
+                                        'duration': seg.get('duration'),
+                                        'text': ' '.join(segment_words)
+                                    })
 
-                            # Cache the translated transcript
-                            cache.set(translation_cache_key, translated_segments, TTL_SUMMARY)
-                            logger.info(f"Successfully cached eager translation for video {video_id}")
+                                # Cache the translated transcript
+                                cache.set(translation_cache_key, translated_segments, TTL_SUMMARY)
+                                logger.info(f"Successfully cached eager translation for video {video_id}")
                     except Exception as e:
                         logger.error(f"Error in background translation: {e}")
 
@@ -374,6 +381,18 @@ async def translate_transcript(request: TranslateRequest):
             return {
                 'success': False,
                 'error': 'Failed to translate transcript. Gemini may not be available.',
+                'video_id': request.video_id
+            }
+
+        # Validate translation is actually different from source
+        # Gemini sometimes returns the original text unchanged when overwhelmed
+        source_sample = transcript_text[:200].lower().strip()
+        translated_sample = translated_text[:200].lower().strip()
+        if translated_sample == source_sample:
+            logger.warning(f"Translation returned same text as source for {request.video_id} - not caching")
+            return {
+                'success': False,
+                'error': 'Translation failed: Gemini returned the original text unchanged.',
                 'video_id': request.video_id
             }
 
