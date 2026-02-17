@@ -289,9 +289,7 @@ class GeminiClient:
 
     def translate_to_english(self, text: str) -> Optional[str]:
         """
-        Translate non-English text to English (synchronous)
-
-        Handles long texts by chunking them to avoid Gemini returning the original text.
+        Translate non-English text to English using Gemini.
 
         Args:
             text: Text to translate (any language)
@@ -302,35 +300,17 @@ class GeminiClient:
         if not text or not text.strip():
             return None
 
-        # Feed entire transcript to Gemini in one call - Gemini 2.5 Flash handles large contexts natively
-        return self._translate_single(text)
-
-    def _translate_single(self, text: str) -> Optional[str]:
-        """
-        Translate a single chunk of text to English
-
-        Args:
-            text: Text chunk to translate
-
-        Returns:
-            English translation or None if error
-        """
-        if not text or not text.strip():
-            return None
-
         try:
-            prompt = f"""Translate the following text to English. Preserve all timestamps in the format [MM:SS] or [HH:MM:SS] exactly as they appear. Only output the translation, nothing else.
+            prompt = f"""Translate the following text to English. Only output the translation, nothing else.
 
 Text to translate:
 {text}"""
 
-            response_text = self.generate_content(
+            return self.generate_content(
                 prompt=prompt,
-                temperature=0.3,  # Lower temperature for more accurate translation
-                max_tokens=8192,  # Increased from 4096
+                temperature=0.3,
+                max_tokens=8192,
             )
-
-            return response_text
 
         except Exception as e:
             print(f"Error translating text: {e}")
