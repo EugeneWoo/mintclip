@@ -151,7 +151,29 @@ class TranscriptExtractor:
                     transcript_language = 'en'
                     logger.info("Using auto-generated English transcript")
                 except:
-                    # Just get the first available transcript
+                    # If English was requested but not available natively, check if we have AI translation cached
+                    if 'en' in languages:
+                        from app.services.cache import get_cache
+                        cache = get_cache()
+
+                        # Check all available languages for cached translations to English
+                        available_transcripts = list(transcript_list)
+                        for avail_transcript in available_transcripts:
+                            translation_cache_key = f"transcript_translation:{video_id}:{avail_transcript.language_code}"
+                            cached_translation = cache.get(translation_cache_key)
+
+                            if cached_translation:
+                                logger.info(f"Returning cached AI-translated English (from {avail_transcript.language_code})")
+                                return {
+                                    'success': True,
+                                    'video_id': video_id,
+                                    'language': 'en',
+                                    'is_generated': True,  # AI-translated
+                                    'transcript': cached_translation,
+                                    'full_text': ' '.join([entry['text'] for entry in cached_translation])
+                                }
+
+                    # No English available (native or AI-translated) - get first available transcript
                     available_transcripts = list(transcript_list)
                     if available_transcripts:
                         transcript = available_transcripts[0]

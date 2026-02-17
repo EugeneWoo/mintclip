@@ -151,6 +151,12 @@ export function YouTubeSidebar({ videoId }: YouTubeSidebarProps): React.JSX.Elem
             console.log('[YouTubeSidebar] Restored transcript cache:', Object.keys(videoData.transcriptCache));
           }
 
+          // Restore englishTranslation state (AI-translated English only)
+          if (videoData.englishTranslation) {
+            setEnglishTranslation(videoData.englishTranslation);
+            console.log('[YouTubeSidebar] Restored englishTranslation:', videoData.englishTranslation.length, 'segments');
+          }
+
           // Restore current language
           if (videoData.currentLanguage) {
             setCurrentLanguage(videoData.currentLanguage);
@@ -230,6 +236,7 @@ export function YouTubeSidebar({ videoId }: YouTubeSidebarProps): React.JSX.Elem
         const videoData = {
           transcript,
           transcriptCache, // Save all cached transcripts (native languages + AI translation)
+          englishTranslation, // Save AI-translated English state separately
           currentLanguage,
           summaries,
           chatMessages,
@@ -245,10 +252,10 @@ export function YouTubeSidebar({ videoId }: YouTubeSidebarProps): React.JSX.Elem
     };
 
     // Only save if we have some data
-    if (transcript || Object.keys(summaries).length > 0 || chatMessages.length > 0 || suggestedQuestions.length > 0 || Object.keys(transcriptCache).length > 0) {
+    if (transcript || Object.keys(summaries).length > 0 || chatMessages.length > 0 || suggestedQuestions.length > 0 || Object.keys(transcriptCache).length > 0 || englishTranslation) {
       saveVideoData();
     }
-  }, [videoId, transcript, transcriptCache, currentLanguage, summaries, chatMessages, currentFormat, suggestedQuestions]);
+  }, [videoId, transcript, transcriptCache, englishTranslation, currentLanguage, summaries, chatMessages, currentFormat, suggestedQuestions]);
 
   // Debug: Monitor transcript state changes
   useEffect(() => {
@@ -289,28 +296,33 @@ export function YouTubeSidebar({ videoId }: YouTubeSidebarProps): React.JSX.Elem
             setAvailableLanguages(response.languages);
             console.log('[YouTubeSidebar] Translation ready! Updated language list:', response.languages);
 
-            // Fetch the AI-translated English transcript
+            // Fetch the AI-translated English transcript via /translate (not /extract)
+            // /extract returns native YouTube captions and falls back to wrong language
+            // /translate always returns the cached AI translation
             try {
               const transcriptResponse = await chrome.runtime.sendMessage({
-                type: 'GET_TRANSCRIPT',
-                payload: { videoId, languageCode: 'en' },
+                type: 'TRANSLATE_TRANSCRIPT',
+                payload: { videoId, transcript, sourceLanguage: currentLanguage },
               });
 
-              if (transcriptResponse.success && transcriptResponse.data) {
+              // TRANSLATE_TRANSCRIPT returns {success, transcript} not {success, data}
+              const responseData = transcriptResponse.transcript || transcriptResponse.data;
+
+              if (transcriptResponse.success && responseData) {
                 // DEBUG: Check what we actually received
                 console.log('[YouTubeSidebar] ⚠️ POLLING - Transcript response received:');
                 console.log('  - Language code from backend:', transcriptResponse.language);
-                console.log('  - First segment text:', transcriptResponse.data[0]?.text?.substring(0, 50));
-                console.log('  - Total segments:', transcriptResponse.data.length);
+                console.log('  - First segment text:', responseData[0]?.text?.substring(0, 50));
+                console.log('  - Total segments:', responseData.length);
 
                 // Store the AI-translated English transcript
-                setEnglishTranslation(transcriptResponse.data);
+                setEnglishTranslation(responseData);
 
                 // Also cache it for instant access
                 setTranscriptCache(prev => {
                   const updated = {
                     ...prev,
-                    ['en']: transcriptResponse.data
+                    ['en']: responseData
                   };
                   console.log('[YouTubeSidebar] Cache updated with AI-translated English. Cache keys:', Object.keys(updated));
                   return updated;
@@ -320,12 +332,12 @@ export function YouTubeSidebar({ videoId }: YouTubeSidebarProps): React.JSX.Elem
                 // This ensures the translation displays immediately after polling completes
                 if (currentLanguage !== 'en') {
                   console.log('[YouTubeSidebar] Auto-switching to English after translation completed');
-                  setTranscript([...transcriptResponse.data]);
+                  setTranscript([...responseData]);
                   setCurrentLanguage('en');
                 }
 
                 console.log('[YouTubeSidebar] AI-translated English transcript fetched and cached ✓');
-                console.log('[YouTubeSidebar] englishTranslation state:', transcriptResponse.data ? `${transcriptResponse.data.length} segments` : 'null');
+                console.log('[YouTubeSidebar] englishTranslation state:', responseData ? `${responseData.length} segments` : 'null');
               } else {
                 console.error('[YouTubeSidebar] Polling fetch failed:', transcriptResponse);
               }

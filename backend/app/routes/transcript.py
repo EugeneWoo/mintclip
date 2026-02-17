@@ -84,9 +84,31 @@ async def extract_transcript(request: TranscriptRequest):
     if cache_key in _transcript_cache:
         cached_entry = _transcript_cache[cache_key]
         if datetime.now() - cached_entry['timestamp'] < _cache_ttl:
-            logger.info(f"Returning cached transcript for video: {video_id}, languages: {lang_key}")
-            # Add a 'cached' flag to the response for clarity
             cached_response = cached_entry['data'].copy()
+
+            # If English was requested but cached response is non-English, check AI translation cache
+            if request.languages and 'en' in request.languages and cached_response.get('language') != 'en':
+                from app.services.cache import get_cache
+                cache = get_cache()
+                for lang in [cached_response.get('language')]:
+                    if not lang:
+                        continue
+                    translation_cache_key = f"transcript_translation:{video_id}:{lang}"
+                    cached_translation = cache.get(translation_cache_key)
+                    if cached_translation:
+                        logger.info(f"Route cache: returning AI-translated English for {video_id}")
+                        return {
+                            'success': True,
+                            'video_id': video_id,
+                            'language': 'en',
+                            'is_generated': True,
+                            'transcript': cached_translation,
+                            'full_text': ' '.join([s['text'] for s in cached_translation]),
+                            'cached': True,
+                            'video_title': cached_response.get('video_title', f"Video {video_id}")
+                        }
+
+            logger.info(f"Returning cached transcript for video: {video_id}, languages: {lang_key}")
             cached_response['cached'] = True
             # Ensure video_title is present in cached response
             if 'video_title' not in cached_response:
