@@ -232,14 +232,10 @@ class GeminiClient:
         from app.prompts.chat import build_chat_prompt
         from app.services.hybrid_retrieval import is_empty_or_not_discussed
         from app.services.bm25_retrieval import retrieve_relevant_chunks_with_transcript as bm25_retrieve
-        from app.services.pinecone_embeddings import get_or_compute_embeddings, find_relevant_chunks
+        from app.services.pinecone_embeddings import find_relevant_chunks
 
         try:
             # Step 1: Try BM25 retrieval (fast)
-            from app.services import bm25_retrieval
-            # Clear cache to ensure fresh retrieval
-            bm25_retrieval.clear_cache(video_id)
-
             bm25_context = bm25_retrieve(
                 transcript=transcript,
                 question=question,
@@ -264,8 +260,7 @@ class GeminiClient:
                     print(f"⚠ BM25 response indicates topic not discussed, falling back to embeddings...")
 
             # Step 2: Fall back to embeddings (slower but more semantic)
-            chunks, embeddings = get_or_compute_embeddings(video_id, transcript)
-            embeddings_context = find_relevant_chunks(question, video_id, top_k=3)
+            embeddings_context = find_relevant_chunks(question, video_id, transcript, top_k=3)
 
             if embeddings_context:
                 prompt = build_chat_prompt(embeddings_context, question, chat_history)

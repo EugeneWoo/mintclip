@@ -15,9 +15,9 @@ except ImportError:
     print("WARNING: rank-bm25 package not installed. Run: pip install rank-bm25")
     BM25_AVAILABLE = False
 
-# In-memory cache for video BM25 indexes
-# Format: {video_id: {"chunks": [str], "tokenized": [[str]], "bm25": BM25Okapi}}
-_bm25_cache = {}
+from app.services.cache import get_cache, TTL_CHAT_MESSAGE
+
+BM25_CACHE_PREFIX = "bm25_chunks:"
 
 
 def chunk_transcript(
@@ -113,7 +113,8 @@ def get_or_build_bm25_index(
     transcript: str
 ) -> Tuple[List[str], BM25Okapi]:
     """
-    Get cached BM25 index or build new one
+    Get cached BM25 index or build new one.
+    Chunks are cached with 24h TTL; BM25 index is rebuilt from chunks (fast).
 
     Args:
         video_id: Video identifier
@@ -122,62 +123,51 @@ def get_or_build_bm25_index(
     Returns:
         Tuple of (chunks, bm25_index)
     """
-    global _bm25_cache
+    cache = get_cache()
+    cache_key = f"{BM25_CACHE_PREFIX}{video_id}"
 
-    # Check cache first
-    if video_id in _bm25_cache:
-        print(f"Using cached BM25 index for {video_id}")
-        return (
-            _bm25_cache[video_id]["chunks"],
-            _bm25_cache[video_id]["bm25"]
-        )
+    # Check cache for chunks
+    cached_chunks = cache.get(cache_key)
+    if cached_chunks is not None:
+        print(f"Using cached BM25 chunks for {video_id}")
+        chunks = cached_chunks
+    else:
+        # Chunk transcript and store with 24h TTL
+        print(f"Building BM25 chunks for {video_id}")
+        chunks = chunk_transcript(transcript)
+        cache.set(cache_key, chunks, TTL_CHAT_MESSAGE)
+        print(f"Cached {len(chunks)} chunks for {video_id} (24h TTL)")
 
-    # Build new index
-    print(f"Building BM25 index for {video_id}")
-    chunks = chunk_transcript(transcript)
-    bm25_index, tokenized_chunks = build_bm25_index(chunks)
-
-    # Cache in memory
-    _bm25_cache[video_id] = {
-        "chunks": chunks,
-        "tokenized": tokenized_chunks,
-        "bm25": bm25_index
-    }
-
-    print(f"Cached {len(chunks)} chunks with BM25 index for {video_id}")
+    # Always rebuild BM25 index in-memory from chunks (fast, no API calls)
+    bm25_index, _ = build_bm25_index(chunks)
     return chunks, bm25_index
 
 
 def retrieve_relevant_chunks(
     question: str,
     video_id: str,
+    transcript: str,
     top_k: int = 5
 ) -> Optional[str]:
     """
-    Find most relevant transcript chunks for a question using BM25
+    Find most relevant transcript chunks for a question using BM25.
+    Builds index from cached chunks (or re-chunks transcript if cache miss).
 
     Args:
         question: User's question
         video_id: Video identifier
+        transcript: Full transcript text (used if chunks not cached)
         top_k: Number of chunks to retrieve
 
     Returns:
         Concatenated relevant chunks, or None if failed
     """
-    global _bm25_cache
-
     if not BM25_AVAILABLE:
         print("ERROR: rank-bm25 package not available")
         return None
 
-    if video_id not in _bm25_cache:
-        print(f"ERROR: No BM25 index found for {video_id}")
-        return None
-
     try:
-        # Get cached data
-        chunks = _bm25_cache[video_id]["chunks"]
-        bm25 = _bm25_cache[video_id]["bm25"]
+        chunks, bm25 = get_or_build_bm25_index(video_id, transcript)
 
         # Tokenize question
         question_tokens = tokenize(question)
@@ -208,10 +198,8 @@ def retrieve_relevant_chunks_with_transcript(
     top_k: int = 3
 ) -> Optional[str]:
     """
-    Retrieve relevant chunks without requiring pre-built index
-
-    This is a convenience function that builds the index if needed.
-    Used by gemini_client_bm25.py for on-the-fly retrieval.
+    Retrieve relevant chunks without requiring pre-built index.
+    Used by gemini_client.py for on-the-fly retrieval.
 
     Args:
         transcript: Full transcript text
@@ -223,14 +211,7 @@ def retrieve_relevant_chunks_with_transcript(
         Concatenated relevant chunks, or None if failed
     """
     try:
-        # Build or get cached index
-        chunks, bm25_index = get_or_build_bm25_index(video_id, transcript)
-
-        # Retrieve chunks
-        relevant_context = retrieve_relevant_chunks(question, video_id, top_k=top_k)
-
-        return relevant_context
-
+        return retrieve_relevant_chunks(question, video_id, transcript, top_k=top_k)
     except Exception as e:
         print(f"Error in retrieve_relevant_chunks_with_transcript: {e}")
         return None
@@ -238,16 +219,15 @@ def retrieve_relevant_chunks_with_transcript(
 
 def clear_cache(video_id: Optional[str] = None):
     """
-    Clear BM25 index cache
+    Clear BM25 chunk cache (cache TTL handles expiry automatically,
+    but this allows manual invalidation).
 
     Args:
         video_id: Specific video to clear, or None to clear all
     """
-    global _bm25_cache
-
+    cache = get_cache()
     if video_id:
-        _bm25_cache.pop(video_id, None)
-        print(f"Cleared BM25 index for {video_id}")
+        cache.delete(f"{BM25_CACHE_PREFIX}{video_id}")
+        print(f"Cleared BM25 chunks for {video_id}")
     else:
-        _bm25_cache.clear()
-        print("Cleared all BM25 indexes")
+        print("clear_cache(all) not supported for BM25 — TTL will handle expiry")

@@ -14,9 +14,9 @@ except ImportError:
     print("WARNING: pinecone package not installed. Run: pip install pinecone")
     PINEcone_AVAILABLE = False
 
-# In-memory cache for video embeddings
-# Format: {video_id: {"chunks": [str], "embeddings": np.array}}
-_embedding_cache = {}
+from app.services.cache import get_cache, TTL_CHAT_MESSAGE
+
+EMBEDDING_CACHE_PREFIX = "embedding_chunks:"
 
 
 def get_pinecone_client():
@@ -111,7 +111,8 @@ def get_or_compute_embeddings(
     transcript: str
 ) -> Tuple[List[str], Optional[np.ndarray]]:
     """
-    Get cached embeddings or compute new ones
+    Get cached embeddings or compute new ones.
+    Chunks and embedding vectors are cached with 24h TTL.
 
     Args:
         video_id: Video identifier
@@ -120,15 +121,15 @@ def get_or_compute_embeddings(
     Returns:
         Tuple of (chunks, embeddings)
     """
-    global _embedding_cache
+    cache = get_cache()
+    cache_key = f"{EMBEDDING_CACHE_PREFIX}{video_id}"
 
-    # Check cache first
-    if video_id in _embedding_cache:
+    cached = cache.get(cache_key)
+    if cached is not None:
         print(f"Using cached embeddings for {video_id}")
-        return (
-            _embedding_cache[video_id]["chunks"],
-            _embedding_cache[video_id]["embeddings"]
-        )
+        chunks = cached["chunks"]
+        embeddings = np.array(cached["embeddings"])
+        return chunks, embeddings
 
     # Compute new embeddings
     print(f"Computing embeddings for {video_id}")
@@ -138,43 +139,45 @@ def get_or_compute_embeddings(
     if embeddings is None:
         return chunks, None
 
-    # Cache in memory
-    _embedding_cache[video_id] = {
+    # Cache chunks + embedding vectors with 24h TTL
+    cache.set(cache_key, {
         "chunks": chunks,
-        "embeddings": embeddings
-    }
+        "embeddings": embeddings.tolist()  # numpy → list for JSON serialization
+    }, TTL_CHAT_MESSAGE)
 
-    print(f"Cached {len(chunks)} chunks with embeddings for {video_id}")
+    print(f"Cached {len(chunks)} chunks with embeddings for {video_id} (24h TTL)")
     return chunks, embeddings
 
 
 def find_relevant_chunks(
     question: str,
     video_id: str,
+    transcript: str,
     top_k: int = 5
 ) -> Optional[str]:
     """
-    Find most relevant transcript chunks for a question
+    Find most relevant transcript chunks for a question using embeddings.
+    Fetches cached embeddings (or computes fresh ones) then does cosine similarity.
 
     Args:
         question: User's question
         video_id: Video identifier
+        transcript: Full transcript text (used if embeddings not cached)
         top_k: Number of chunks to retrieve
 
     Returns:
         Concatenated relevant chunks, or None if failed
     """
-    global _embedding_cache
-
-    if video_id not in _embedding_cache:
-        print(f"No embeddings found for {video_id}")
-        return None
-
     pc = get_pinecone_client()
     if not pc:
         return None
 
     try:
+        chunks, chunk_embeddings = get_or_compute_embeddings(video_id, transcript)
+
+        if chunk_embeddings is None:
+            return None
+
         # Embed the question
         question_embedding = pc.inference.embed(
             model="multilingual-e5-large",
@@ -183,10 +186,6 @@ def find_relevant_chunks(
         )
 
         question_vec = np.array(question_embedding[0].values)
-
-        # Get cached data
-        chunks = _embedding_cache[video_id]["chunks"]
-        chunk_embeddings = _embedding_cache[video_id]["embeddings"]
 
         # Compute cosine similarity
         similarities = np.dot(chunk_embeddings, question_vec) / (
@@ -210,16 +209,15 @@ def find_relevant_chunks(
 
 def clear_cache(video_id: Optional[str] = None):
     """
-    Clear embedding cache
+    Clear embedding cache (TTL handles expiry automatically,
+    but this allows manual invalidation).
 
     Args:
         video_id: Specific video to clear, or None to clear all
     """
-    global _embedding_cache
-
+    cache = get_cache()
     if video_id:
-        _embedding_cache.pop(video_id, None)
+        cache.delete(f"{EMBEDDING_CACHE_PREFIX}{video_id}")
         print(f"Cleared embeddings for {video_id}")
     else:
-        _embedding_cache.clear()
-        print("Cleared all embeddings")
+        print("clear_cache(all) not supported for embeddings — TTL will handle expiry")

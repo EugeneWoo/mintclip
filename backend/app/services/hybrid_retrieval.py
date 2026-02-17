@@ -70,7 +70,7 @@ def retrieve_with_fallback(
         Retrieved context, or None if both methods fail
     """
     from app.services.bm25_retrieval import retrieve_relevant_chunks_with_transcript as bm25_retrieve
-    from app.services.pinecone_embeddings import get_or_compute_embeddings, find_relevant_chunks
+    from app.services.pinecone_embeddings import find_relevant_chunks
 
     print(f"\n{'='*60}")
     print(f"Hybrid Retrieval for: {question[:60]}...")
@@ -104,11 +104,7 @@ def retrieve_with_fallback(
     # Step 2: Fall back to embeddings (slower but more semantic)
     print("\n[2/2] Falling back to embeddings...")
     try:
-        # Get or compute embeddings
-        chunks, embeddings = get_or_compute_embeddings(video_id, transcript)
-
-        # Find relevant chunks using embeddings
-        embeddings_context = find_relevant_chunks(question, video_id, top_k=top_k)
+        embeddings_context = find_relevant_chunks(question, video_id, transcript, top_k=top_k)
 
         if embeddings_context:
             print(f"✓ Embeddings retrieved {len(embeddings_context)} chars")
@@ -159,7 +155,7 @@ async def retrieve_with_fallback_and_response(
 
     from app.prompts.chat import build_chat_prompt
     from app.services.bm25_retrieval import retrieve_relevant_chunks_with_transcript as bm25_retrieve
-    from app.services.pinecone_embeddings import get_or_compute_embeddings, find_relevant_chunks
+    from app.services.pinecone_embeddings import find_relevant_chunks
 
     print(f"\n{'='*60}")
     print(f"Smart Hybrid Retrieval for: {question[:60]}...")
@@ -201,8 +197,7 @@ async def retrieve_with_fallback_and_response(
     # Fall back to embeddings
     print(f"\n[2/3] Falling back to embeddings...")
     try:
-        chunks, embeddings = get_or_compute_embeddings(video_id, transcript)
-        embeddings_context = find_relevant_chunks(question, video_id, top_k=3)
+        embeddings_context = find_relevant_chunks(question, video_id, transcript, top_k=3)
 
         if embeddings_context:
             # Generate response with embeddings context
