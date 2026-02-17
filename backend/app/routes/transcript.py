@@ -327,6 +327,17 @@ async def get_languages_with_translation(video_id: str):
     }
 
 
+@router.delete("/translation-cache/{video_id}/{source_language}")
+async def delete_translation_cache(video_id: str, source_language: str):
+    """Delete a cached translation (use to clear bad/corrupted translations)"""
+    from app.services.cache import get_cache
+    cache = get_cache()
+    cache_key = f"transcript_translation:{video_id}:{source_language}"
+    cache.delete(cache_key)
+    logger.info(f"Deleted translation cache for {video_id}/{source_language}")
+    return {'success': True, 'deleted_key': cache_key}
+
+
 class TranslateRequest(BaseModel):
     """Request model for translating transcript to English"""
     video_id: str
