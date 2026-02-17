@@ -77,8 +77,11 @@ export function Footer(): React.JSX.Element {
 
         {/* Right side - Legal Links - Stacked Grid on Mobile */}
         <div style={{
-          display: 'grid',
-          gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'auto',
+          display: isMobile ? 'grid' : 'flex',
+          gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : undefined,
+          flexDirection: isMobile ? undefined : 'row',
+          flexWrap: isMobile ? undefined : 'wrap',
+          justifyContent: isMobile ? undefined : 'flex-end',
           gap: isMobile ? '1rem' : '2rem',
           width: isMobile ? '100%' : 'auto',
           maxWidth: isMobile ? '400px' : 'none',
