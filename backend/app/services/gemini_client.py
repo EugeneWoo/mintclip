@@ -329,6 +329,17 @@ class GeminiClient:
             for chunk in chunks:
                 translated = self._translate_single(chunk)
                 if translated:
+                    # Validate each chunk is actually translated (not returned unchanged)
+                    src_sample = chunk[:100].lower().strip()
+                    trn_sample = translated[:100].lower().strip()
+                    if trn_sample == src_sample:
+                        logger.warning(f"Chunk translation returned same text as source - retrying once")
+                        translated = self._translate_single(chunk)
+                        if translated:
+                            trn_sample = translated[:100].lower().strip()
+                            if trn_sample == src_sample:
+                                logger.error(f"Chunk translation failed after retry - skipping chunk")
+                                continue
                     translated_chunks.append(translated)
 
             return ' '.join(translated_chunks) if translated_chunks else None
