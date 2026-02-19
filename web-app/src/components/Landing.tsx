@@ -4,13 +4,23 @@
  * Mobile-responsive for Safari and Chrome
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Footer } from './Footer';
+
+const CAROUSEL_SLIDES = [
+  { src: '/screenshots/slide-1-timestamps.jpg', alt: 'Jump to Your Favorite Scenes with Clickable Timestamps' },
+  { src: '/screenshots/slide-2-translate.jpg', alt: 'Watch in Any Language - Translate, Summarise, Chat in English' },
+  { src: '/screenshots/slide-3-summary.jpg', alt: 'Stay Ahead of Long Videos - Select from 3 Summary Formats' },
+  { src: '/screenshots/slide-4-chat.jpg', alt: 'Chat with Your Videos - AI-powered answers from the content' },
+  { src: '/screenshots/slide-5-save-download.jpg', alt: 'Save & Download - Revisit your Video Content Anytime' },
+];
 
 export function Landing(): React.JSX.Element {
   const [authError, setAuthError] = useState<string | null>(null);
   const [isMobile, setIsMobile] = useState(false);
+  const [activeSlide, setActiveSlide] = useState(0);
+  const autoPlayRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const navigate = useNavigate();
 
   // Detect mobile on mount
@@ -33,6 +43,27 @@ export function Landing(): React.JSX.Element {
       navigate('/', { replace: true });
     }
   }, [navigate]);
+
+  // Auto-advance carousel every 4 seconds
+  const startAutoPlay = useCallback(() => {
+    autoPlayRef.current = setInterval(() => {
+      setActiveSlide(prev => (prev + 1) % CAROUSEL_SLIDES.length);
+    }, 4000);
+  }, []);
+
+  useEffect(() => {
+    startAutoPlay();
+    return () => {
+      if (autoPlayRef.current) clearInterval(autoPlayRef.current);
+    };
+  }, [startAutoPlay]);
+
+  const goToSlide = (index: number) => {
+    setActiveSlide(index);
+    // Reset autoplay timer on manual nav
+    if (autoPlayRef.current) clearInterval(autoPlayRef.current);
+    startAutoPlay();
+  };
 
   const handleSignIn = () => {
     // Clear any previous error
@@ -139,6 +170,7 @@ export function Landing(): React.JSX.Element {
         <div
           style={{
             maxWidth: '800px',
+            width: '100%',
             textAlign: 'center',
           }}
         >
@@ -253,77 +285,90 @@ export function Landing(): React.JSX.Element {
             </div>
           )}
 
-          {/* Features */}
+          {/* Screenshot Carousel - 3D Curved Cards */}
           <div
-            className="grid"
             style={{
-              marginTop: isMobile ? '3rem' : '5rem',
+              marginTop: isMobile ? '3rem' : '4rem',
+              position: 'relative',
             }}
           >
+            {/* 3D Carousel Container */}
             <div
-              className="card"
               style={{
-                background: 'rgba(255, 255, 255, 0.03)',
-                border: '1px solid rgba(255, 255, 255, 0.08)',
+                position: 'relative',
+                height: isMobile ? '200px' : '280px',
+                perspective: '1000px',
               }}
             >
-              <div style={{ fontSize: '2.5rem', marginBottom: '0.75rem' }}>📝</div>
-              <h3
-                style={{
-                  fontSize: isMobile ? '1rem' : '1.125rem',
-                  fontWeight: 600,
-                  marginBottom: '0.5rem',
-                }}
-              >
-                Instant Transcripts
-              </h3>
-              <p style={{ fontSize: '0.875rem', color: 'rgba(255, 255, 255, 0.6)', margin: 0 }}>
-                Get accurate transcripts from any YouTube video with timestamps
-              </p>
-            </div>
+              {CAROUSEL_SLIDES.map((slide, i) => {
+                // Calculate distance from active slide (handles wrap-around)
+                const distance = ((i - activeSlide + CAROUSEL_SLIDES.length) % CAROUSEL_SLIDES.length);
+                const isPrev = distance === CAROUSEL_SLIDES.length - 1;
+                const offset = isPrev ? -1 : distance;
 
-            <div
-              className="card"
-              style={{
-                background: 'rgba(255, 255, 255, 0.03)',
-                border: '1px solid rgba(255, 255, 255, 0.08)',
-              }}
-            >
-              <div style={{ fontSize: '2.5rem', marginBottom: '0.75rem' }}>✨</div>
-              <h3
-                style={{
-                  fontSize: isMobile ? '1rem' : '1.125rem',
-                  fontWeight: 600,
-                  marginBottom: '0.5rem',
-                }}
-              >
-                AI Summaries
-              </h3>
-              <p style={{ fontSize: '0.875rem', color: 'rgba(255, 255, 255, 0.6)', margin: 0 }}>
-                Generate smart summaries in multiple formats with one click
-              </p>
-            </div>
+                // Style based on position relative to active
+                let transform = '';
+                let zIndex = 10 - Math.abs(offset);
+                let opacity = 1;
 
-            <div
-              className="card"
-              style={{
-                background: 'rgba(255, 255, 255, 0.03)',
-                border: '1px solid rgba(255, 255, 255, 0.08)',
-              }}
-            >
-              <div style={{ fontSize: '2.5rem', marginBottom: '0.75rem' }}>💬</div>
-              <h3
-                style={{
-                  fontSize: isMobile ? '1rem' : '1.125rem',
-                  fontWeight: 600,
-                  marginBottom: '0.5rem',
-                }}
-              >
-                Interactive Chat
-              </h3>
-              <p style={{ fontSize: '0.875rem', color: 'rgba(255, 255, 255, 0.6)', margin: 0 }}>
-                Ask questions and get AI-powered answers about video content
-              </p>
+                if (offset === 0) {
+                  // Active slide - center
+                  transform = 'translateX(0) translateZ(0) rotateY(0deg)';
+                  zIndex = 20;
+                } else if (offset === 1 || offset === -1) {
+                  // Adjacent slides
+                  const xDir = offset > 0 ? 1 : -1;
+                  transform = `translateX(${xDir * 55}%) translateZ(-150px) rotateY(${-xDir * 25}deg)`;
+                  opacity = 0.7;
+                } else if (offset === 2 || offset === -2) {
+                  // Further slides
+                  const xDir = offset > 0 ? 1 : -1;
+                  transform = `translateX(${xDir * 85}%) translateZ(-250px) rotateY(${-xDir * 35}deg)`;
+                  opacity = 0.4;
+                } else {
+                  // Far slides - hide
+                  opacity = 0;
+                }
+
+                return (
+                  <div
+                    key={i}
+                    onClick={() => goToSlide(i)}
+                    style={{
+                      position: 'absolute',
+                      left: '50%',
+                      top: '50%',
+                      width: isMobile ? '60%' : '56%',
+                      aspectRatio: '16/9',
+                      marginLeft: isMobile ? '-30%' : '-28%',
+                      marginTop: '-10%',
+                      transformOrigin: 'center center',
+                      transform,
+                      zIndex,
+                      opacity,
+                      transition: 'all 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+                      cursor: 'pointer',
+                      borderRadius: '12px',
+                      overflow: 'hidden',
+                      boxShadow: offset === 0
+                        ? '0 20px 60px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.1)'
+                        : '0 10px 30px rgba(0, 0, 0, 0.4)',
+                    }}
+                  >
+                    <img
+                      src={slide.src}
+                      alt={slide.alt}
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover',
+                        objectPosition: '0% 0%',
+                        display: 'block',
+                      }}
+                    />
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>
