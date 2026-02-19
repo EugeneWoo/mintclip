@@ -4,7 +4,6 @@
  */
 
 import React, { useState } from 'react';
-import jsPDF from 'jspdf';
 
 export type SummaryFormat = 'short' | 'topic' | 'qa';
 
@@ -131,11 +130,6 @@ export function SummaryTab({
         downloadFile(removeTimestamps(summary), formatFilename(videoTitle, 'txt'), 'text/plain');
         break;
 
-      case 'export-pdf':
-        // Export as PDF without timestamps
-        exportAsPDF(removeTimestamps(summary), formatFilename(videoTitle, 'pdf'));
-        break;
-
       case 'export-markdown':
         // Export as Markdown without timestamps
         downloadFile(removeTimestamps(summary), formatFilename(videoTitle, 'md'), 'text/markdown');
@@ -155,88 +149,6 @@ export function SummaryTab({
     URL.revokeObjectURL(url);
   };
 
-  const exportAsPDF = (content: string, filename: string) => {
-    // Create PDF using jsPDF
-    const doc = new jsPDF({
-      orientation: 'portrait',
-      unit: 'mm',
-      format: 'a4',
-    });
-
-    // Set font
-    doc.setFont('helvetica');
-
-    // Page dimensions
-    const pageWidth = doc.internal.pageSize.getWidth();
-    const pageHeight = doc.internal.pageSize.getHeight();
-    const margin = 20;
-    const maxWidth = pageWidth - 2 * margin;
-    let yPosition = margin;
-
-    // Helper function to add text with word wrapping
-    const addText = (text: string, fontSize: number, isBold: boolean = false, isHeading: boolean = false) => {
-      doc.setFontSize(fontSize);
-      doc.setFont('helvetica', isBold ? 'bold' : 'normal');
-
-      const lines = doc.splitTextToSize(text, maxWidth);
-
-      // Check if we need a new page
-      if (yPosition + (lines.length * fontSize * 0.35) > pageHeight - margin) {
-        doc.addPage();
-        yPosition = margin;
-      }
-
-      // Add spacing before headings
-      if (isHeading && yPosition > margin) {
-        yPosition += 8;
-      }
-
-      lines.forEach((line: string) => {
-        doc.text(line, margin, yPosition);
-        yPosition += fontSize * 0.35; // Line height
-      });
-
-      // Add spacing after paragraphs
-      yPosition += isHeading ? 4 : 6;
-    };
-
-    // Add title if available
-    if (videoTitle) {
-      addText(videoTitle, 16, true, true);
-      yPosition += 4;
-    }
-
-    // Process content line by line
-    const lines = content.split('\n');
-
-    lines.forEach((line) => {
-      if (!line.trim()) {
-        yPosition += 4; // Empty line spacing
-        return;
-      }
-
-      if (line.startsWith('###')) {
-        // H3 heading
-        const text = line.replace(/^###\s*/, '');
-        addText(text, 14, true, true);
-      } else if (line.startsWith('##')) {
-        // H2 heading
-        const text = line.replace(/^##\s*/, '');
-        addText(text, 16, true, true);
-      } else if (line.startsWith('#')) {
-        // H1 heading
-        const text = line.replace(/^#\s*/, '');
-        addText(text, 18, true, true);
-      } else {
-        // Regular text - handle inline bold markers
-        const text = line.replace(/\*\*(.+?)\*\*/g, '$1');
-        addText(text, 11, false, false);
-      }
-    });
-
-    // Save the PDF
-    doc.save(filename);
-  };
 
   // Simple markdown renderer for summary text with clickable timestamps
   const renderSummary = (text: string) => {
@@ -705,28 +617,6 @@ export function SummaryTab({
                         }}
                       >
                         Export as Text
-                      </button>
-                      <button
-                        onClick={() => handleShare('export-pdf')}
-                        style={{
-                          width: '100%',
-                          padding: '8px',
-                          backgroundColor: 'transparent',
-                          border: 'none',
-                          color: 'rgba(255, 255, 255, 0.8)',
-                          fontSize: '13px',
-                          cursor: 'pointer',
-                          textAlign: 'left',
-                          borderRadius: '4px',
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.05)';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.backgroundColor = 'transparent';
-                        }}
-                      >
-                        Export as PDF
                       </button>
                       <button
                         onClick={() => handleShare('export-markdown')}
