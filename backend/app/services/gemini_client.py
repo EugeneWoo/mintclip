@@ -249,7 +249,7 @@ class GeminiClient:
                 bm25_response = self.generate_content(
                     prompt=prompt,
                     temperature=0.7,
-                    max_tokens=500,
+                    max_tokens=1500,
                 )
 
                 # Check if BM25 found a meaningful answer
@@ -267,7 +267,7 @@ class GeminiClient:
                 embeddings_response = self.generate_content(
                     prompt=prompt,
                     temperature=0.7,
-                    max_tokens=500,
+                    max_tokens=1500,
                 )
 
                 if embeddings_response:
