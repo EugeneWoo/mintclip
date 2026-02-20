@@ -43,6 +43,7 @@ export function Dashboard(): React.JSX.Element {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [contentFilter, setContentFilter] = useState<'all' | 'transcript' | 'summary'>('all');
   const [dateOrder, setDateOrder] = useState<'latest' | 'earliest'>('latest');
+  const [selectedVideoIds, setSelectedVideoIds] = useState<Set<string>>(new Set());
 
   // Check authentication on mount
   useEffect(() => {
@@ -526,6 +527,40 @@ if (item.item_type === 'summary') {
     setSelectedItem(null);
   };
 
+  const handleSelectToggle = (videoId: string) => {
+    setSelectedVideoIds(prev => {
+      const next = new Set(prev);
+      if (next.has(videoId)) next.delete(videoId);
+      else next.add(videoId);
+      return next;
+    });
+  };
+
+  const handleBulkDelete = async () => {
+    const count = selectedVideoIds.size;
+    const confirmed = window.confirm(
+      `Delete all saved content for ${count} video${count > 1 ? 's' : ''}?\n\nThis cannot be undone.`
+    );
+    if (!confirmed) return;
+
+    try {
+      const token = await getAuthToken();
+      await Promise.all(
+        Array.from(selectedVideoIds).map(videoId =>
+          fetch(`${BACKEND_URL}/api/saved-items/video/${videoId}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${token}` },
+          })
+        )
+      );
+      setSavedItems(prev => prev.filter(i => !selectedVideoIds.has(i.video_id)));
+      setSelectedVideoIds(new Set());
+    } catch (error) {
+      console.error('Bulk delete error:', error);
+      alert('Failed to delete some items. Please try again.');
+    }
+  };
+
   const getFilteredItems = () => {
     // Filter by content type based on what's actually saved
     let filtered = savedItems.filter(item => {
@@ -535,9 +570,11 @@ if (item.item_type === 'summary') {
       if (contentFilter === 'transcript') {
         return item.content?.segments && item.content.segments.length > 0;
       } else if (contentFilter === 'summary') {
-        return item.content?.summary || (item.content?.summaries && (
-          item.content.summaries.short || item.content.summaries.topic || item.content.summaries.qa
-        ));
+        return item.content?.summary ||
+          (item.content?.summaries && (
+            item.content.summaries.short || item.content.summaries.topic || item.content.summaries.qa
+          )) ||
+          (item.content?.formats && Object.keys(item.content.formats).length > 0);
       }
 
       return false;
@@ -894,6 +931,31 @@ if (item.item_type === 'summary') {
                         {filter}
                       </button>
                     ))}
+                    {selectedVideoIds.size > 0 && (
+                      <button
+                        onClick={handleBulkDelete}
+                        style={{
+                          padding: '0.5rem 1rem',
+                          background: '#ef4444',
+                          color: '#ffffff',
+                          border: '1px solid transparent',
+                          borderRadius: '6px',
+                          fontSize: '0.875rem',
+                          fontWeight: 500,
+                          cursor: 'pointer',
+                          transition: 'all 0.2s',
+                          flex: window.innerWidth < 640 ? '1' : 'none',
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background = '#dc2626';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = '#ef4444';
+                        }}
+                      >
+                        Delete ({selectedVideoIds.size})
+                      </button>
+                    )}
                   </div>
                 </div>
 
@@ -966,6 +1028,8 @@ if (item.item_type === 'summary') {
                     onView={handleView}
                     onExport={handleExport}
                     onDelete={handleDelete}
+                    isSelected={selectedVideoIds.has(item.video_id)}
+                    onSelectToggle={handleSelectToggle}
                   />
                 ))}
               </div>

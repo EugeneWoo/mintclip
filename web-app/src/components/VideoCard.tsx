@@ -18,9 +18,11 @@ interface VideoCardProps {
   onView: (item: any) => void;
   onExport?: (item: any) => void;
   onDelete?: (item: any) => void;
+  isSelected?: boolean;
+  onSelectToggle?: (videoId: string) => void;
 }
 
-export function VideoCard({ item, onView, onExport, onDelete }: VideoCardProps): React.JSX.Element {
+export function VideoCard({ item, onView, onExport, onDelete, isSelected, onSelectToggle }: VideoCardProps): React.JSX.Element {
   const [thumbnailError, setThumbnailError] = React.useState(false);
 
   const videoId = item.video_id;
@@ -94,6 +96,39 @@ export function VideoCard({ item, onView, onExport, onDelete }: VideoCardProps):
             backgroundColor: '#1a1a1a',
           }}
         />
+
+        {/* Selection Checkbox */}
+        {onSelectToggle && (
+          <div
+            onClick={(e) => {
+              e.stopPropagation();
+              onSelectToggle(item.video_id);
+            }}
+            style={{
+              position: 'absolute',
+              top: '10px',
+              left: '10px',
+              width: '22px',
+              height: '22px',
+              borderRadius: '6px',
+              border: `2px solid ${isSelected ? '#ef4444' : 'rgba(255,255,255,0.7)'}`,
+              background: isSelected ? '#ef4444' : 'rgba(0,0,0,0.5)',
+              backdropFilter: 'blur(4px)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              transition: 'all 0.15s',
+              zIndex: 2,
+            }}
+          >
+            {isSelected && (
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                <path d="M2 6L5 9L10 3" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            )}
+          </div>
+        )}
 
         {/* Badges */}
         <div style={{
