@@ -871,6 +871,7 @@ export function SavedItemModal({
             {item.video_title || `Video ${item.video_id}`}
           </h2>
           <button
+            aria-label="Close"
             onClick={handleClose}
             style={{
               padding: '8px',

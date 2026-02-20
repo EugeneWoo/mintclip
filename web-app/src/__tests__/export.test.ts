@@ -5,11 +5,26 @@
  * mocked in jest.setup.ts. JSZip is mocked via __mocks__/jszip.ts.
  */
 
-import { exportVideoAsZip, fetchAllItemsForVideo, SavedItem } from '../../utils/export';
+import { exportVideoAsZip, fetchAllItemsForVideo, SavedItem } from '../utils/export';
 
 // Access JSZip mock instance across tests
 import JSZip from 'jszip';
 const MockJSZip = JSZip as jest.MockedClass<typeof JSZip>;
+
+// Mock browser APIs not available in jsdom
+beforeAll(() => {
+  global.URL.createObjectURL = jest.fn(() => 'blob:mock-url');
+  global.URL.revokeObjectURL = jest.fn();
+
+  const originalCreateElement = document.createElement.bind(document);
+  jest.spyOn(document, 'createElement').mockImplementation((tag: string) => {
+    const element = originalCreateElement(tag);
+    if (tag === 'a') {
+      jest.spyOn(element as HTMLAnchorElement, 'click').mockImplementation(() => {});
+    }
+    return element;
+  });
+});
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
