@@ -174,12 +174,14 @@ export function Landing(): React.JSX.Element {
             textAlign: 'center',
           }}
         >
-          {/* Logo/Icon */}
+          {/* Logo/Icon + Brand Name */}
           <div
             style={{
               marginBottom: isMobile ? '1.5rem' : '2rem',
               display: 'flex',
+              alignItems: 'center',
               justifyContent: 'center',
+              gap: isMobile ? '1.25rem' : '2rem',
             }}
           >
             <img
@@ -192,6 +194,17 @@ export function Landing(): React.JSX.Element {
                 boxShadow: '0 20px 60px rgba(34, 197, 94, 0.3)',
               }}
             />
+            <span
+              style={{
+                fontFamily: 'Plus Jakarta Sans, sans-serif',
+                fontWeight: 800,
+                fontSize: isMobile ? '2.5rem' : '4rem',
+                color: '#ffffff',
+                letterSpacing: '-0.02em',
+              }}
+            >
+              Mintclip
+            </span>
           </div>
 
           {/* Headline */}
@@ -201,6 +214,7 @@ export function Landing(): React.JSX.Element {
               fontFamily: 'Plus Jakarta Sans, sans-serif',
               fontWeight: 800,
               letterSpacing: '-0.02em',
+              fontSize: isMobile ? '1.6rem' : '2.4rem',
               marginBottom: '1rem',
               background: 'linear-gradient(135deg, #ffffff 0%, rgba(255, 255, 255, 0.7) 100%)',
               WebkitBackgroundClip: 'text',
