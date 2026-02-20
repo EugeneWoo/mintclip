@@ -6,7 +6,7 @@
  * Mobile-optimized with fixed scrolling and responsive layout
  */
 
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { generateSummary, saveItem, sendChatMessage, getSuggestedQuestions } from '../../utils/api';
 
 // Types matching extension format

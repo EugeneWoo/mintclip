@@ -6,7 +6,6 @@
  * are mocked via jest.mock before imports.
  */
 
-import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 
@@ -194,7 +193,6 @@ describe('SavedItemModal — summary tab (extension source)', () => {
       />
     );
 
-    const copyBtn = screen.queryByRole('button', { name: /copy/i });
     // Copy button may or may not be present depending on impl, just check no crash
     expect(document.body).toBeInTheDocument();
   });
