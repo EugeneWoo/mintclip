@@ -212,13 +212,12 @@ class GeminiClient:
         chat_history: list = None
     ) -> Optional[str]:
         """
-        Generate conversational chat response using HYBRID retrieval (BM25 + embeddings fallback)
+        Generate conversational chat response using embeddings retrieval with full transcript fallback
 
         Strategy:
-        1. Try BM25 first (2.7x faster, works for ~80% of queries)
-        2. Generate response with BM25 context
-        3. If response indicates "not discussed", fall back to embeddings
-        4. This gives us speed + semantic understanding when needed
+        1. Try embeddings (semantic search via Pinecone)
+        2. If response indicates "not discussed", fall back to full transcript
+        3. If Pinecone unavailable, go straight to full transcript
 
         Args:
             transcript: Full video transcript
@@ -231,36 +230,11 @@ class GeminiClient:
         """
         from app.prompts.chat import build_chat_prompt
         from app.services.hybrid_retrieval import is_empty_or_not_discussed
-        from app.services.bm25_retrieval import retrieve_relevant_chunks_with_transcript as bm25_retrieve
         from app.services.pinecone_embeddings import find_relevant_chunks
 
         try:
-            # Step 1: Try BM25 retrieval (fast)
-            bm25_context = bm25_retrieve(
-                transcript=transcript,
-                question=question,
-                video_id=video_id,
-                top_k=3
-            )
-
-            if bm25_context:
-                # Generate response with BM25 context
-                prompt = build_chat_prompt(bm25_context, question, chat_history)
-                bm25_response = self.generate_content(
-                    prompt=prompt,
-                    temperature=0.7,
-                    max_tokens=1500,
-                )
-
-                # Check if BM25 found a meaningful answer
-                if bm25_response and not is_empty_or_not_discussed(bm25_response):
-                    print(f"✓ BM25 response successful - using it")
-                    return bm25_response
-                else:
-                    print(f"⚠ BM25 response indicates topic not discussed, falling back to embeddings...")
-
-            # Step 2: Fall back to embeddings (slower but more semantic)
-            embeddings_context = find_relevant_chunks(question, video_id, transcript, top_k=3)
+            # Step 1: Try embeddings retrieval (semantic)
+            embeddings_context = find_relevant_chunks(question, video_id, transcript, top_k=5)
 
             if embeddings_context:
                 prompt = build_chat_prompt(embeddings_context, question, chat_history)
@@ -270,11 +244,24 @@ class GeminiClient:
                     max_tokens=1500,
                 )
 
-                if embeddings_response:
+                if embeddings_response and not is_empty_or_not_discussed(embeddings_response):
+                    print(f"✓ Embeddings response successful - using it")
                     return embeddings_response
+                else:
+                    print(f"⚠ Embeddings response indicates topic not discussed, falling back to full transcript...")
+            else:
+                print(f"⚠ Embeddings unavailable, falling back to full transcript...")
 
-            # Step 3: Last resort - return BM25 response even if it says "not discussed"
-            return bm25_response if bm25_response else None
+            # Step 2: Full transcript fallback
+            print(f"Sending full transcript to Gemini ({len(transcript)} chars)")
+            prompt = build_chat_prompt(transcript, question, chat_history)
+            full_response = self.generate_content(
+                prompt=prompt,
+                temperature=0.7,
+                max_tokens=1500,
+            )
+
+            return full_response
 
         except Exception as e:
             print(f"Error generating chat response: {e}")
