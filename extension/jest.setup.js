@@ -3,6 +3,20 @@
  * Runs before each test suite
  */
 
+// Mock import.meta.env (Vite-specific, not available in Jest/Node environment)
+Object.defineProperty(globalThis, 'import', {
+  value: {
+    meta: {
+      env: {
+        MODE: 'test',
+        VITE_BACKEND_URL: 'http://localhost:8000',
+        VITE_WEBAPP_URL: 'http://localhost:5173',
+      },
+    },
+  },
+  writable: true,
+});
+
 // Add custom matchers from jest-dom
 require('@testing-library/jest-dom');
 
