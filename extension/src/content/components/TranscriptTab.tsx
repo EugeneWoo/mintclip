@@ -3,7 +3,7 @@
  * Displays video transcript with timestamps, search, and copy functionality
  */
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 
 interface TranscriptSegment {
   timestamp: string;
@@ -15,6 +15,7 @@ interface TranscriptSegment {
 interface GroupedSegment {
   timestamp: string;
   startSeconds: number;
+  endSeconds: number;
   text: string;
 }
 
@@ -93,8 +94,8 @@ const seekToTimestamp = (videoId: string, seconds: number) => {
 };
 
 // Binary search algorithm to find segment by current video time
-const findSegmentByTime = (currentTime: number, segments: GroupedSegment[]): number | null => {
-  if (segments.length === 0) return null;
+const findSegmentByTime = (currentTime: number, segments: GroupedSegment[]): number => {
+  if (segments.length === 0) return 0;
 
   let left = 0;
   let right = segments.length - 1;
@@ -102,9 +103,8 @@ const findSegmentByTime = (currentTime: number, segments: GroupedSegment[]): num
   while (left <= right) {
     const mid = Math.floor((left + right) / 2);
     const segment = segments[mid];
-    const segmentEnd = segment.startSeconds + 30; // Assume 30s max per paragraph
 
-    if (currentTime >= segment.startSeconds && currentTime < segmentEnd) {
+    if (currentTime >= segment.startSeconds && currentTime < segment.endSeconds) {
       return mid;
     } else if (currentTime < segment.startSeconds) {
       right = mid - 1;
@@ -113,9 +113,12 @@ const findSegmentByTime = (currentTime: number, segments: GroupedSegment[]): num
     }
   }
 
-  // Fallback: return closest segment
+  // Fallback: return closest segment (handles gaps between paragraphs)
   return left < segments.length ? left : segments.length - 1;
 };
+
+const getVideoElement = (): HTMLVideoElement | null =>
+  document.querySelector('#movie_player video, .html5-main-video') as HTMLVideoElement | null;
 
 export function TranscriptTab({
   transcript,
@@ -133,6 +136,14 @@ export function TranscriptTab({
   const [showCopyFeedback, setShowCopyFeedback] = useState(false);
   const [showSaveFeedback, setShowSaveFeedback] = useState(false);
   const [showLanguageDropdown, setShowLanguageDropdown] = useState(false);
+
+  // Video sync state
+  const [activeSegmentIndex, setActiveSegmentIndex] = useState<number | null>(null);
+  const userScrollingRef = useRef<boolean>(false);
+  const userScrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isProgrammaticScrollRef = useRef<boolean>(false);
+  const segmentRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
 
   // Fetch available languages when videoId changes or transcript loads
   // ONLY for authenticated users to avoid YouTube API rate limit issues
@@ -155,11 +166,12 @@ export function TranscriptTab({
 
     // Smart paragraph grouping algorithm
     const groups: GroupedSegment[] = [];
-    let currentGroup: { start: number; texts: string[] } = { start: 0, texts: [] };
+    let currentGroup: { start: number; texts: string[]; lastEnd: number } = { start: 0, texts: [], lastEnd: 0 };
 
     transcript.forEach((segment, index) => {
       const startSeconds = segment.start_seconds ?? 0;
       const duration = segment.duration ?? 2.0;
+      const segmentEnd = startSeconds + duration;
       let text = segment.text.trim();
 
       // Capitalize the very first word of the entire transcript
@@ -186,10 +198,11 @@ export function TranscriptTab({
       );
 
       if (shouldBreak && !hasShortFiller) {
-        // Finalize current paragraph
+        // Finalize current paragraph with accurate endSeconds
         groups.push({
           timestamp: formatTimestamp(currentGroup.start),
           startSeconds: currentGroup.start,
+          endSeconds: currentGroup.lastEnd,
           text: currentGroup.texts.join(' ')
         });
         // Start new paragraph - capitalize first letter if previous ended with punctuation
@@ -197,13 +210,14 @@ export function TranscriptTab({
         if (endsWithPunctuation && text.length > 0) {
           newText = text.charAt(0).toUpperCase() + text.slice(1);
         }
-        currentGroup = { start: startSeconds, texts: [newText] };
+        currentGroup = { start: startSeconds, texts: [newText], lastEnd: segmentEnd };
       } else {
         // Continue current paragraph
         if (currentGroup.texts.length === 0) {
           currentGroup.start = startSeconds;
         }
         currentGroup.texts.push(text);
+        currentGroup.lastEnd = segmentEnd;
       }
     });
 
@@ -212,12 +226,81 @@ export function TranscriptTab({
       groups.push({
         timestamp: formatTimestamp(currentGroup.start),
         startSeconds: currentGroup.start,
+        endSeconds: currentGroup.lastEnd,
         text: currentGroup.texts.join(' ')
       });
     }
 
     return groups;
   }, [transcript]);
+
+  // Snap to current video position on mount / transcript load (handles paused video & tab-switch return)
+  useEffect(() => {
+    if (!groupedTranscript || groupedTranscript.length === 0) return;
+    const video = getVideoElement();
+    if (!video || video.currentTime === 0) return;
+    const idx = findSegmentByTime(video.currentTime, groupedTranscript);
+    setActiveSegmentIndex(idx);
+  }, [groupedTranscript]);
+
+  // Attach timeupdate listener for live tracking during playback
+  useEffect(() => {
+    if (!groupedTranscript || groupedTranscript.length === 0) return;
+
+    let videoElement = getVideoElement();
+    let cleanup: (() => void) | undefined;
+
+    const attach = (video: HTMLVideoElement) => {
+      const handler = () => {
+        const idx = findSegmentByTime(video.currentTime, groupedTranscript);
+        setActiveSegmentIndex(prev => prev === idx ? prev : idx);
+      };
+      video.addEventListener('timeupdate', handler);
+      return () => video.removeEventListener('timeupdate', handler);
+    };
+
+    if (videoElement) {
+      cleanup = attach(videoElement);
+    } else {
+      // Video element not yet in DOM — retry once after short delay
+      const timer = setTimeout(() => {
+        videoElement = getVideoElement();
+        if (videoElement) cleanup = attach(videoElement);
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+
+    return () => cleanup?.();
+  }, [groupedTranscript]);
+
+  // Auto-scroll to active segment when it changes
+  useEffect(() => {
+    if (activeSegmentIndex === null || userScrollingRef.current) return;
+    const el = segmentRefs.current[activeSegmentIndex];
+    if (!el) return;
+    isProgrammaticScrollRef.current = true;
+    el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    setTimeout(() => { isProgrammaticScrollRef.current = false; }, 300);
+  }, [activeSegmentIndex]);
+
+  // Scroll intent detection — pause auto-scroll for 3s when user manually scrolls
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+    const handleScroll = () => {
+      if (isProgrammaticScrollRef.current) return;
+      userScrollingRef.current = true;
+      if (userScrollTimeoutRef.current) clearTimeout(userScrollTimeoutRef.current);
+      userScrollTimeoutRef.current = setTimeout(() => {
+        userScrollingRef.current = false;
+      }, 3000);
+    };
+    container.addEventListener('scroll', handleScroll, { passive: true });
+    return () => {
+      container.removeEventListener('scroll', handleScroll);
+      if (userScrollTimeoutRef.current) clearTimeout(userScrollTimeoutRef.current);
+    };
+  }, []);
 
   const filteredTranscript = groupedTranscript?.filter((segment) =>
     segment.text.toLowerCase().includes(searchQuery.toLowerCase())
@@ -473,6 +556,7 @@ export function TranscriptTab({
 
           {/* Transcript Content */}
           <div
+            ref={scrollContainerRef}
             className="transcript-scrollable"
             style={{
               flex: 1,
@@ -481,33 +565,47 @@ export function TranscriptTab({
             }}
           >
             {filteredTranscript && filteredTranscript.length > 0 ? (
-              filteredTranscript.map((segment, index) => (
-                <div
-                  key={index}
-                  style={{
-                    marginBottom: '12px',
-                    display: 'flex',
-                    gap: '12px',
-                    alignItems: 'flex-start',
-                  }}
-                >
-                  <ClickableTimestamp
-                    timestamp={segment.timestamp}
-                    startSeconds={segment.startSeconds}
-                    videoId={videoId || ''}
-                  />
-                  <span
+              filteredTranscript.map((segment, index) => {
+                const isActive = activeSegmentIndex !== null &&
+                  groupedTranscript?.[activeSegmentIndex] === segment;
+
+                return (
+                  <div
+                    key={index}
+                    ref={(el) => { segmentRefs.current[index] = el; }}
                     style={{
-                      color: 'rgba(255, 255, 255, 0.8)',
-                      fontSize: '14px',
-                      lineHeight: '20px',
-                      fontFamily: 'Roboto, Arial, sans-serif',
+                      marginBottom: '12px',
+                      display: 'flex',
+                      gap: '12px',
+                      alignItems: 'flex-start',
+                      borderRadius: '6px',
+                      padding: '4px 6px',
+                      marginLeft: '-6px',
+                      marginRight: '-6px',
+                      transition: 'background-color 0.3s ease',
+                      backgroundColor: isActive ? 'rgba(102, 126, 234, 0.25)' : 'transparent',
+                      borderLeft: isActive ? '2px solid rgba(102, 126, 234, 0.6)' : '2px solid transparent',
                     }}
                   >
-                    {segment.text}
-                  </span>
-                </div>
-              ))
+                    <ClickableTimestamp
+                      timestamp={segment.timestamp}
+                      startSeconds={segment.startSeconds}
+                      videoId={videoId || ''}
+                    />
+                    <span
+                      style={{
+                        color: isActive ? 'rgba(255, 255, 255, 0.95)' : 'rgba(255, 255, 255, 0.8)',
+                        fontSize: '14px',
+                        lineHeight: '20px',
+                        fontFamily: 'Roboto, Arial, sans-serif',
+                        transition: 'color 0.3s ease',
+                      }}
+                    >
+                      {segment.text}
+                    </span>
+                  </div>
+                );
+              })
             ) : (
               <div
                 style={{
