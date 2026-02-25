@@ -88,3 +88,6 @@ extension/CHROME_STORE.md
 # Planning docs
 ci_test_plan.md
 
+# Claude local settings (permissions are machine-specific)
+.claude/settings.json
+

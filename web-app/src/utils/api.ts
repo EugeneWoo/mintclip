@@ -78,6 +78,13 @@ export async function generateSummary(
       }),
     });
 
+    if (!response.ok) {
+      if (response.status === 401) {
+        return { success: false, error: 'Session expired. Please sign in again.', requiresAuth: true } as SummaryResponse & { requiresAuth: boolean };
+      }
+      return { success: false, error: `Request failed (${response.status})` };
+    }
+
     const data = await response.json();
     return data;
   } catch (error) {
@@ -115,6 +122,13 @@ export async function sendChatMessage(
       }),
     });
 
+    if (!response.ok) {
+      if (response.status === 401) {
+        return { success: false, error: 'Session expired. Please sign in again.', requiresAuth: true } as ChatResponse & { requiresAuth: boolean };
+      }
+      return { success: false, error: `Request failed (${response.status})` };
+    }
+
     const data = await response.json();
     return data;
   } catch (error) {
@@ -144,6 +158,13 @@ export async function getSuggestedQuestions(
         transcript: transcriptText,
       }),
     });
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        return { success: false, error: 'Session expired. Please sign in again.', requiresAuth: true } as SuggestedQuestionsResponse & { requiresAuth: boolean };
+      }
+      return { success: false, error: `Request failed (${response.status})` };
+    }
 
     const data = await response.json();
     return data;
@@ -182,6 +203,13 @@ export async function saveItem(
       }),
     });
 
+    if (!response.ok) {
+      if (response.status === 401) {
+        return { success: false, error: 'Session expired. Please sign in again.', requiresAuth: true } as SaveItemResponse & { requiresAuth: boolean };
+      }
+      return { success: false, error: `Request failed (${response.status})` };
+    }
+
     const data = await response.json();
     return data;
   } catch (error) {
@@ -212,6 +240,13 @@ export async function extractTranscript(videoUrl: string): Promise<any> {
       }),
     });
 
+    if (!response.ok) {
+      if (response.status === 401) {
+        return { success: false, error: 'Session expired. Please sign in again.', requiresAuth: true };
+      }
+      return { success: false, error: `Request failed (${response.status})` };
+    }
+
     const data = await response.json();
     return data;
   } catch (error) {
@@ -241,6 +276,13 @@ export async function getSavedItems(itemType?: 'transcript' | 'summary' | 'chat'
       },
     });
 
+    if (!response.ok) {
+      if (response.status === 401) {
+        return { success: false, error: 'Session expired. Please sign in again.', requiresAuth: true };
+      }
+      return { success: false, error: `Request failed (${response.status})` };
+    }
+
     const data = await response.json();
     return data;
   } catch (error) {
@@ -265,6 +307,13 @@ export async function getSavedItem(videoId: string, itemType: 'transcript' | 'su
         'Authorization': `Bearer ${token}`,
       },
     });
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        return { success: false, error: 'Session expired. Please sign in again.', requiresAuth: true };
+      }
+      return { success: false, error: `Request failed (${response.status})` };
+    }
 
     const data = await response.json();
     return data;

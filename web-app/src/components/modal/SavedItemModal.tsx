@@ -65,7 +65,7 @@ interface SavedItemModalProps {
 // Chat Message Interface
 interface ChatMessage {
   id: string;
-  role: 'user' | 'assistant';
+  role: 'user' | 'assistant' | 'error';
   content: string;
   timestamp?: string;
 }
@@ -119,6 +119,8 @@ export function SavedItemModal({
   const [isAnimating, setIsAnimating] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [copySuccess, setCopySuccess] = useState<string | null>(null);
+  // Summary error state: shown below the Generate button when generation fails
+  const [summaryError, setSummaryError] = useState<string | null>(null);
 
   // Chat state (only for upload items)
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
@@ -291,6 +293,14 @@ export function SavedItemModal({
       const transcriptText = getTranscriptText();
       if (!transcriptText) {
         console.error('No transcript available for chat');
+        // Show error in chat thread when transcript is missing
+        const errorMessage: ChatMessage = {
+          id: `msg_err_${Date.now()}`,
+          role: 'error',
+          content: 'No transcript available. Unable to send message.',
+          timestamp: new Date().toISOString(),
+        };
+        setChatMessages(prev => [...prev, errorMessage]);
         return;
       }
 
@@ -298,7 +308,7 @@ export function SavedItemModal({
         item.video_id,
         transcriptText,
         messageToSend,
-        chatMessages
+        chatMessages.filter(m => m.role === 'user' || m.role === 'assistant') as Parameters<typeof sendChatMessage>[3]
       );
 
       if (response.success && response.response) {
@@ -310,10 +320,26 @@ export function SavedItemModal({
         };
         setChatMessages(prev => [...prev, assistantMessage]);
       } else {
+        // Show inline error in chat thread instead of silently failing
         console.error('Chat failed:', response.error);
+        const errorMessage: ChatMessage = {
+          id: `msg_err_${Date.now()}`,
+          role: 'error',
+          content: 'Failed to get a response. Please try again.',
+          timestamp: new Date().toISOString(),
+        };
+        setChatMessages(prev => [...prev, errorMessage]);
       }
     } catch (error) {
       console.error('Failed to send chat message:', error);
+      // Show inline error in chat thread for unexpected failures
+      const errorMessage: ChatMessage = {
+        id: `msg_err_${Date.now()}`,
+        role: 'error',
+        content: 'Failed to get a response. Please try again.',
+        timestamp: new Date().toISOString(),
+      };
+      setChatMessages(prev => [...prev, errorMessage]);
     } finally {
       setIsLoadingChat(false);
     }
@@ -719,11 +745,14 @@ export function SavedItemModal({
   const handleGenerateSummary = async (format: SummaryFormat) => {
     if (!isInteractive) return;
 
+    // Clear any previous error before attempting generation
+    setSummaryError(null);
     setIsSummaryLoading(true);
     try {
       const transcriptText = getTranscriptText();
       if (!transcriptText) {
         console.error('No transcript available');
+        setSummaryError('No transcript available. Cannot generate summary.');
         return;
       }
 
@@ -750,9 +779,14 @@ export function SavedItemModal({
           summary: response.summary,
           is_structured: response.is_structured,
         }, 'upload');
+      } else {
+        // Show error text below the Generate button
+        console.error('Failed to generate summary:', response.error);
+        setSummaryError(response.error || 'Failed to generate summary. Please try again.');
       }
     } catch (error) {
       console.error('Failed to generate summary:', error);
+      setSummaryError('Failed to generate summary. Please try again.');
     } finally {
       setIsSummaryLoading(false);
     }
@@ -1358,6 +1392,13 @@ export function SavedItemModal({
                   </button>
                 )}
 
+                {/* Summary generation error message */}
+                {summaryError && !isSummaryLoading && (
+                  <p style={{ color: '#ef4444', fontSize: '0.85rem', marginTop: '8px', marginBottom: '8px' }}>
+                    {summaryError}
+                  </p>
+                )}
+
                 {/* Loading state */}
                 {isSummaryLoading && (
                   <button
@@ -1415,7 +1456,7 @@ export function SavedItemModal({
                             fontSize: '12px',
                             color: 'rgba(251, 191, 36, 0.9)',
                           }}>
-                            ⚠️ This summary may be incomplete. The AI generation might have been cut off.
+                            This summary may be incomplete. The AI generation might have been cut off.
                           </div>
                         );
                       }
@@ -1490,38 +1531,65 @@ export function SavedItemModal({
                   )}
 
                   {/* Chat Messages */}
-                  {chatMessages.map((message) => (
-                    <div
-                      key={message.id}
-                      style={{
-                        marginBottom: '16px',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: message.role === 'user' ? 'flex-end' : 'flex-start',
-                      }}
-                    >
+                  {chatMessages.map((message) => {
+                    // Render error messages with distinct muted-red styling
+                    if (message.role === 'error') {
+                      return (
+                        <div
+                          key={message.id}
+                          style={{
+                            marginBottom: '12px',
+                            display: 'flex',
+                            justifyContent: 'center',
+                          }}
+                        >
+                          <p
+                            style={{
+                              margin: 0,
+                              fontSize: '12px',
+                              color: '#f87171',
+                              fontStyle: 'italic',
+                            }}
+                          >
+                            {message.content}
+                          </p>
+                        </div>
+                      );
+                    }
+
+                    return (
                       <div
+                        key={message.id}
                         style={{
-                          maxWidth: '85%',
-                          padding: '10px 14px',
-                          borderRadius: '12px',
-                          background:
-                            message.role === 'user'
-                              ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
-                              : 'rgba(255, 255, 255, 0.05)',
-                          border:
-                            message.role === 'user' ? 'none' : '1px solid rgba(255, 255, 255, 0.1)',
-                          color: '#fff',
-                          fontSize: '13px',
-                          lineHeight: '1.5',
-                          wordWrap: 'break-word',
+                          marginBottom: '16px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: message.role === 'user' ? 'flex-end' : 'flex-start',
                         }}
-                        dangerouslySetInnerHTML={{
-                          __html: markdownToHtml(message.content)
-                        }}
-                      />
-                    </div>
-                  ))}
+                      >
+                        <div
+                          style={{
+                            maxWidth: '85%',
+                            padding: '10px 14px',
+                            borderRadius: '12px',
+                            background:
+                              message.role === 'user'
+                                ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+                                : 'rgba(255, 255, 255, 0.05)',
+                            border:
+                              message.role === 'user' ? 'none' : '1px solid rgba(255, 255, 255, 0.1)',
+                            color: '#fff',
+                            fontSize: '13px',
+                            lineHeight: '1.5',
+                            wordWrap: 'break-word',
+                          }}
+                          dangerouslySetInnerHTML={{
+                            __html: markdownToHtml(message.content)
+                          }}
+                        />
+                      </div>
+                    );
+                  })}
 
                   {/* Loading Indicator */}
                   {isLoadingChat && (
