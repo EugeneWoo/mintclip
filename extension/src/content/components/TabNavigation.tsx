@@ -5,7 +5,7 @@
 
 import React from 'react';
 
-export type TabType = 'transcript' | 'summary' | 'chat';
+export type TabType = 'guide' | 'transcript' | 'summary' | 'chat';
 
 interface TabNavigationProps {
   activeTab: TabType;
@@ -14,6 +14,7 @@ interface TabNavigationProps {
 
 export function TabNavigation({ activeTab, onTabChange }: TabNavigationProps): React.JSX.Element {
   const tabs: { id: TabType; label: string; icon: string }[] = [
+    { id: 'guide', label: 'User Guide', icon: '❓' },
     { id: 'transcript', label: 'Transcript', icon: '📝' },
     { id: 'summary', label: 'Summary', icon: '✨' },
     { id: 'chat', label: 'Chat', icon: '💬' },
@@ -33,12 +34,12 @@ export function TabNavigation({ activeTab, onTabChange }: TabNavigationProps): R
           onClick={() => onTabChange(tab.id)}
           style={{
             flex: 1,
-            padding: '12px 16px',
+            padding: '12px 8px',
             backgroundColor: 'transparent',
             border: 'none',
             borderBottom: activeTab === tab.id ? '2px solid #667eea' : '2px solid transparent',
             color: activeTab === tab.id ? '#fff' : 'rgba(255, 255, 255, 0.5)',
-            fontSize: '14px',
+            fontSize: '13px',
             fontWeight: activeTab === tab.id ? 600 : 400,
             cursor: 'pointer',
             transition: 'all 0.2s',

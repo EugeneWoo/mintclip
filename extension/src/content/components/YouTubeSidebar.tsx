@@ -9,6 +9,7 @@ import { TranscriptTab } from './TranscriptTab';
 import { SummaryTab, SummaryFormat } from './SummaryTab';
 import { ChatTab } from './ChatTab';
 import { ErrorToast } from './ErrorToast';
+import { HowToUseScreen } from './HowToUseScreen';
 
 interface Language {
   code: string;
@@ -1304,6 +1305,9 @@ export function YouTubeSidebar({ videoId }: YouTubeSidebarProps): React.JSX.Elem
               <TabNavigation activeTab={activeTab} onTabChange={setActiveTab} />
 
               <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+                {activeTab === 'guide' && (
+                  <HowToUseScreen isDarkMode={isDarkMode} />
+                )}
                 {activeTab === 'transcript' && (
                   <TranscriptTab
                     transcript={transcript}
