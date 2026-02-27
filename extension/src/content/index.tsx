@@ -219,6 +219,21 @@ watchYouTubeNavigation((url) => {
   }
 });
 
+// Re-inject sidebar when user signs in (storage change fires after popup closes)
+chrome.storage.onChanged.addListener((changes, areaName) => {
+  if (areaName === 'local' && changes.authState) {
+    const newAuthState = changes.authState.newValue;
+    const oldAuthState = changes.authState.oldValue;
+    const justSignedIn = newAuthState?.isAuthenticated && !oldAuthState?.isAuthenticated;
+
+    if (justSignedIn && isYouTubePage() && getVideoId()) {
+      console.log('[Mintclip] Auth state changed to authenticated, re-injecting sidebar');
+      // Small delay to let React state settle before re-injecting
+      setTimeout(initExtensionUI, 200);
+    }
+  }
+});
+
 // Initialize on page load
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', initExtensionUI);

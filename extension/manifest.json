@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Mintclip",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAx7pjQEViq4hNMHUDt3E4WCZeKzpsNwsuxHdZE6/jQ/6sK2cR5Tlz8XnUCnuRcitZHylpradPnirLzmbSUPIWu6PziR8kLfvA10/eMQBUHgliNHVusscwcWnJ1PgTHvqpbITsZNzKV8KW33cNgt3Flsd15MsdX0KMEP0WzEj4cSExHQ1871l+3u0rcQ6td7724TIVjtw6m4MpJf9P4uVBsJuoAErGeU13e7dBiL8AfEc3dOQMYwNIrHRkzU3pR8g+Q9NFAR691E66NkoTKD2t1dS2vq1NggVy7E32bo7AbKBSYVBHFTFWXzbBWdEn3rqP2H38MG9lwlArzuI/4kH0yQIDAQAB",
   "description": "AI-powered YouTube video transcripts, summaries, and chat - learn faster from YouTube content",
   "permissions": [
