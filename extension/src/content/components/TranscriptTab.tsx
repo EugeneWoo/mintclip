@@ -43,6 +43,7 @@ interface TranscriptTabProps {
   onFetchLanguages?: () => void;
   isAuthenticated?: boolean; // Add auth check to prevent auto-fetching for non-logged-in users
   onSaveTranscript?: () => void; // Save transcript to Supabase
+  transcriptDisabled?: boolean;
 }
 
 // ClickableTimestamp component
@@ -131,6 +132,7 @@ export function TranscriptTab({
   onFetchLanguages,
   isAuthenticated = false,
   onSaveTranscript,
+  transcriptDisabled = false,
 }: TranscriptTabProps): React.JSX.Element {
   const [searchQuery, setSearchQuery] = useState('');
   const [showCopyFeedback, setShowCopyFeedback] = useState(false);
@@ -340,22 +342,28 @@ export function TranscriptTab({
             textAlign: 'center',
           }}
         >
-          <button
-            onClick={() => onFetchTranscript?.()}
-            style={{
-              padding: '10px 20px',
-              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-              color: 'white',
-              border: 'none',
-              borderRadius: '8px',
-              fontSize: '14px',
-              fontWeight: 600,
-              cursor: 'pointer',
-              boxShadow: '0 2px 8px rgba(102, 126, 234, 0.25)',
-            }}
-          >
-            Get Transcript
-          </button>
+          {transcriptDisabled ? (
+            <p style={{ color: 'rgba(255, 255, 255, 0.5)', fontSize: '14px', margin: 0 }}>
+              No transcript available for this video.
+            </p>
+          ) : (
+            <button
+              onClick={() => onFetchTranscript?.()}
+              style={{
+                padding: '10px 20px',
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                fontSize: '14px',
+                fontWeight: 600,
+                cursor: 'pointer',
+                boxShadow: '0 2px 8px rgba(102, 126, 234, 0.25)',
+              }}
+            >
+              Get Transcript
+            </button>
+          )}
         </div>
       )}
 

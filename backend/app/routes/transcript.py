@@ -132,7 +132,7 @@ async def extract_transcript(request: TranscriptRequest):
     )
 
     if not result['success']:
-        if result['error'] == 'no_captions':
+        if result['error'] == 'no_transcript':
             raise HTTPException(
                 status_code=404,
                 detail=result['message']

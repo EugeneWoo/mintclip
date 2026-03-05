@@ -54,6 +54,7 @@ interface ChatTabProps {
   onFetchSuggestedQuestions?: () => void;
   inputValue?: string;
   onInputChange?: (value: string) => void;
+  transcriptDisabled?: boolean;
 }
 
 export function ChatTab({
@@ -65,6 +66,7 @@ export function ChatTab({
   onFetchSuggestedQuestions,
   inputValue = '',
   onInputChange,
+  transcriptDisabled = false,
 }: ChatTabProps): React.JSX.Element {
   const [localInputValue, setLocalInputValue] = useState('');
   const [clickedPillIndex, setClickedPillIndex] = useState<number | null>(null);
@@ -270,7 +272,7 @@ export function ChatTab({
               e.stopPropagation();
             }}
             placeholder="Ask a question about the video..."
-            disabled={isLoading}
+            disabled={transcriptDisabled}
             style={{
               flex: 1,
               padding: '10px 12px',
@@ -289,11 +291,11 @@ export function ChatTab({
           />
           <button
             onClick={handleSend}
-            disabled={!currentInputValue.trim() || isLoading}
+            disabled={!currentInputValue.trim() || isLoading || transcriptDisabled}
             style={{
               padding: '10px 20px',
               background:
-                !currentInputValue.trim() || isLoading
+                !currentInputValue.trim() || isLoading || transcriptDisabled
                   ? 'rgba(102, 126, 234, 0.3)'
                   : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
               color: 'white',
@@ -301,9 +303,9 @@ export function ChatTab({
               borderRadius: '8px',
               fontSize: '14px',
               fontWeight: 600,
-              cursor: !currentInputValue.trim() || isLoading ? 'not-allowed' : 'pointer',
+              cursor: !currentInputValue.trim() || isLoading || transcriptDisabled ? 'not-allowed' : 'pointer',
               whiteSpace: 'nowrap',
-              boxShadow: !currentInputValue.trim() || isLoading ? 'none' : '0 2px 8px rgba(102, 126, 234, 0.25)',
+              boxShadow: !currentInputValue.trim() || isLoading || transcriptDisabled ? 'none' : '0 2px 8px rgba(102, 126, 234, 0.25)',
             }}
           >
             Send

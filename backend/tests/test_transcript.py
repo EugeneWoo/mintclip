@@ -85,11 +85,11 @@ class TestExtractTranscript:
         assert resp.status_code == 400
 
     def test_extract_no_captions_returns_404(self, client):
-        """When transcript extractor returns no_captions error, route returns 404."""
+        """When transcript extractor returns no_transcript error, route returns 404."""
         no_captions_response = {
             "success": False,
-            "error": "no_captions",
-            "message": "No captions available for this video.",
+            "error": "no_transcript",
+            "message": "No transcript available for this video.",
             "video_id": "no_captions_vid",
         }
         with patch(

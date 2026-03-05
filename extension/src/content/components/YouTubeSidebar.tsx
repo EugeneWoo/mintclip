@@ -87,6 +87,7 @@ export function YouTubeSidebar({ videoId }: YouTubeSidebarProps): React.JSX.Elem
   // Transcript state
   const [transcript, setTranscript] = useState<any>(null);
   const [transcriptLoading, setTranscriptLoading] = useState(false);
+  const [transcriptDisabled, setTranscriptDisabled] = useState(false); // No captions or fetch failure
 
   // Summary state - store all formats separately with per-format is_structured flag
   const [summaries, setSummaries] = useState<{ short?: string; topic?: string; qa?: string; short_is_structured?: boolean; topic_is_structured?: boolean; qa_is_structured?: boolean }>({});
@@ -198,9 +199,10 @@ export function YouTubeSidebar({ videoId }: YouTubeSidebarProps): React.JSX.Elem
     loadVideoData();
   }, [videoId]);
 
-  // Clear chat input when video changes
+  // Clear transient state when video changes
   React.useEffect(() => {
     setChatInputValue('');
+    setTranscriptDisabled(false);
   }, [videoId]);
 
   // Check authentication status on mount
@@ -389,174 +391,168 @@ export function YouTubeSidebar({ videoId }: YouTubeSidebarProps): React.JSX.Elem
 
   // Auto-fetch transcript on mount when authenticated
   React.useEffect(() => {
-    if (isAuthenticated && authChecked && !transcript && !transcriptLoading) {
-      // Silently fetch transcript in the background
+    if (isAuthenticated && authChecked && !transcript && !transcriptLoading && !transcriptDisabled) {
       const fetchTranscriptInBackground = async () => {
+        setTranscriptLoading(true);
         try {
-          // CRITICAL: Fetch available languages FIRST before transcript
-          // This ensures language dropdown appears immediately when transcript loads
-          const langResponse = await chrome.runtime.sendMessage({
-            type: 'GET_LANGUAGES_WITH_TRANSLATION',
-            payload: { videoId },
-          });
+          // Fetch languages (best-effort) and transcript in parallel
+          const [langResponse, response] = await Promise.all([
+            chrome.runtime.sendMessage({ type: 'GET_LANGUAGES_WITH_TRANSLATION', payload: { videoId } })
+              .catch(() => ({ success: false })),
+            chrome.runtime.sendMessage({ type: 'GET_TRANSCRIPT', payload: { videoId } }),
+          ]);
 
-          if (langResponse.success) {
-            const languages = langResponse.languages || [];
-            console.log('[YouTubeSidebar] Available languages:', languages);
+          const languages = langResponse?.success ? langResponse.languages || [] : [];
+          console.log('[YouTubeSidebar] Available languages:', languages);
 
-            // Now fetch transcript
-            const response = await chrome.runtime.sendMessage({
-              type: 'GET_TRANSCRIPT',
-              payload: { videoId },
-            });
+          if (response.success) {
+            setTranscript(response.data);
+            // Track the language returned by backend
+            const lang = response.language || 'en';
+            setCurrentLanguage(lang);
+            console.log('[YouTubeSidebar] Auto-loaded transcript in language:', lang);
 
-            if (response.success) {
-              setTranscript(response.data);
-              // Track the language returned by backend
-              const lang = response.language || 'en';
-              setCurrentLanguage(lang);
-              console.log('[YouTubeSidebar] Auto-loaded transcript in language:', lang);
+            // Update video title from API response (more reliable than DOM scraping)
+            if (response.video_title) {
+              setVideoTitle(response.video_title);
+              console.log('[YouTubeSidebar] Set video title from API:', response.video_title);
+            }
 
-              // Update video title from API response (more reliable than DOM scraping)
-              if (response.video_title) {
-                setVideoTitle(response.video_title);
-                console.log('[YouTubeSidebar] Set video title from API:', response.video_title);
-              }
+            // Cache the transcript by language code for instant switching
+            setTranscriptCache(prev => ({
+              ...prev,
+              [lang]: response.data
+            }));
 
-              // Cache the transcript by language code for instant switching
-              setTranscriptCache(prev => ({
-                ...prev,
-                [lang]: response.data
-              }));
+            // Filter to only show: native languages + AI-translated English (no other AI translations)
+            const filteredLanguages = languages.filter((l: any) =>
+              !l.is_ai_translated || (l.is_ai_translated && l.code === 'en')
+            );
 
-              // Filter to only show: native languages + AI-translated English (no other AI translations)
-              const filteredLanguages = languages.filter((l: any) =>
-                !l.is_ai_translated || (l.is_ai_translated && l.code === 'en')
-              );
+            // Sort languages with priority order:
+            // 1. Current language (always first)
+            // 2. English (AI-translated) - always second if available and current != English
+            // 3. Other native languages
+            const sortedLanguages = [...filteredLanguages].sort((a, b) => {
+              // Current language always goes first
+              if (a.code === lang && b.code !== lang) return -1;
+              if (b.code === lang && a.code !== lang) return 1;
 
-              // Sort languages with priority order:
-              // 1. Current language (always first)
-              // 2. English (AI-translated) - always second if available and current != English
-              // 3. Other native languages
-              const sortedLanguages = [...filteredLanguages].sort((a, b) => {
-                // Current language always goes first
-                if (a.code === lang && b.code !== lang) return -1;
-                if (b.code === lang && a.code !== lang) return 1;
-
-                // If current language is NOT English, make English second
-                if (lang !== 'en') {
-                  const aIsAIEn = a.is_ai_translated && a.code === 'en';
-                  const bIsAIEn = b.is_ai_translated && b.code === 'en';
-                  if (aIsAIEn && !bIsAIEn) return -1;
-                  if (bIsAIEn && !aIsAIEn) return 1;
-                }
-
-                // Helper to check if language is native (not AI-translated)
-                const aIsNative = !a.is_ai_translated;
-                const bIsNative = !b.is_ai_translated;
-
-                // Helper to check if AI-translated English
+              // If current language is NOT English, make English second
+              if (lang !== 'en') {
                 const aIsAIEn = a.is_ai_translated && a.code === 'en';
                 const bIsAIEn = b.is_ai_translated && b.code === 'en';
-
-                // Priority: Native > AI-English
-                // Native first
-                if (aIsNative && !bIsNative) return -1;
-                if (!aIsNative && bIsNative) return 1;
-                // Both native: keep original order
-                if (aIsNative && bIsNative) return 0;
-
-                // Native before AI-English
-                if (aIsNative && bIsAIEn) return -1;
-                if (aIsAIEn && bIsNative) return 1;
-
-                // Both same type: keep original order
-                return 0;
-              });
-
-              // Set language list immediately with current language first
-              setAvailableLanguages(sortedLanguages);
-
-              // Check if English is available natively
-              const hasNativeEnglish = languages.some((l: any) => l.code === 'en' && !l.is_ai_translated);
-              console.log('[YouTubeSidebar] Has native English:', hasNativeEnglish);
-
-              // Eager pre-fetch all native language transcripts in background
-              // This makes switching between languages instant
-              const preFetchAllLanguages = async () => {
-                // Filter to only native languages (no AI translations)
-                const nativeLanguages = languages.filter((l: any) => !l.is_ai_translated);
-
-                for (const language of nativeLanguages) {
-                  // Skip the current language (already loaded)
-                  if (language.code === lang) continue;
-
-                  console.log(`[YouTubeSidebar] Pre-fetching ${language.code} transcript...`);
-
-                  try {
-                    const transcriptResponse = await chrome.runtime.sendMessage({
-                      type: 'GET_TRANSCRIPT',
-                      payload: { videoId, languageCode: language.code },
-                    });
-
-                    if (transcriptResponse.success) {
-                      setTranscriptCache(prev => {
-                        // Skip if already cached (in case of race condition)
-                        if (prev[language.code]) {
-                          console.log(`[YouTubeSidebar] ${language.code} already cached, skipping`);
-                          return prev;
-                        }
-
-                        console.log(`[YouTubeSidebar] Pre-fetched ${language.code} transcript ✓`);
-                        return {
-                          ...prev,
-                          [language.code]: transcriptResponse.data
-                        };
-                      });
-                    }
-                  } catch (err) {
-                    console.error(`[YouTubeSidebar] Failed to pre-fetch ${language.code}:`, err);
-                  }
-                }
-
-                console.log('[YouTubeSidebar] All native languages pre-fetched!');
-              };
-
-              // Start pre-fetching in background (non-blocking)
-              preFetchAllLanguages();
-
-              // Only trigger eager translation if:
-              // 1. Current language is not English
-              // 2. Native English is NOT available
-              if (lang !== 'en' && !hasNativeEnglish) {
-                setTranslating(true);
-                // Add English option to show "translating..." status
-                // Use filteredLanguages (without auto-generated non-English)
-                const languagesWithTranslating = [...filteredLanguages, {
-                  code: 'en',
-                  name: 'English (translating...)',
-                  is_generated: true,
-                  is_translatable: false,
-                  is_ai_translated: true
-                }];
-                setAvailableLanguages(languagesWithTranslating);
-                // Start polling for translation completion
-                pollForTranslation();
+                if (aIsAIEn && !bIsAIEn) return -1;
+                if (bIsAIEn && !aIsAIEn) return 1;
               }
-            } else {
-              console.log('Background transcript fetch failed:', response.error);
+
+              // Helper to check if language is native (not AI-translated)
+              const aIsNative = !a.is_ai_translated;
+              const bIsNative = !b.is_ai_translated;
+
+              // Helper to check if AI-translated English
+              const aIsAIEn = a.is_ai_translated && a.code === 'en';
+              const bIsAIEn = b.is_ai_translated && b.code === 'en';
+
+              // Priority: Native > AI-English
+              // Native first
+              if (aIsNative && !bIsNative) return -1;
+              if (!aIsNative && bIsNative) return 1;
+              // Both native: keep original order
+              if (aIsNative && bIsNative) return 0;
+
+              // Native before AI-English
+              if (aIsNative && bIsAIEn) return -1;
+              if (aIsAIEn && bIsNative) return 1;
+
+              // Both same type: keep original order
+              return 0;
+            });
+
+            // Set language list immediately with current language first
+            setAvailableLanguages(sortedLanguages);
+
+            // Check if English is available natively
+            const hasNativeEnglish = languages.some((l: any) => l.code === 'en' && !l.is_ai_translated);
+            console.log('[YouTubeSidebar] Has native English:', hasNativeEnglish);
+
+            // Eager pre-fetch all native language transcripts in background
+            // This makes switching between languages instant
+            const preFetchAllLanguages = async () => {
+              // Filter to only native languages (no AI translations)
+              const nativeLanguages = languages.filter((l: any) => !l.is_ai_translated);
+
+              for (const language of nativeLanguages) {
+                // Skip the current language (already loaded)
+                if (language.code === lang) continue;
+
+                console.log(`[YouTubeSidebar] Pre-fetching ${language.code} transcript...`);
+
+                try {
+                  const transcriptResponse = await chrome.runtime.sendMessage({
+                    type: 'GET_TRANSCRIPT',
+                    payload: { videoId, languageCode: language.code },
+                  });
+
+                  if (transcriptResponse.success) {
+                    setTranscriptCache(prev => {
+                      // Skip if already cached (in case of race condition)
+                      if (prev[language.code]) {
+                        console.log(`[YouTubeSidebar] ${language.code} already cached, skipping`);
+                        return prev;
+                      }
+
+                      console.log(`[YouTubeSidebar] Pre-fetched ${language.code} transcript ✓`);
+                      return {
+                        ...prev,
+                        [language.code]: transcriptResponse.data
+                      };
+                    });
+                  }
+                } catch (err) {
+                  console.error(`[YouTubeSidebar] Failed to pre-fetch ${language.code}:`, err);
+                }
+              }
+
+              console.log('[YouTubeSidebar] All native languages pre-fetched!');
+            };
+
+            // Start pre-fetching in background (non-blocking)
+            preFetchAllLanguages();
+
+            // Only trigger eager translation if:
+            // 1. Current language is not English
+            // 2. Native English is NOT available
+            if (lang !== 'en' && !hasNativeEnglish) {
+              setTranslating(true);
+              // Add English option to show "translating..." status
+              // Use filteredLanguages (without auto-generated non-English)
+              const languagesWithTranslating = [...filteredLanguages, {
+                code: 'en',
+                name: 'English (translating...)',
+                is_generated: true,
+                is_translatable: false,
+                is_ai_translated: true
+              }];
+              setAvailableLanguages(languagesWithTranslating);
+              // Start polling for translation completion
+              pollForTranslation();
             }
           } else {
-            console.log('Background language fetch failed:', langResponse.error);
+            console.log('Background transcript fetch failed:', response.error);
+            setTranscriptDisabled(true);
           }
         } catch (err) {
           console.log('Background transcript fetch error:', err);
+          setTranscriptDisabled(true);
+        } finally {
+          setTranscriptLoading(false);
         }
       };
 
       fetchTranscriptInBackground();
     }
-  }, [isAuthenticated, authChecked, videoId, transcript, transcriptLoading]);
+  }, [isAuthenticated, authChecked, videoId, transcript, transcriptLoading, transcriptDisabled]);
 
   // Helper function to translate transcript to English in background
   const translateToEnglishInBackground = async (transcriptData: any[], sourceLanguage: string) => {
@@ -763,7 +759,7 @@ export function YouTubeSidebar({ videoId }: YouTubeSidebarProps): React.JSX.Elem
 
         fetchLanguagesAndCheckTranslation();
       } else {
-        setError(response.error || 'Failed to fetch transcript');
+        setTranscriptDisabled(true);
       }
     } catch (err) {
       setError('Failed to fetch transcript');
@@ -1312,6 +1308,7 @@ export function YouTubeSidebar({ videoId }: YouTubeSidebarProps): React.JSX.Elem
                   <TranscriptTab
                     transcript={transcript}
                     isLoading={transcriptLoading}
+                    transcriptDisabled={transcriptDisabled}
                     onFetchTranscript={handleFetchTranscript}
                     videoId={videoId}
                     currentLanguage={currentLanguage}
@@ -1333,6 +1330,7 @@ export function YouTubeSidebar({ videoId }: YouTubeSidebarProps): React.JSX.Elem
                     videoTitle={videoTitle}
                     videoId={videoId}
                     onSaveSummary={handleSaveSummary}
+                    transcriptDisabled={transcriptDisabled}
                   />
                 )}
                 {activeTab === 'chat' && (
@@ -1345,6 +1343,7 @@ export function YouTubeSidebar({ videoId }: YouTubeSidebarProps): React.JSX.Elem
                     onFetchSuggestedQuestions={handleFetchSuggestedQuestions}
                     inputValue={chatInputValue}
                     onInputChange={setChatInputValue}
+                    transcriptDisabled={transcriptDisabled}
                   />
                 )}
               </div>

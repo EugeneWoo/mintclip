@@ -208,22 +208,12 @@ class TranscriptExtractor:
                 'full_text': ' '.join([entry['text'] for entry in formatted_transcript])
             }
 
-        except NoTranscriptFound as e:
-            logger.warning(f"No transcript found for video {video_id}: {str(e)}")
+        except (NoTranscriptFound, TranscriptsDisabled) as e:
+            logger.warning(f"No transcript available for video {video_id}: {str(e)}")
             return {
                 'success': False,
-                'error': 'no_captions',
-                'message': 'This video does not have captions available.',
-                'video_id': video_id,
-                'details': str(e)
-            }
-
-        except TranscriptsDisabled as e:
-            logger.warning(f"Transcripts disabled for video {video_id}: {str(e)}")
-            return {
-                'success': False,
-                'error': 'transcripts_disabled',
-                'message': 'Transcripts are disabled for this video.',
+                'error': 'no_transcript',
+                'message': 'No transcript available for this video.',
                 'video_id': video_id,
                 'details': str(e)
             }
@@ -266,8 +256,8 @@ class TranscriptExtractor:
                 else:
                     return {
                         'success': False,
-                        'error': 'no_captions',
-                        'message': 'Could not retrieve transcript. The video may not have captions available.',
+                        'error': 'no_transcript',
+                        'message': 'No transcript available for this video.',
                         'video_id': video_id,
                         'details': error_msg
                     }

@@ -17,6 +17,7 @@ interface SummaryTabProps {
   videoTitle?: string;
   videoId?: string;  // NEW: Video ID for timestamp seeking
   onSaveSummary?: () => void; // Save summary to Supabase
+  transcriptDisabled?: boolean;
 }
 
 export function SummaryTab({
@@ -29,6 +30,7 @@ export function SummaryTab({
   videoTitle = '',
   videoId = '',  // NEW: Video ID for timestamp seeking
   onSaveSummary,
+  transcriptDisabled = false,
 }: SummaryTabProps): React.JSX.Element {
   const [showShareMenu, setShowShareMenu] = useState(false);
   const [showCopyFeedback, setShowCopyFeedback] = useState(false);
@@ -652,18 +654,18 @@ export function SummaryTab({
         {showGenerateButton && (
           <button
             onClick={handleGenerate}
-            disabled={isLoading}
+            disabled={isLoading || transcriptDisabled}
             style={{
               width: '100%',
               height: '36px',
               padding: '0 16px',
-              background: isLoading ? 'rgba(102, 126, 234, 0.5)' : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              background: isLoading || transcriptDisabled ? 'rgba(102, 126, 234, 0.5)' : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
               color: 'white',
               border: 'none',
               borderRadius: '6px',
               fontSize: '13px',
               fontWeight: 600,
-              cursor: isLoading ? 'not-allowed' : 'pointer',
+              cursor: isLoading || transcriptDisabled ? 'not-allowed' : 'pointer',
               boxShadow: '0 2px 8px rgba(102, 126, 234, 0.25)',
               display: 'flex',
               alignItems: 'center',
