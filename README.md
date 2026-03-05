@@ -27,6 +27,7 @@ mintclip/
 - Multi-language support with smart fallback
 - AI translation to English for non-English videos
 - Eager translation for instant summary generation
+- Graceful handling when transcripts are disabled or unavailable — Summary and Chat tabs are disabled, "No transcript available for this video." shown
 
 ### Interactive Features
 - **Clickable Timestamps**: Jump directly to specific moments in videos
@@ -34,8 +35,8 @@ mintclip/
 - **Language Switching**: View transcripts in original or AI-translated English
 - **Persistent Caching**: 1-hour TTL for instant language switching
 
-### AI-Powered (Coming Soon)
-- Automatic video summarization
+### AI-Powered
+- Automatic video summarization (short, topic-based, Q&A formats)
 - Contextual Q&A chat about video content
 - Suggested questions based on transcript
 
@@ -113,4 +114,4 @@ This project uses Agent OS for structured development workflows. See the [agent-
 
 ---
 
-**Status**: ✅ Active Development | **Last Updated**: January 2025
+**Status**: ✅ Active Development | **Last Updated**: March 2026
