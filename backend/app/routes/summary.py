@@ -9,7 +9,7 @@ from typing import Optional
 
 from app.services.cache import get_cache, TTL_SUMMARY
 from app.services.gemini_client import get_gemini_client
-from app.middleware.auth import require_auth
+from app.middleware.auth import require_auth, optional_auth
 
 router = APIRouter()
 
@@ -32,7 +32,7 @@ class SummaryResponse(BaseModel):
 
 
 @router.post("/generate", response_model=SummaryResponse)
-async def generate_summary(request: SummaryRequest, current_user: dict = Depends(require_auth)):
+async def generate_summary(request: SummaryRequest, current_user: dict = Depends(optional_auth)):
     """
     Generate AI summary using Gemini 2.0 Flash with clickable timestamps
 

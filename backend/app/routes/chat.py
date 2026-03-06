@@ -11,7 +11,7 @@ import json
 from app.services.cache import get_cache, TTL_SUGGESTED_QUESTIONS, TTL_CHAT_MESSAGE
 from app.services.gemini_client import get_gemini_client
 from app.prompts.suggested_questions import FALLBACK_QUESTIONS
-from app.middleware.auth import require_auth
+from app.middleware.auth import require_auth, optional_auth
 
 router = APIRouter()
 
@@ -51,7 +51,7 @@ class ChatMessageResponse(BaseModel):
 
 
 @router.post("/suggested-questions", response_model=SuggestedQuestionsResponse)
-async def generate_suggested_questions(request: SuggestedQuestionsRequest, current_user: dict = Depends(require_auth)):
+async def generate_suggested_questions(request: SuggestedQuestionsRequest, current_user: dict = Depends(optional_auth)):
     """
     Generate 3 dynamic suggested questions using Gemini with few-shot prompting
 
@@ -150,7 +150,7 @@ async def generate_suggested_questions(request: SuggestedQuestionsRequest, curre
 
 
 @router.post("/message", response_model=ChatMessageResponse)
-async def send_message(request: ChatMessageRequest, current_user: dict = Depends(require_auth)):
+async def send_message(request: ChatMessageRequest, current_user: dict = Depends(optional_auth)):
     """
     Send a chat message and get AI response about the video
 
