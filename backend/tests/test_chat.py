@@ -17,7 +17,7 @@ TRANSCRIPT_TEXT = "Hello and welcome. Today we discuss Python. Let us begin."
 # ── Suggested Questions ───────────────────────────────────────────────────────
 
 class TestSuggestedQuestions:
-    def test_generates_three_questions(self, client):
+    def test_generates_three_questions(self, client, auth_headers):
         """Returns 3 contextual questions."""
         mock_gemini = make_gemini_mock(questions=[
             "What is Python?",
@@ -28,14 +28,14 @@ class TestSuggestedQuestions:
             resp = client.post("/api/chat/suggested-questions", json={
                 "video_id": VIDEO_ID,
                 "transcript": TRANSCRIPT_TEXT,
-            })
+            }, headers=auth_headers)
 
         assert resp.status_code == 200
         data = resp.json()
         assert data["success"] is True
         assert len(data["questions"]) == 3
 
-    def test_questions_cached_on_second_call(self, client):
+    def test_questions_cached_on_second_call(self, client, auth_headers):
         """Second call for same video returns cached=True without calling Gemini again."""
         call_count = 0
 
@@ -51,18 +51,18 @@ class TestSuggestedQuestions:
             resp1 = client.post("/api/chat/suggested-questions", json={
                 "video_id": "cache_test_vid",
                 "transcript": TRANSCRIPT_TEXT,
-            })
+            }, headers=auth_headers)
             resp2 = client.post("/api/chat/suggested-questions", json={
                 "video_id": "cache_test_vid",
                 "transcript": TRANSCRIPT_TEXT,
-            })
+            }, headers=auth_headers)
 
         assert resp1.status_code == 200
         assert resp2.status_code == 200
         assert resp2.json().get("cached") is True
         assert call_count == 1
 
-    def test_fallback_questions_on_gemini_failure(self, client):
+    def test_fallback_questions_on_gemini_failure(self, client, auth_headers):
         """When Gemini returns None, fallback questions are returned."""
         mock_gemini = make_gemini_mock()
         mock_gemini.generate_questions = lambda *a, **kw: None
@@ -71,21 +71,21 @@ class TestSuggestedQuestions:
             resp = client.post("/api/chat/suggested-questions", json={
                 "video_id": VIDEO_ID,
                 "transcript": TRANSCRIPT_TEXT,
-            })
+            }, headers=auth_headers)
 
         assert resp.status_code == 200
         data = resp.json()
         assert data["success"] is True
         assert len(data["questions"]) > 0  # Fallback questions still returned
 
-    def test_empty_transcript_still_returns_questions(self, client):
+    def test_empty_transcript_still_returns_questions(self, client, auth_headers):
         """Even with empty transcript, returns fallback or generated questions."""
         mock_gemini = make_gemini_mock()
         with patch("app.routes.chat.get_gemini_client", return_value=mock_gemini):
             resp = client.post("/api/chat/suggested-questions", json={
                 "video_id": VIDEO_ID,
                 "transcript": "",
-            })
+            }, headers=auth_headers)
 
         assert resp.status_code == 200
         data = resp.json()
@@ -95,16 +95,16 @@ class TestSuggestedQuestions:
 # ── Chat Message ──────────────────────────────────────────────────────────────
 
 class TestChatMessage:
-    def test_empty_question_returns_error(self, client):
+    def test_empty_question_returns_error(self, client, auth_headers):
         """Empty question string returns 400 or validation error."""
         resp = client.post("/api/chat/message", json={
             "video_id": VIDEO_ID,
             "transcript": TRANSCRIPT_TEXT,
             "question": "",
-        })
+        }, headers=auth_headers)
         assert resp.status_code in (400, 422) or resp.json().get("success") is False
 
-    def test_successful_chat_response(self, client):
+    def test_successful_chat_response(self, client, auth_headers):
         """Returns AI-generated chat response."""
         mock_gemini = make_gemini_mock(chat_response="Python is a programming language.")
         with patch("app.routes.chat.get_gemini_client", return_value=mock_gemini):
@@ -112,14 +112,14 @@ class TestChatMessage:
                 "video_id": VIDEO_ID,
                 "transcript": TRANSCRIPT_TEXT,
                 "question": "What is Python?",
-            })
+            }, headers=auth_headers)
 
         assert resp.status_code == 200
         data = resp.json()
         assert data["success"] is True
         assert data["response"] == "Python is a programming language."
 
-    def test_chat_response_cached_on_second_identical_question(self, client):
+    def test_chat_response_cached_on_second_identical_question(self, client, auth_headers):
         """Same video+question returns cached=True on second call."""
         call_count = 0
 
@@ -136,19 +136,19 @@ class TestChatMessage:
                 "video_id": "chat_cache_vid",
                 "transcript": TRANSCRIPT_TEXT,
                 "question": "What is Python?",
-            })
+            }, headers=auth_headers)
             resp2 = client.post("/api/chat/message", json={
                 "video_id": "chat_cache_vid",
                 "transcript": TRANSCRIPT_TEXT,
                 "question": "What is Python?",
-            })
+            }, headers=auth_headers)
 
         assert resp1.status_code == 200
         assert resp2.status_code == 200
         assert resp2.json().get("cached") is True
         assert call_count == 1
 
-    def test_different_questions_have_separate_cache_entries(self, client):
+    def test_different_questions_have_separate_cache_entries(self, client, auth_headers):
         """Different questions for the same video don't share cache entries."""
         call_count = 0
 
@@ -165,16 +165,16 @@ class TestChatMessage:
                 "video_id": "diff_q_vid",
                 "transcript": TRANSCRIPT_TEXT,
                 "question": "What is Python?",
-            })
+            }, headers=auth_headers)
             client.post("/api/chat/message", json={
                 "video_id": "diff_q_vid",
                 "transcript": TRANSCRIPT_TEXT,
                 "question": "Who invented Python?",
-            })
+            }, headers=auth_headers)
 
         assert call_count == 2  # Both questions called Gemini
 
-    def test_gemini_unavailable_returns_error(self, client):
+    def test_gemini_unavailable_returns_error(self, client, auth_headers):
         """When Gemini returns None, chat endpoint returns error."""
         mock_gemini = make_gemini_mock()
         mock_gemini.generate_chat_response = lambda *a, **kw: None
@@ -184,12 +184,12 @@ class TestChatMessage:
                 "video_id": VIDEO_ID,
                 "transcript": TRANSCRIPT_TEXT,
                 "question": "What is this about?",
-            })
+            }, headers=auth_headers)
 
         data = resp.json()
         assert data.get("success") is False or resp.status_code >= 400
 
-    def test_chat_with_history(self, client):
+    def test_chat_with_history(self, client, auth_headers):
         """Chat message accepts optional chat_history without error."""
         mock_gemini = make_gemini_mock(chat_response="Answer with context.")
         with patch("app.routes.chat.get_gemini_client", return_value=mock_gemini):
@@ -201,6 +201,6 @@ class TestChatMessage:
                     {"role": "user", "content": "What is Python?"},
                     {"role": "assistant", "content": "Python is a language."},
                 ],
-            })
+            }, headers=auth_headers)
 
         assert resp.status_code == 200

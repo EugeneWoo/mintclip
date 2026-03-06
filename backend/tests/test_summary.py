@@ -18,69 +18,69 @@ STRUCTURED_TRANSCRIPT = json.dumps(MOCK_TRANSCRIPT_SEGMENTS)
 
 
 class TestSummaryValidation:
-    def test_invalid_format_returns_400(self, client):
+    def test_invalid_format_returns_400(self, client, auth_headers):
         resp = client.post("/api/summary/generate", json={
             "video_id": VIDEO_ID,
             "transcript": TRANSCRIPT_TEXT,
             "format": "invalid_format",
-        })
+        }, headers=auth_headers)
         assert resp.status_code == 400
 
-    def test_empty_transcript_returns_error(self, client):
+    def test_empty_transcript_returns_error(self, client, auth_headers):
         mock_gemini = make_gemini_mock(summary=None)
         with patch("app.routes.summary.get_gemini_client", return_value=mock_gemini):
             resp = client.post("/api/summary/generate", json={
                 "video_id": VIDEO_ID,
                 "transcript": "",
                 "format": "short",
-            })
+            }, headers=auth_headers)
         # Empty transcript should fail at validation or produce error response
         data = resp.json()
         assert resp.status_code in (400, 422) or data.get("success") is False
 
 
 class TestSummaryFormats:
-    def test_short_format_returns_summary(self, client):
+    def test_short_format_returns_summary(self, client, auth_headers):
         mock_gemini = make_gemini_mock(summary="Short summary content.")
         with patch("app.routes.summary.get_gemini_client", return_value=mock_gemini):
             resp = client.post("/api/summary/generate", json={
                 "video_id": VIDEO_ID,
                 "transcript": TRANSCRIPT_TEXT,
                 "format": "short",
-            })
+            }, headers=auth_headers)
         assert resp.status_code == 200
         data = resp.json()
         assert data["success"] is True
         assert data["summary"] == "Short summary content."
         assert data["format"] == "short"
 
-    def test_topic_format_returns_summary(self, client):
+    def test_topic_format_returns_summary(self, client, auth_headers):
         mock_gemini = make_gemini_mock(summary="Topic summary content.")
         with patch("app.routes.summary.get_gemini_client", return_value=mock_gemini):
             resp = client.post("/api/summary/generate", json={
                 "video_id": VIDEO_ID,
                 "transcript": TRANSCRIPT_TEXT,
                 "format": "topic",
-            })
+            }, headers=auth_headers)
         assert resp.status_code == 200
         data = resp.json()
         assert data["success"] is True
         assert data["format"] == "topic"
 
-    def test_qa_format_returns_summary(self, client):
+    def test_qa_format_returns_summary(self, client, auth_headers):
         mock_gemini = make_gemini_mock(summary="Q&A summary content.")
         with patch("app.routes.summary.get_gemini_client", return_value=mock_gemini):
             resp = client.post("/api/summary/generate", json={
                 "video_id": VIDEO_ID,
                 "transcript": TRANSCRIPT_TEXT,
                 "format": "qa",
-            })
+            }, headers=auth_headers)
         assert resp.status_code == 200
         data = resp.json()
         assert data["success"] is True
         assert data["format"] == "qa"
 
-    def test_gemini_unavailable_returns_error_response(self, client):
+    def test_gemini_unavailable_returns_error_response(self, client, auth_headers):
         """When Gemini returns None, summary endpoint returns error."""
         mock_gemini = make_gemini_mock(summary=None)
         with patch("app.routes.summary.get_gemini_client", return_value=mock_gemini):
@@ -88,14 +88,14 @@ class TestSummaryFormats:
                 "video_id": VIDEO_ID,
                 "transcript": TRANSCRIPT_TEXT,
                 "format": "short",
-            })
+            }, headers=auth_headers)
         data = resp.json()
         # Should either return 200 with error or non-200 status
         assert data.get("success") is False or resp.status_code >= 400
 
 
 class TestSummaryCaching:
-    def test_second_call_returns_cached_true(self, client):
+    def test_second_call_returns_cached_true(self, client, auth_headers):
         """Second request for same video+format returns cached=True."""
         call_count = 0
 
@@ -112,12 +112,12 @@ class TestSummaryCaching:
                 "video_id": "cache_test_video",
                 "transcript": TRANSCRIPT_TEXT,
                 "format": "short",
-            })
+            }, headers=auth_headers)
             resp2 = client.post("/api/summary/generate", json={
                 "video_id": "cache_test_video",
                 "transcript": TRANSCRIPT_TEXT,
                 "format": "short",
-            })
+            }, headers=auth_headers)
 
         assert resp1.status_code == 200
         assert resp2.status_code == 200
@@ -125,7 +125,7 @@ class TestSummaryCaching:
         # Gemini was only called once
         assert call_count == 1
 
-    def test_different_formats_have_independent_cache_keys(self, client):
+    def test_different_formats_have_independent_cache_keys(self, client, auth_headers):
         """short and topic formats are cached independently."""
         call_count = {"short": 0, "topic": 0}
 
@@ -142,18 +142,18 @@ class TestSummaryCaching:
                 "video_id": "format_test",
                 "transcript": TRANSCRIPT_TEXT,
                 "format": "short",
-            })
+            }, headers=auth_headers)
             client.post("/api/summary/generate", json={
                 "video_id": "format_test",
                 "transcript": TRANSCRIPT_TEXT,
                 "format": "topic",
-            })
+            }, headers=auth_headers)
             # Second call for each format — should hit cache
             client.post("/api/summary/generate", json={
                 "video_id": "format_test",
                 "transcript": TRANSCRIPT_TEXT,
                 "format": "short",
-            })
+            }, headers=auth_headers)
 
         # short was called once (second call should be cached)
         assert call_count.get("short", 0) == 1

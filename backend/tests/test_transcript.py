@@ -23,12 +23,12 @@ TRANSLATION_CACHE_KEY = f"transcript_translation:{VIDEO_ID}:fr"
 # ── Extract Transcript ────────────────────────────────────────────────────────
 
 class TestExtractTranscript:
-    def test_missing_video_id_and_url_returns_400(self, client):
+    def test_missing_video_id_and_url_returns_400(self, client, auth_headers):
         """Neither video_id nor video_url provided → 400."""
-        resp = client.post("/api/transcript/extract", json={})
+        resp = client.post("/api/transcript/extract", json={}, headers=auth_headers)
         assert resp.status_code == 400
 
-    def test_extract_with_video_id_returns_transcript(self, client):
+    def test_extract_with_video_id_returns_transcript(self, client, auth_headers):
         """Success path: provide video_id, get transcript back."""
         with patch(
             "app.services.transcript_extractor.TranscriptExtractor.get_transcript",
@@ -37,7 +37,7 @@ class TestExtractTranscript:
             "app.services.transcript_extractor.TranscriptExtractor.get_video_title",
             new=AsyncMock(return_value="Test Video Title")
         ):
-            resp = client.post("/api/transcript/extract", json={"video_id": VIDEO_ID})
+            resp = client.post("/api/transcript/extract", json={"video_id": VIDEO_ID}, headers=auth_headers)
 
         assert resp.status_code == 200
         data = resp.json()
@@ -46,7 +46,7 @@ class TestExtractTranscript:
         assert data["language"] == "en"
         assert len(data["transcript"]) == 3
 
-    def test_extract_with_video_url_parses_id(self, client):
+    def test_extract_with_video_url_parses_id(self, client, auth_headers):
         """Standard YouTube URL → extract video_id and return transcript."""
         with patch(
             "app.services.transcript_extractor.TranscriptExtractor.get_transcript",
@@ -57,11 +57,11 @@ class TestExtractTranscript:
         ):
             resp = client.post("/api/transcript/extract", json={
                 "video_url": "https://www.youtube.com/watch?v=test_video_id"
-            })
+            }, headers=auth_headers)
 
         assert resp.status_code == 200
 
-    def test_extract_shorts_url_returns_400(self, client):
+    def test_extract_shorts_url_returns_400(self, client, auth_headers):
         """YouTube Shorts URL → TranscriptExtractor raises ValueError → 400."""
         from unittest.mock import patch as mock_patch
 
@@ -74,17 +74,17 @@ class TestExtractTranscript:
         ):
             resp = client.post("/api/transcript/extract", json={
                 "video_url": "https://www.youtube.com/shorts/test_short_id"
-            })
+            }, headers=auth_headers)
         assert resp.status_code == 400
 
-    def test_extract_invalid_url_returns_400(self, client):
+    def test_extract_invalid_url_returns_400(self, client, auth_headers):
         """Completely invalid URL → 400."""
         resp = client.post("/api/transcript/extract", json={
             "video_url": "https://notyoutube.com/watch?v=abc"
-        })
+        }, headers=auth_headers)
         assert resp.status_code == 400
 
-    def test_extract_no_captions_returns_404(self, client):
+    def test_extract_no_captions_returns_404(self, client, auth_headers):
         """When transcript extractor returns no_transcript error, route returns 404."""
         no_captions_response = {
             "success": False,
@@ -100,11 +100,11 @@ class TestExtractTranscript:
             new=AsyncMock(return_value="Test Video")
         ):
             # Use a unique video_id to avoid hitting the route-level cache
-            resp = client.post("/api/transcript/extract", json={"video_id": "no_captions_vid"})
+            resp = client.post("/api/transcript/extract", json={"video_id": "no_captions_vid"}, headers=auth_headers)
 
         assert resp.status_code == 404
 
-    def test_extract_second_call_returns_cached(self, client):
+    def test_extract_second_call_returns_cached(self, client, auth_headers):
         """Second call for same video+language returns cached=True."""
         call_count = 0
 
@@ -120,8 +120,8 @@ class TestExtractTranscript:
             "app.services.transcript_extractor.TranscriptExtractor.get_video_title",
             new=AsyncMock(return_value="Test Video Title")
         ):
-            resp1 = client.post("/api/transcript/extract", json={"video_id": VIDEO_ID})
-            resp2 = client.post("/api/transcript/extract", json={"video_id": VIDEO_ID})
+            resp1 = client.post("/api/transcript/extract", json={"video_id": VIDEO_ID}, headers=auth_headers)
+            resp2 = client.post("/api/transcript/extract", json={"video_id": VIDEO_ID}, headers=auth_headers)
 
         assert resp1.status_code == 200
         assert resp2.status_code == 200
