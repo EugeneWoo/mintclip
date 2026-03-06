@@ -86,8 +86,9 @@ export function YouTubeSidebar({ videoId }: YouTubeSidebarProps): React.JSX.Elem
 
   // Transcript state
   const [transcript, setTranscript] = useState<any>(null);
-  const [transcriptLoading, setTranscriptLoading] = useState(false);
+  const [transcriptLoading, setTranscriptLoading] = useState(true);
   const [transcriptDisabled, setTranscriptDisabled] = useState(false); // No captions or fetch failure
+  const transcriptFetchInProgress = React.useRef(false);
 
   // Summary state - store all formats separately with per-format is_structured flag
   const [summaries, setSummaries] = useState<{ short?: string; topic?: string; qa?: string; short_is_structured?: boolean; topic_is_structured?: boolean; qa_is_structured?: boolean }>({});
@@ -203,6 +204,8 @@ export function YouTubeSidebar({ videoId }: YouTubeSidebarProps): React.JSX.Elem
   React.useEffect(() => {
     setChatInputValue('');
     setTranscriptDisabled(false);
+    setTranscriptLoading(true);
+    transcriptFetchInProgress.current = false;
   }, [videoId]);
 
   // Check authentication status on mount
@@ -391,8 +394,9 @@ export function YouTubeSidebar({ videoId }: YouTubeSidebarProps): React.JSX.Elem
 
   // Auto-fetch transcript on mount when authenticated
   React.useEffect(() => {
-    if (isAuthenticated && authChecked && !transcript && !transcriptLoading && !transcriptDisabled) {
+    if (isAuthenticated && authChecked && !transcript && !transcriptDisabled && !transcriptFetchInProgress.current) {
       const fetchTranscriptInBackground = async () => {
+        transcriptFetchInProgress.current = true;
         setTranscriptLoading(true);
         try {
           // Fetch languages (best-effort) and transcript in parallel
@@ -546,13 +550,14 @@ export function YouTubeSidebar({ videoId }: YouTubeSidebarProps): React.JSX.Elem
           console.log('Background transcript fetch error:', err);
           setTranscriptDisabled(true);
         } finally {
+          transcriptFetchInProgress.current = false;
           setTranscriptLoading(false);
         }
       };
 
       fetchTranscriptInBackground();
     }
-  }, [isAuthenticated, authChecked, videoId, transcript, transcriptLoading, transcriptDisabled]);
+  }, [isAuthenticated, authChecked, videoId, transcript, transcriptDisabled]);
 
   // Helper function to translate transcript to English in background
   const translateToEnglishInBackground = async (transcriptData: any[], sourceLanguage: string) => {
