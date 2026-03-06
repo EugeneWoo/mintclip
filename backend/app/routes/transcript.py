@@ -291,8 +291,12 @@ async def get_languages_with_translation(video_id: str):
 
     languages = result.get('languages', [])
 
-    # Check if English is already available natively (covers en, en-US, en-GB, etc.)
-    has_native_english = any(lang.get('code', '').startswith('en') for lang in languages)
+    # Check if non-generated English is available (covers en, en-US, en-GB, etc.)
+    has_native_english = any(lang.get('code', '').startswith('en') and not lang.get('is_generated') for lang in languages)
+
+    # If native English exists, suppress auto-generated English to avoid redundant entries
+    if has_native_english:
+        languages = [l for l in languages if not (l.get('code', '').startswith('en') and l.get('is_generated'))]
 
     # If not native English, check if we have an AI translation cached
     if not has_native_english:
