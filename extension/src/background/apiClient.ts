@@ -9,6 +9,7 @@ export interface TranscriptRequest {
   videoId: string;
   videoUrl?: string;
   languageCode?: string;
+  token?: string;
 }
 
 export interface TranscriptEntry {
@@ -34,6 +35,7 @@ export interface SummaryRequest {
   videoId: string;
   transcript: string;
   format: 'short' | 'topic' | 'qa';
+  token?: string;
 }
 
 export interface SummaryResponse {
@@ -50,6 +52,7 @@ export interface ChatMessageRequest {
   transcript: string;
   question: string;
   chatHistory: Array<{ role: string; content: string }>;
+  token?: string;
 }
 
 export interface ChatMessageResponse {
@@ -154,6 +157,7 @@ export async function fetchTranscript(
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        ...(request.token ? { 'Authorization': `Bearer ${request.token}` } : {}),
       },
       body: JSON.stringify({
         video_id: request.videoId,
@@ -207,6 +211,7 @@ export async function fetchSummary(
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        ...(request.token ? { 'Authorization': `Bearer ${request.token}` } : {}),
       },
       body: JSON.stringify({
         video_id: request.videoId,
@@ -260,6 +265,7 @@ export async function fetchChatMessage(
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        ...(request.token ? { 'Authorization': `Bearer ${request.token}` } : {}),
       },
       body: JSON.stringify({
         video_id: request.videoId,

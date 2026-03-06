@@ -6,7 +6,7 @@ Endpoints for extracting YouTube video transcripts
 import logging
 import uuid
 import asyncio
-from fastapi import APIRouter, HTTPException, BackgroundTasks
+from fastapi import APIRouter, HTTPException, BackgroundTasks, Depends
 from pydantic import BaseModel
 from typing import Optional, List, Dict, Tuple
 from datetime import datetime, timedelta
@@ -14,6 +14,7 @@ from datetime import datetime, timedelta
 from app.services.transcript_extractor import TranscriptExtractor
 from app.utils.url_parser import parse_youtube_urls, validate_batch_input
 from app.services.cache import set_job_status, get_job_status, update_job_progress
+from app.middleware.auth import require_auth
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -40,7 +41,7 @@ class TranscriptRequest(BaseModel):
 
 
 @router.post("/extract")
-async def extract_transcript(request: TranscriptRequest):
+async def extract_transcript(request: TranscriptRequest, current_user: dict = Depends(require_auth)):
     """
     Extract transcript from a YouTube video
 

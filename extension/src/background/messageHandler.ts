@@ -149,8 +149,9 @@ export async function handleMessage(
       }
 
       case 'GET_TRANSCRIPT': {
-        // Skip authentication for testing
-        const request = message.payload as TranscriptRequest;
+        const { getValidAccessToken } = await import('./auth');
+        const accessToken = await getValidAccessToken();
+        const request = { ...(message.payload as TranscriptRequest), token: accessToken ?? undefined };
         const result = await fetchTranscript(request);
 
         // Transform API response to match UI expectations
@@ -304,13 +305,15 @@ export async function handleMessage(
       }
 
       case 'CHAT': {
-        // Skip authentication for testing
+        const { getValidAccessToken } = await import('./auth');
+        const accessToken = await getValidAccessToken();
         const payload = message.payload as any;
         const request: ChatMessageRequest = {
           videoId: payload.videoId,
           transcript: payload.transcript,
           question: payload.question,
           chatHistory: payload.chatHistory || [],
+          token: accessToken ?? undefined,
         };
 
         const result = await fetchChatMessage(request);
@@ -332,13 +335,15 @@ export async function handleMessage(
       }
 
       case 'GET_SUGGESTED_QUESTIONS': {
-        // Skip authentication - suggested questions are publicly available
+        const { getValidAccessToken } = await import('./auth');
+        const accessToken = await getValidAccessToken();
         const { videoId, transcript } = message.payload as { videoId: string; transcript: string };
         try {
           const response = await fetch(`${getApiUrl()}/api/chat/suggested-questions`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
+              ...(accessToken ? { 'Authorization': `Bearer ${accessToken}` } : {}),
             },
             body: JSON.stringify({
               video_id: videoId,
@@ -358,7 +363,9 @@ export async function handleMessage(
 
       case 'GET_SUMMARY': {
         // Generate AI summary using Gemini
-        const request = message.payload as SummaryRequest;
+        const { getValidAccessToken } = await import('./auth');
+        const accessToken = await getValidAccessToken();
+        const request = { ...(message.payload as SummaryRequest), token: accessToken ?? undefined };
         const result = await fetchSummary(request);
 
         if (result.success) {

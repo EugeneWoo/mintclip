@@ -3,12 +3,13 @@ Summary API Routes
 Endpoints for generating AI summaries using Gemini 1.5 Flash
 """
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from typing import Optional
 
 from app.services.cache import get_cache, TTL_SUMMARY
 from app.services.gemini_client import get_gemini_client
+from app.middleware.auth import require_auth
 
 router = APIRouter()
 
@@ -31,7 +32,7 @@ class SummaryResponse(BaseModel):
 
 
 @router.post("/generate", response_model=SummaryResponse)
-async def generate_summary(request: SummaryRequest):
+async def generate_summary(request: SummaryRequest, current_user: dict = Depends(require_auth)):
     """
     Generate AI summary using Gemini 2.0 Flash with clickable timestamps
 
