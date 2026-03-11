@@ -4,6 +4,8 @@ A Chrome extension with FastAPI backend that provides AI-powered transcript extr
 
 ## 🚀 Quick Links
 
+- **[Chrome Web Store](https://chromewebstore.google.com/detail/mintclip/kbalipdjcmliicfodacdbgngflaelnnm)** - Install the extension
+- **[Web App](https://mintclip.up.railway.app/)** - Access your saved items
 - **[Backend API](backend/)** - FastAPI server with transcript extraction & AI features
 - **[Chrome Extension](extension/)** - Client-side extension for YouTube
 - **[Agent OS Standards](agent-os/)** - Product specs and development standards
