@@ -101,7 +101,7 @@ export function HowToUseScreen({ isDarkMode }: HowToUseScreenProps): React.JSX.E
         >
           How to Use Mintclip
         </div>
-        <div style={{ fontSize: '12px', color: '#000000', lineHeight: 1.45 }}>
+        <div style={{ fontSize: '12px', color: textSecondary, lineHeight: 1.45 }}>
           <div>Mintclip works on any YouTube video with captions available.</div>
           <div>Contact getmintclip@gmail.com for support.</div>
         </div>
