@@ -141,6 +141,7 @@ jobs:
       - name: Run tests
         # authentication.test.ts and ui-components.test.tsx have pre-existing failures
         # (tests written against an older API contract — tracked separately to fix)
+        # manifest-validation, api-client, auth-token-management are the active test suite
         run: npm test -- --ci --coverage --forceExit --testPathIgnorePatterns="authentication.test" "ui-components.test"
 
   # ─────────────────────────────────────────────────────────────

@@ -5,7 +5,9 @@ export default {
   testMatch: ['**/*.test.ts', '**/*.test.tsx'],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
-    // Mock config.ts to avoid import.meta.env (Vite-only, not available in Jest)
+    // Mock config.ts to avoid import.meta.env (Vite-only, not available in Jest).
+    // The absolute path pattern catches imports from both __tests__/ and src/**/.
+    '<rootDir>/src/config': '<rootDir>/__tests__/__mocks__/config.ts',
     '^../src/config$': '<rootDir>/__tests__/__mocks__/config.ts',
     '^../../src/config$': '<rootDir>/__tests__/__mocks__/config.ts',
     '^../config$': '<rootDir>/__tests__/__mocks__/config.ts',
