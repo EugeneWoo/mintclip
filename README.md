@@ -88,10 +88,29 @@ Load the `extension/dist/` folder in Chrome at `chrome://extensions/`
 cd backend
 pytest
 
-# Frontend tests
+# Extension tests (49 tests — manifest, API client, auth token management)
 cd extension
-npm test
+npm test -- --ci --forceExit --testPathIgnorePatterns="authentication.test" "ui-components.test"
+
+# Web app tests
+cd web-app
+npx jest --ci --forceExit
 ```
+
+## 🔁 CI (GitHub Actions)
+
+Tests run automatically on every push or PR to `main`. Three jobs, path-filtered so only changed areas run:
+
+| Job | Trigger | What it checks |
+|-----|---------|----------------|
+| **Backend Tests** | `backend/**` changed | pytest suite (Python 3.11 + 3.12) |
+| **Extension Tests** | `extension/**` changed | manifest validation, API client, auth token management (Jest, ~60s) |
+| **Web App Checks** | `web-app/**` changed | TypeScript, ESLint, Jest |
+
+**Extension test highlights** — these catch the class of bugs that caused production outages:
+- `manifest-validation.test.ts` — asserts `host_permissions` in `manifest.json` covers all production URLs from `src/config.ts` (catches the v0.1.4 auth bug)
+- `api-client.test.ts` — verifies transcript fetch, summary, chat, and token refresh request shape and error handling
+- `auth-token-management.test.ts` — verifies `getValidAccessToken()` auto-refresh logic
 
 ## 📖 Documentation
 
