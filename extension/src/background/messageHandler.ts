@@ -431,7 +431,7 @@ export async function handleMessage(
           console.log('Got Google token, verifying with backend...');
 
           // Send token to backend
-          const response = await fetch('${getApiUrl()}/api/auth/google/token', {
+          const response = await fetch(`${getApiUrl()}/api/auth/google/token`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ google_token: token }),
@@ -503,7 +503,7 @@ export async function handleMessage(
             });
 
             // Verify the fresh Google token with backend to get JWT
-            const response = await fetch('${getApiUrl()}/api/auth/google/token', {
+            const response = await fetch(`${getApiUrl()}/api/auth/google/token`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ google_token: token }),

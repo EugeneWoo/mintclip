@@ -115,6 +115,30 @@ async def health():
     }
 
 
+@app.get("/debug/google-connectivity")
+async def debug_google_connectivity():
+    """Test outbound connectivity to Google APIs"""
+    import httpx
+    import time
+    results = {}
+
+    for url in [
+        "https://www.googleapis.com/oauth2/v3/userinfo",
+        "https://www.googleapis.com/oauth2/v3/tokeninfo",
+    ]:
+        start = time.time()
+        try:
+            async with httpx.AsyncClient() as client:
+                r = await client.get(url, timeout=5.0)
+                results[url] = {"status": r.status_code, "duration_ms": int((time.time() - start) * 1000)}
+        except httpx.TimeoutException:
+            results[url] = {"error": "timeout", "duration_ms": int((time.time() - start) * 1000)}
+        except Exception as e:
+            results[url] = {"error": str(e), "duration_ms": int((time.time() - start) * 1000)}
+
+    return results
+
+
 @app.get("/debug/proxy-config")
 async def debug_proxy_config():
     """Debug endpoint to check proxy configuration"""

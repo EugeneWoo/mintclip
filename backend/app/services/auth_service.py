@@ -159,7 +159,14 @@ class AuthService:
             logger.info(f"Verifying Google token (prefix): {google_token[:20]}...")
 
             # Verify the Google token and get user info
-            async with httpx.AsyncClient() as client:
+            # Use Webshare proxy if configured (needed for some Railway regions)
+            ws_user = os.getenv("WS_USER")
+            ws_pass = os.getenv("WS_PASS")
+            proxy_url = f"http://{ws_user}:{ws_pass}@p.webshare.io:80" if ws_user and ws_pass else None
+            if proxy_url:
+                logger.info("Using Webshare proxy for Google API call")
+
+            async with httpx.AsyncClient(proxy=proxy_url) as client:
                 response = await client.get(
                     "https://www.googleapis.com/oauth2/v3/userinfo",
                     headers={"Authorization": f"Bearer {google_token}"},
