@@ -166,7 +166,7 @@ class AuthService:
             if proxy_url:
                 logger.info("Using Webshare proxy for Google API call")
 
-            async with httpx.AsyncClient(proxy=proxy_url) as client:
+            async with httpx.AsyncClient(proxies=proxy_url) as client:
                 response = await client.get(
                     "https://www.googleapis.com/oauth2/v3/userinfo",
                     headers={"Authorization": f"Bearer {google_token}"},
