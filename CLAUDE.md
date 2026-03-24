@@ -64,6 +64,11 @@ cd extension && npm test -- --ci --forceExit --testPathIgnorePatterns="authentic
 4. Verify: `unzip -p mintclip-extension.zip dist/manifest.json | python3 -m json.tool | grep -A8 "host_permissions\|version"`
 5. Load unpacked `dist/` in Chrome and test sign-in end-to-end
 
+## Railway / Backend Networking
+- **Webshare proxy** (`WS_USER`, `WS_PASS`) is required for ALL outbound HTTP calls from Railway, not just YouTube transcript fetching. Railway EU West cannot reach Google APIs (`googleapis.com`) directly — requests hang indefinitely.
+- `auth_service.py` `verify_google_token()` uses `httpx.AsyncClient(proxies=proxy_url)` with the Webshare proxy. Use `proxies=` not `proxy=` (httpx version compatibility).
+- If Google OAuth login hangs (~49s → HTTP 499), check that `WS_USER`/`WS_PASS` are set in Railway variables.
+
 ## Git Workflow
 - Before ending any session, run `git status` and commit/push any uncommitted changes
 
