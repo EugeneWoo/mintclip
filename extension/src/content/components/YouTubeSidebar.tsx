@@ -146,6 +146,7 @@ export function YouTubeSidebar({ videoId }: YouTubeSidebarProps): React.JSX.Elem
           // Restore transcript
           if (videoData.transcript) {
             setTranscript(videoData.transcript);
+            setTranscriptLoading(false);
           }
 
           // Restore transcript cache (all languages)
