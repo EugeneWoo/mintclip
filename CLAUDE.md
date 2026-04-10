@@ -68,6 +68,10 @@ cd extension && npm test -- --ci --forceExit --testPathIgnorePatterns="authentic
 - **Webshare proxy** (`WS_USER`, `WS_PASS`) is required for ALL outbound HTTP calls from Railway, not just YouTube transcript fetching. Railway EU West cannot reach Google APIs (`googleapis.com`) directly — requests hang indefinitely.
 - `auth_service.py` `verify_google_token()` uses `httpx.AsyncClient(proxies=proxy_url)` with the Webshare proxy. Use `proxies=` not `proxy=` (httpx version compatibility).
 - If Google OAuth login hangs (~49s → HTTP 499), check that `WS_USER`/`WS_PASS` are set in Railway variables.
+- **`GEMINI_API_KEY`** must be kept valid in Railway variables. If summaries/chat/translation silently fail with HTTP 200, check Railway logs for `Gemini API error: 400 API key not valid` — rotate the key in Google AI Studio.
+
+## Extension State Gotchas
+- **`transcriptLoading` init**: State initializes to `true`. Always call `setTranscriptLoading(false)` in EVERY path that sets transcript — including `chrome.storage.local` restore on mount. If only cleared in the fetch `finally` block, return visits to cached videos will show a stuck spinner.
 
 ## Git Workflow
 - Before ending any session, run `git status` and commit/push any uncommitted changes

@@ -216,7 +216,11 @@ async def exchange_google_code(request: GoogleAuthCodeRequest):
 
     try:
         # Exchange authorization code for Google access token
-        async with httpx.AsyncClient() as client:
+        # Webshare proxy required: Railway EU West cannot reach googleapis.com directly
+        ws_user = os.getenv("WS_USER")
+        ws_pass = os.getenv("WS_PASS")
+        proxy_url = f"http://{ws_user}:{ws_pass}@p.webshare.io:80" if ws_user and ws_pass else None
+        async with httpx.AsyncClient(proxies=proxy_url) as client:
             token_response = await client.post(
                 "https://oauth2.googleapis.com/token",
                 data={

@@ -3,14 +3,17 @@
  * Handles Google OAuth redirect and exchanges code for JWT token
  */
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BACKEND_URL } from '../config';
 
 export function AuthCallback(): React.JSX.Element {
   const navigate = useNavigate();
+  const hasRun = useRef(false);
 
   useEffect(() => {
+    if (hasRun.current) return;
+    hasRun.current = true;
     handleCallback();
   }, []);
 
@@ -46,16 +49,25 @@ export function AuthCallback(): React.JSX.Element {
       console.log('[AuthCallback] Exchanging code for tokens...');
       const redirectUri = window.location.origin + '/auth/callback';
 
-      const response = await fetch(`${BACKEND_URL}/api/auth/google/code`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          code: code,
-          redirect_uri: redirectUri,
-        }),
-      });
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+      let response: Response;
+      try {
+        response = await fetch(`${BACKEND_URL}/api/auth/google/code`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            code: code,
+            redirect_uri: redirectUri,
+          }),
+          signal: controller.signal,
+        });
+      } finally {
+        clearTimeout(timeoutId);
+      }
 
       if (!response.ok) {
         const errorData = await response.json();
