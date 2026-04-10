@@ -166,41 +166,43 @@ class AuthService:
             if proxy_url:
                 logger.info("Using Webshare proxy for Google API call")
 
-            async with httpx.AsyncClient(proxies=proxy_url) as client:
-                response = await client.get(
+            async def _fetch_google_user(client: httpx.AsyncClient) -> Optional[dict]:
+                """Fetch user info from Google, returns dict or None."""
+                r = await client.get(
                     "https://www.googleapis.com/oauth2/v3/userinfo",
                     headers={"Authorization": f"Bearer {google_token}"},
                     timeout=10.0
                 )
+                if r.status_code == 200:
+                    return r.json()
+                logger.warning(f"userinfo returned {r.status_code}, trying tokeninfo fallback")
+                r = await client.get(
+                    f"https://www.googleapis.com/oauth2/v3/tokeninfo?access_token={google_token}",
+                    timeout=10.0
+                )
+                if r.status_code != 200:
+                    logger.error(f"tokeninfo also failed: {r.status_code} {r.text}")
+                    return None
+                return r.json()
 
-                if response.status_code != 200:
-                    logger.error(f"Google token verification failed: {response.status_code} {response.text}")
-                    # Try alternative endpoint
-                    logger.info("Attempting tokeninfo endpoint as fallback...")
-                    response = await client.get(
-                        f"https://www.googleapis.com/oauth2/v3/tokeninfo?access_token={google_token}",
-                        timeout=10.0
-                    )
-                    if response.status_code != 200:
-                        logger.error(f"Tokeninfo endpoint also failed: {response.status_code} {response.text}")
-                        return None, None, "Invalid or expired Google token. Please try signing in again."
+            google_user = None
 
-                    # If tokeninfo worked, get userinfo
-                    token_info = response.json()
-                    logger.info(f"Token info retrieved: {token_info}")
+            # Try with proxy first, fall back to direct if proxy fails
+            if proxy_url:
+                try:
+                    async with httpx.AsyncClient(proxies=proxy_url) as client:
+                        google_user = await _fetch_google_user(client)
+                except httpx.RequestError as proxy_err:
+                    logger.warning(f"Proxy request failed ({proxy_err}), retrying without proxy")
 
-                    # Get user info using the token
-                    response = await client.get(
-                        "https://www.googleapis.com/oauth2/v2/userinfo",
-                        headers={"Authorization": f"Bearer {google_token}"},
-                        timeout=10.0
-                    )
-                    if response.status_code != 200:
-                        logger.error(f"V2 userinfo also failed: {response.status_code} {response.text}")
-                        return None, None, "Failed to retrieve user information from Google"
+            if google_user is None:
+                async with httpx.AsyncClient() as client:
+                    google_user = await _fetch_google_user(client)
 
-                google_user = response.json()
-                logger.info(f"Successfully retrieved Google user info for: {google_user.get('email')}")
+            if google_user is None:
+                return None, None, "Invalid or expired Google token. Please try signing in again."
+
+            logger.info(f"Successfully retrieved Google user info for: {google_user.get('email')}")
 
             email = google_user.get("email")
             if not email:
