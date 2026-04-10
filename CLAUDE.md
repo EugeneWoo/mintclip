@@ -66,9 +66,14 @@ cd extension && npm test -- --ci --forceExit --testPathIgnorePatterns="authentic
 
 ## Railway / Backend Networking
 - **Webshare proxy** (`WS_USER`, `WS_PASS`) is required for ALL outbound HTTP calls from Railway, not just YouTube transcript fetching. Railway EU West cannot reach Google APIs (`googleapis.com`) directly — requests hang indefinitely.
-- `auth_service.py` `verify_google_token()` uses `httpx.AsyncClient(proxies=proxy_url)` with the Webshare proxy. Use `proxies=` not `proxy=` (httpx version compatibility).
+- Every `httpx.AsyncClient()` that calls an external API must pass `proxies=proxy_url`. Pattern: `proxy_url = f"http://{ws_user}:{ws_pass}@p.webshare.io:80" if ws_user and ws_pass else None`. Use `proxies=` not `proxy=` (httpx version compatibility).
+- Affected endpoints (both fixed): `auth_service.py` `verify_google_token()` and `auth.py` `exchange_google_code()`.
 - If Google OAuth login hangs (~49s → HTTP 499), check that `WS_USER`/`WS_PASS` are set in Railway variables.
 - **`GEMINI_API_KEY`** must be kept valid in Railway variables. If summaries/chat/translation silently fail with HTTP 200, check Railway logs for `Gemini API error: 400 API key not valid` — rotate the key in Google AI Studio.
+
+## Web App Auth Gotchas
+- **`exchange_google_code()` proxy**: `auth.py` `exchange_google_code()` must use the Webshare proxy just like `verify_google_token()`. Without it, web app OAuth hangs indefinitely on Railway (same root cause — Railway EU West can't reach `googleapis.com` directly).
+- **React Strict Mode double-invocation**: In dev, React 18 Strict Mode calls `useEffect` twice, firing two concurrent `POST /api/auth/google/code` requests with the same code. The second request gets 400 (code already used) and redirects to `/?auth_error=true`. Fix: `useRef` guard in `AuthCallback.tsx` ensures `handleCallback()` runs only once.
 
 ## Extension State Gotchas
 - **`transcriptLoading` init**: State initializes to `true`. Always call `setTranscriptLoading(false)` in EVERY path that sets transcript — including `chrome.storage.local` restore on mount. If only cleared in the fetch `finally` block, return visits to cached videos will show a stuck spinner.
