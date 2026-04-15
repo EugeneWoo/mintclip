@@ -27,8 +27,8 @@ Chrome Extension (MV3) + FastAPI backend + React/TypeScript web app
 
 ## Environment
 ```bash
-# Backend
-cd backend && uvicorn app.main:app --reload --port 8000
+# Backend — MUST use venv's uvicorn (Homebrew Python 3.14 breaks google-generativeai)
+cd backend && ../.venv/bin/uvicorn app.main:app --reload --port 8000
 
 # Extension
 cd extension && npm run dev       # dev build → localhost:8000
