@@ -283,7 +283,7 @@ class GeminiClient:
             return None
 
         try:
-            prompt = f"""Translate the following text to English. Only output the translation, nothing else.
+            prompt = f"""Translate ALL of the following text into English. Every word must be in English in the output — even parts that are already in English must be included as-is or lightly cleaned up. Do not skip, omit, or summarize any portion. Output only the translated text, nothing else.
 
 Text to translate:
 {text}"""

@@ -401,10 +401,10 @@ async def translate_transcript(request: TranslateRequest):
             }
 
         # Validate translation is actually different from source
-        # Gemini sometimes returns the original text unchanged when overwhelmed
-        source_sample = transcript_text[:200].lower().strip()
-        translated_sample = translated_text[:200].lower().strip()
-        if translated_sample == source_sample:
+        # Gemini sometimes returns the original text unchanged when overwhelmed.
+        # Compare full texts (not just a prefix sample) to avoid false positives
+        # when the transcript starts with English content that passes through unchanged.
+        if translated_text.strip().lower() == transcript_text.strip().lower():
             logger.warning(f"Translation returned same text as source for {request.video_id} - not caching")
             return {
                 'success': False,

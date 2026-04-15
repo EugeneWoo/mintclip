@@ -531,8 +531,9 @@ export function YouTubeSidebar({ videoId }: YouTubeSidebarProps): React.JSX.Elem
             if (lang !== 'en' && !hasNativeEnglish) {
               setTranslating(true);
               // Add English option to show "translating..." status
-              // Use filteredLanguages (without auto-generated non-English)
-              const languagesWithTranslating = [...filteredLanguages, {
+              // Exclude any existing AI-translated English entry to avoid duplicates
+              const languagesWithoutAIEn = filteredLanguages.filter((l: any) => !(l.code === 'en' && l.is_ai_translated));
+              const languagesWithTranslating = [...languagesWithoutAIEn, {
                 code: 'en',
                 name: 'English (translating...)',
                 is_generated: true,
@@ -540,7 +541,9 @@ export function YouTubeSidebar({ videoId }: YouTubeSidebarProps): React.JSX.Elem
                 is_ai_translated: true
               }];
               setAvailableLanguages(languagesWithTranslating);
-              // Start polling for translation completion
+              // Kick off the actual translation so the cache gets populated,
+              // then poll will detect it and flip the option to "AI-translated"
+              translateToEnglishInBackground(response.data, lang);
               pollForTranslation();
             }
           } else {
@@ -746,10 +749,8 @@ export function YouTubeSidebar({ videoId }: YouTubeSidebarProps): React.JSX.Elem
             if (lang !== 'en' && !hasNativeEnglish) {
               setTranslating(true);
               // Add English option to show "translating..." status
-              // Filter to only native languages + add English (translating...)
-              const filteredForTranslating = languages.filter((l: any) =>
-                !l.is_ai_translated || (l.is_ai_translated && l.code === 'en')
-              );
+              // Filter to only native languages (exclude AI-translated English to avoid duplicates)
+              const filteredForTranslating = languages.filter((l: any) => !l.is_ai_translated);
               setAvailableLanguages([...filteredForTranslating, {
                 code: 'en',
                 name: 'English (translating...)',
@@ -757,7 +758,9 @@ export function YouTubeSidebar({ videoId }: YouTubeSidebarProps): React.JSX.Elem
                 is_translatable: false,
                 is_ai_translated: true
               }]);
-              // Start polling for translation completion
+              // Kick off the actual translation so the cache gets populated,
+              // then poll will detect it and flip the option to "AI-translated"
+              if (transcript) translateToEnglishInBackground(transcript, lang);
               pollForTranslation();
             }
           }
