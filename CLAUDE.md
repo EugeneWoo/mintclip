@@ -23,6 +23,7 @@ Chrome Extension (MV3) + FastAPI backend + React/TypeScript web app
 - **Core**: `/api/transcript/extract`, `/api/summary/generate`, `/api/chat/message`
 - **Auth**: `/api/auth/google/token`, `/api/auth/refresh`, `/api/auth/logout`
 - **Saved Items**: `/api/saved-items/save`, `/api/saved-items/list`, `/api/saved-items/{video_id}/{item_type}`
+- **Batch**: `/api/batch/submit`, `/api/batch/status/{job_id}` — multi-video import (up to 5 URLs)
 - **Config**: `/api/config/supabase`
 
 ## Environment
@@ -75,11 +76,21 @@ cd extension && npm test -- --ci --forceExit --testPathIgnorePatterns="authentic
 - **`exchange_google_code()` proxy**: `auth.py` `exchange_google_code()` must use the Webshare proxy just like `verify_google_token()`. Without it, web app OAuth hangs indefinitely on Railway (same root cause — Railway EU West can't reach `googleapis.com` directly).
 - **React Strict Mode double-invocation**: In dev, React 18 Strict Mode calls `useEffect` twice, firing two concurrent `POST /api/auth/google/code` requests with the same code. The second request gets 400 (code already used) and redirects to `/?auth_error=true`. Fix: `useRef` guard in `AuthCallback.tsx` ensures `handleCallback()` runs only once.
 
+## Batch Import Feature
+- **Components**: `web-app/src/components/BatchCard.tsx`, `BatchImport.tsx` — multi-video grouped display
+- **Backend**: `backend/app/routes/batch.py` registered at `/api/batch`
+- **item_type**: Batch group rows saved with `item_type='batch'`, `source='batch'`, `video_id` = comma-joined IDs (e.g. `"abc,def,ghi"`)
+- **Dashboard reduce()**: Must handle `item_type='batch'` explicitly — sets `acc[videoId].item_type = 'batch'` and merges content. Without this branch, defaults to `item_type='transcript'` and the filter hides the card.
+- **Modal**: `SavedItemModal.tsx` uses `isBatch = item?.source === 'batch'` to hide the Transcript tab for batch items.
+- **Supabase migration required**: `backend/scripts/add_batch_source.sql` must be run in Supabase SQL Editor to add `'batch'` to the `saved_items_source_check` constraint. Without this, batch rows fail to save and `source` is never `'batch'` — causing the modal to show the Transcript tab.
+- **Supabase migration required**: `backend/scripts/add_batch_item_type.sql` similarly adds `'batch'` to the `item_type` check constraint.
+
 ## Extension State Gotchas
 - **`transcriptLoading` init**: State initializes to `true`. Always call `setTranscriptLoading(false)` in EVERY path that sets transcript — including `chrome.storage.local` restore on mount. If only cleared in the fetch `finally` block, return visits to cached videos will show a stuck spinner.
 
 ## Git Workflow
 - Before ending any session, run `git status` and commit/push any uncommitted changes
+- **Pre-push CI hook**: `.git/hooks/pre-push` runs TypeScript/ESLint/Jest/pytest for changed areas before every push (mirrors CI path-filtering). Bypass with `git push --no-verify` only in emergencies.
 
 ## File Storage (non-negotiable)
 - Manual tests/AB results → `backend/manual_tests/`
