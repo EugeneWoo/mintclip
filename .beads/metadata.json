@@ -1,0 +1,7 @@
+{
+  "database": "dolt",
+  "backend": "dolt",
+  "dolt_mode": "embedded",
+  "dolt_database": "mintclip",
+  "project_id": "4b5b3062-94a5-409a-8044-e7b4f97a05f6"
+}

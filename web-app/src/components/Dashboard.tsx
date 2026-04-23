@@ -6,9 +6,11 @@
 import React, { useState, useEffect } from 'react';
 // import { Link } from 'react-router-dom';
 import { VideoCard } from './VideoCard';
+import { BatchCard } from './BatchCard';
 import { SavedItemModal } from './modal/SavedItemModal';
 import { UserProfileDropdown } from './UserProfileDropdown';
 import { Footer } from './Footer';
+import { BatchImport } from './BatchImport';
 import { getAuthToken } from '../utils/auth';
 import { BACKEND_URL } from '../config';
 import { subscribeToSavedItems } from '../utils/supabase';
@@ -16,10 +18,10 @@ import { subscribeToSavedItems } from '../utils/supabase';
 interface SavedItem {
   id: string;
   video_id: string;
-  item_type: 'transcript' | 'summary' | 'chat';
+  item_type: 'transcript' | 'summary' | 'chat' | 'batch';
   content: any;
   created_at: string;
-  source: 'extension' | 'upload';
+  source: 'extension' | 'upload' | 'batch';
 }
 
 interface ExtractResponse {
@@ -32,6 +34,7 @@ interface ExtractResponse {
 }
 
 export function Dashboard(): React.JSX.Element {
+  const [urlMode, setUrlMode] = useState<'single' | 'bulk'>('single');
   const [url, setUrl] = useState('');
   const [isExtracting, setIsExtracting] = useState(false);
   const [extractError, setExtractError] = useState<string | null>(null);
@@ -213,9 +216,15 @@ export function Dashboard(): React.JSX.Element {
             acc[videoId].content.segments = item.content.segments;
             acc[videoId].content.text = item.content.text;
             acc[videoId].content.language = item.content.language;
+            // Transcript row is the authoritative source for videoTitle and source
+            if (item.content?.videoTitle) {
+              acc[videoId].content.videoTitle = item.content.videoTitle;
+            }
+            // Preserve the source from the transcript row (e.g. 'batch')
+            acc[videoId].source = item.source;
           }
 
-if (item.item_type === 'summary') {
+          if (item.item_type === 'summary') {
             // Debug log summary content structure
             console.log(`[Dashboard] Merging summary for ${videoId}:`, {
               has_summary: !!item.content?.summary,
@@ -259,6 +268,12 @@ if (item.item_type === 'summary') {
               console.warn(`[Dashboard] Summary item for ${videoId} has unexpected format, copying all content`);
               acc[videoId].content = { ...acc[videoId].content, ...item.content };
             }
+          }
+
+          if (item.item_type === 'batch') {
+            acc[videoId].item_type = 'batch';
+            // Merge batch-specific content (title, video_ids list)
+            acc[videoId].content = { ...acc[videoId].content, ...item.content };
           }
 
           if (item.item_type === 'chat') {
@@ -522,6 +537,37 @@ if (item.item_type === 'summary') {
       alert('Failed to delete items. Please try again.');
     }
   };
+  const handleBatchGroupDelete = async (item: SavedItem) => {
+    const title = item.content?.groupTitle || 'Batch Import';
+    const confirmed = window.confirm(
+      `Delete batch "${title}" and all its videos?\n\nThis cannot be undone.`
+    );
+    if (!confirmed) return;
+
+    try {
+      const token = await getAuthToken();
+      const videoIds = [
+        item.video_id,
+        ...((item.content?.videos || []) as Array<{ video_id: string }>).map(v => v.video_id),
+      ];
+
+      await Promise.all(
+        videoIds.map(vid =>
+          fetch(`${BACKEND_URL}/api/saved-items/video/${vid}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${token}` },
+          })
+        )
+      );
+
+      const batchVideoIds = new Set(videoIds);
+      setSavedItems(prev => prev.filter(i => !batchVideoIds.has(i.video_id)));
+    } catch (error) {
+      console.error('Batch delete error:', error);
+      alert('Failed to delete batch. Please try again.');
+    }
+  };
+
   const handleModalClose = () => {
     setIsModalOpen(false);
     setSelectedItem(null);
@@ -564,6 +610,9 @@ if (item.item_type === 'summary') {
   const getFilteredItems = () => {
     // Filter by content type based on what's actually saved
     let filtered = savedItems.filter(item => {
+      // Individual batch transcripts are hidden — shown grouped inside BatchCard
+      if (item.source === 'batch' && item.item_type !== 'batch') return false;
+
       if (contentFilter === 'all') return true;
 
       // Check what content actually exists
@@ -717,131 +766,173 @@ if (item.item_type === 'summary') {
             <p style={{
               fontSize: window.innerWidth < 768 ? '0.95rem' : '1.1rem',
               color: 'rgba(255, 255, 255, 0.6)',
-              marginBottom: window.innerWidth < 768 ? '1.5rem' : '2rem',
+              marginBottom: window.innerWidth < 768 ? '1.25rem' : '1.5rem',
             }}>
               Paste a YouTube URL to extract transcripts, summaries, and chat
             </p>
 
+            {/* Single / Bulk toggle */}
             <div style={{
-              maxWidth: '600px',
-              margin: '0 auto',
-              display: 'flex',
-              flexDirection: window.innerWidth < 640 ? 'column' : 'row',
-              gap: window.innerWidth < 640 ? '0.875rem' : '0.75rem',
-              alignItems: window.innerWidth < 640 ? 'center' : 'flex-start',
+              display: 'inline-flex',
+              background: '#262626',
+              border: '1px solid rgba(255,255,255,0.1)',
+              borderRadius: '100px',
+              padding: '4px',
+              marginBottom: '1.25rem',
             }}>
-              <input
-                type="text"
-                value={url}
-                onChange={(e) => setUrl(e.target.value)}
-                onKeyPress={(e) => {
-                  if (e.key === 'Enter') {
-                    handleExtract();
-                  }
-                }}
-                placeholder="https://www.youtube.com/watch?v=..."
-                disabled={isExtracting}
-                style={{
-                  width: window.innerWidth < 640 ? '100%' : 'auto',
-                  flex: window.innerWidth < 640 ? 'none' : 1,
-                  padding: window.innerWidth < 640 ? '1rem 1.25rem' : '0.875rem 1.25rem',
-                  background: '#262626',
-                  border: '1px solid rgba(255, 255, 255, 0.1)',
-                  borderRadius: '12px',
-                  color: '#ffffff',
-                  fontSize: '16px', /* Prevent zoom on iOS */
-                  outline: 'none',
-                  transition: 'all 0.2s',
-                }}
-                onFocus={(e) => {
-                  e.currentTarget.style.borderColor = 'rgba(34, 197, 94, 0.5)';
-                }}
-                onBlur={(e) => {
-                  e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)';
-                }}
-              />
-              <div style={{
-                display: 'flex',
-                gap: '0.75rem',
-                width: window.innerWidth < 640 ? '100%' : 'auto',
-              }}>
-                {/* Clear Button - Only show when URL has content */}
-                {url.trim() && (
-                  <button
-                    onClick={() => {
-                      setUrl('');
-                      setExtractError(null);
-                    }}
-                    disabled={isExtracting}
-                    style={{
-                      padding: window.innerWidth < 640 ? '1rem 1.5rem' : '0.875rem 1.5rem',
-                      background: 'transparent',
-                      color: 'rgba(255, 255, 255, 0.7)',
-                      border: '1px solid rgba(255, 255, 255, 0.2)',
-                      borderRadius: '12px',
-                      fontSize: '1rem',
-                      fontWeight: 600,
-                      cursor: isExtracting ? 'not-allowed' : 'pointer',
-                      transition: 'all 0.2s',
-                      whiteSpace: 'nowrap',
-                      minHeight: '48px',
-                      flex: window.innerWidth < 640 ? '1' : 'none',
-                    }}
-                    onMouseEnter={(e) => {
-                      if (!isExtracting) {
-                        e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
-                        e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.3)';
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.background = 'transparent';
-                      e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.2)';
-                    }}
-                  >
-                    Clear
-                  </button>
-                )}
+              {(['single', 'bulk'] as const).map((mode) => (
                 <button
-                  onClick={handleExtract}
-                  disabled={isExtracting || !url.trim()}
+                  key={mode}
+                  onClick={() => {
+                    setUrlMode(mode);
+                    setExtractError(null);
+                    if (mode === 'single') setUrl('');
+                  }}
                   style={{
-                    padding: window.innerWidth < 640 ? '1rem 1.5rem' : '0.875rem 1.5rem',
-                    background: isExtracting || !url.trim() ? '#404040' : '#22c55e',
-                    color: '#ffffff',
+                    padding: '0.4rem 1.1rem',
+                    background: urlMode === mode ? '#22c55e' : 'transparent',
+                    color: urlMode === mode ? '#fff' : 'rgba(255,255,255,0.5)',
                     border: 'none',
-                    borderRadius: '12px',
-                    fontSize: '1rem',
+                    borderRadius: '100px',
+                    fontSize: '0.875rem',
                     fontWeight: 600,
-                    cursor: isExtracting || !url.trim() ? 'not-allowed' : 'pointer',
+                    cursor: 'pointer',
                     transition: 'all 0.2s',
-                    whiteSpace: 'nowrap',
-                    minHeight: '48px',
-                    flex: window.innerWidth < 640 ? '1' : 'none',
-                  }}
-                  onMouseEnter={(e) => {
-                    if (!isExtracting && url.trim()) {
-                      e.currentTarget.style.background = '#16a34a';
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!isExtracting && url.trim()) {
-                      e.currentTarget.style.background = '#22c55e';
-                    }
-                  }}
+                    }}
                 >
-                  {isExtracting ? 'Extracting...' : 'Extract'}
+                  {mode === 'single' ? 'Single Video' : 'Multiple Videos (up to 5)'}
                 </button>
-              </div>
+              ))}
             </div>
 
-            {extractError && (
-              <p style={{
-                marginTop: '1rem',
-                color: '#ef4444',
-                fontSize: '0.9rem',
-              }}>
-                {extractError}
-              </p>
+            {urlMode === 'single' ? (
+              <>
+                <div style={{
+                  maxWidth: '600px',
+                  margin: '0 auto',
+                  display: 'flex',
+                  flexDirection: window.innerWidth < 640 ? 'column' : 'row',
+                  gap: window.innerWidth < 640 ? '0.875rem' : '0.75rem',
+                  alignItems: window.innerWidth < 640 ? 'center' : 'flex-start',
+                }}>
+                  <input
+                    type="text"
+                    value={url}
+                    onChange={(e) => setUrl(e.target.value)}
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter') {
+                        handleExtract();
+                      }
+                    }}
+                    placeholder="https://www.youtube.com/watch?v=..."
+                    disabled={isExtracting}
+                    style={{
+                      width: window.innerWidth < 640 ? '100%' : 'auto',
+                      flex: window.innerWidth < 640 ? 'none' : 1,
+                      padding: window.innerWidth < 640 ? '1rem 1.25rem' : '0.875rem 1.25rem',
+                      background: '#262626',
+                      border: '1px solid rgba(255, 255, 255, 0.1)',
+                      borderRadius: '12px',
+                      color: '#ffffff',
+                      fontSize: '16px',
+                      outline: 'none',
+                      transition: 'all 0.2s',
+                    }}
+                    onFocus={(e) => {
+                      e.currentTarget.style.borderColor = 'rgba(34, 197, 94, 0.5)';
+                    }}
+                    onBlur={(e) => {
+                      e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+                    }}
+                  />
+                  <div style={{
+                    display: 'flex',
+                    gap: '0.75rem',
+                    width: window.innerWidth < 640 ? '100%' : 'auto',
+                  }}>
+                    {url.trim() && (
+                      <button
+                        onClick={() => {
+                          setUrl('');
+                          setExtractError(null);
+                        }}
+                        disabled={isExtracting}
+                        style={{
+                          padding: window.innerWidth < 640 ? '1rem 1.5rem' : '0.875rem 1.5rem',
+                          background: 'transparent',
+                          color: 'rgba(255, 255, 255, 0.7)',
+                          border: '1px solid rgba(255, 255, 255, 0.2)',
+                          borderRadius: '12px',
+                          fontSize: '1rem',
+                          fontWeight: 600,
+                          cursor: isExtracting ? 'not-allowed' : 'pointer',
+                          transition: 'all 0.2s',
+                          whiteSpace: 'nowrap',
+                          minHeight: '48px',
+                          flex: window.innerWidth < 640 ? '1' : 'none',
+                        }}
+                        onMouseEnter={(e) => {
+                          if (!isExtracting) {
+                            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
+                            e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.3)';
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = 'transparent';
+                          e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+                        }}
+                      >
+                        Clear
+                      </button>
+                    )}
+                    <button
+                      onClick={handleExtract}
+                      disabled={isExtracting || !url.trim()}
+                      style={{
+                        padding: window.innerWidth < 640 ? '1rem 1.5rem' : '0.875rem 1.5rem',
+                        background: isExtracting || !url.trim() ? '#404040' : '#22c55e',
+                        color: '#ffffff',
+                        border: 'none',
+                        borderRadius: '12px',
+                        fontSize: '1rem',
+                        fontWeight: 600,
+                        cursor: isExtracting || !url.trim() ? 'not-allowed' : 'pointer',
+                        transition: 'all 0.2s',
+                        whiteSpace: 'nowrap',
+                        minHeight: '48px',
+                        flex: window.innerWidth < 640 ? '1' : 'none',
+                      }}
+                      onMouseEnter={(e) => {
+                        if (!isExtracting && url.trim()) {
+                          e.currentTarget.style.background = '#16a34a';
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (!isExtracting && url.trim()) {
+                          e.currentTarget.style.background = '#22c55e';
+                        }
+                      }}
+                    >
+                      {isExtracting ? 'Extracting...' : 'Extract'}
+                    </button>
+                  </div>
+                </div>
+
+                {extractError && (
+                  <p style={{
+                    marginTop: '1rem',
+                    color: '#ef4444',
+                    fontSize: '0.9rem',
+                  }}>
+                    {extractError}
+                  </p>
+                )}
+              </>
+            ) : (
+              <BatchImport onComplete={() => {
+                loadSavedItems();
+                setUrlMode('single');
+              }} />
             )}
           </div>
 
@@ -1021,17 +1112,28 @@ if (item.item_type === 'summary') {
                 alignItems: 'start',
                 gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 280px), 1fr))',
               }}>
-                {getDisplayedItems().map((item) => (
+                {getDisplayedItems().map((item) =>
+                item.item_type === 'batch' ? (
+                  <BatchCard
+                    key={item.video_id}
+                    item={item as any}
+                    onView={handleView}
+                    onDelete={handleBatchGroupDelete}
+                    isSelected={selectedVideoIds.has(item.video_id)}
+                    onSelectToggle={handleSelectToggle}
+                  />
+                ) : (
                   <VideoCard
                     key={`${item.video_id}-${item.item_type}`}
-                    item={item}
+                    item={item as any}
                     onView={handleView}
                     onExport={handleExport}
                     onDelete={handleDelete}
                     isSelected={selectedVideoIds.has(item.video_id)}
                     onSelectToggle={handleSelectToggle}
                   />
-                ))}
+                )
+              )}
               </div>
 
               {/* Load More Button - show when more items available */}
@@ -1076,9 +1178,9 @@ if (item.item_type === 'summary') {
           onClose={handleModalClose}
           item={{
             video_id: selectedItem.video_id,
-            video_title: selectedItem.content?.videoTitle || `Video ${selectedItem.video_id}`,
+            video_title: selectedItem.content?.videoTitle || selectedItem.content?.groupTitle || `Video ${selectedItem.video_id}`,
             video_thumbnail: selectedItem.content?.videoThumbnail,
-            item_type: selectedItem.item_type,
+            item_type: selectedItem.item_type as 'transcript' | 'summary' | 'chat',
             content: selectedItem.content,
             created_at: selectedItem.created_at,
             source: selectedItem.source,
