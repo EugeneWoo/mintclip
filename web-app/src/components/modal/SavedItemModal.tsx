@@ -52,7 +52,7 @@ interface SavedItemData {
     };
   };
   created_at: string;
-  source?: 'extension' | 'upload';
+  source?: 'extension' | 'upload' | 'batch';
 }
 
 interface SavedItemModalProps {
@@ -110,7 +110,8 @@ export function SavedItemModal({
   onClose,
   item,
 }: SavedItemModalProps): React.JSX.Element | null {
-  const isInteractive = item?.source === 'upload';
+  const isInteractive = item?.source === 'upload' || item?.source === 'batch';
+  const isBatch = item?.source === 'batch';
 
   // State
   const [activeTab, setActiveTab] = useState<TabType>('transcript');
@@ -175,7 +176,9 @@ export function SavedItemModal({
         }
 
         // Determine default tab based on available content
-        if (item.content?.segments && item.content.segments.length > 0) {
+        if (item.source === 'batch') {
+          setActiveTab('summary');
+        } else if (item.content?.segments && item.content.segments.length > 0) {
           setActiveTab('transcript');
         } else if (item.content?.summary || item.content?.formats) {
           setActiveTab('summary');
@@ -951,24 +954,26 @@ export function SavedItemModal({
             flexShrink: 0,
           }}
         >
-          <button
-            onClick={() => setActiveTab('transcript')}
-            style={{
-              padding: '12px 0',
-              backgroundColor: 'transparent',
-              border: 'none',
-              borderBottom: activeTab === 'transcript' ? '3px solid #22c55e' : '3px solid transparent',
-              color: activeTab === 'transcript' ? '#fff' : 'rgba(255, 255, 255, 0.6)',
-              fontSize: '14px',
-              fontWeight: activeTab === 'transcript' ? 600 : 400,
-              cursor: 'pointer',
-              transition: 'all 0.2s',
-              flex: 1,
-              minWidth: 0,
-            }}
-          >
-            Transcript
-          </button>
+          {!isBatch && (
+            <button
+              onClick={() => setActiveTab('transcript')}
+              style={{
+                padding: '12px 0',
+                backgroundColor: 'transparent',
+                border: 'none',
+                borderBottom: activeTab === 'transcript' ? '3px solid #22c55e' : '3px solid transparent',
+                color: activeTab === 'transcript' ? '#fff' : 'rgba(255, 255, 255, 0.6)',
+                fontSize: '14px',
+                fontWeight: activeTab === 'transcript' ? 600 : 400,
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                flex: 1,
+                minWidth: 0,
+              }}
+            >
+              Transcript
+            </button>
+          )}
 
           <button
             onClick={() => setActiveTab('summary')}
@@ -1013,6 +1018,7 @@ export function SavedItemModal({
         </div>
 
         {/* Tab Content */}
+        {!isBatch && (
         <div
           style={{
             flex: 1,
@@ -1218,6 +1224,7 @@ export function SavedItemModal({
             </>
           )}
         </div>
+        )}
 
         {/* Summary Tab */}
         <div
