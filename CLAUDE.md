@@ -79,11 +79,11 @@ cd extension && npm test -- --ci --forceExit --testPathIgnorePatterns="authentic
 ## Batch Import Feature
 - **Components**: `web-app/src/components/BatchCard.tsx`, `BatchImport.tsx` — multi-video grouped display
 - **Backend**: `backend/app/routes/batch.py` registered at `/api/batch`
-- **item_type**: Batch group rows saved with `item_type='batch'`, `source='batch'`, `video_id` = comma-joined IDs (e.g. `"abc,def,ghi"`)
+- **Storage**: Only ONE row per batch — the group row (`item_type='batch'`, `source='batch'`, `video_id` = comma-joined IDs e.g. `"abc,def,ghi"`). No per-video transcript rows. Batch is always treated as one unit (group summary + group chat only).
 - **Dashboard reduce()**: Must handle `item_type='batch'` explicitly — sets `acc[videoId].item_type = 'batch'` and merges content. Without this branch, defaults to `item_type='transcript'` and the filter hides the card.
 - **Modal**: `SavedItemModal.tsx` uses `isBatch = item?.source === 'batch'` to hide the Transcript tab for batch items.
-- **Supabase migration required**: `backend/scripts/add_batch_source.sql` must be run in Supabase SQL Editor to add `'batch'` to the `saved_items_source_check` constraint. Without this, batch rows fail to save and `source` is never `'batch'` — causing the modal to show the Transcript tab.
-- **Supabase migration required**: `backend/scripts/add_batch_item_type.sql` similarly adds `'batch'` to the `item_type` check constraint.
+- **Supabase migrations**: `add_batch_source.sql` and `add_batch_item_type.sql` — **already applied** (2026-04-26 via Supabase MCP). Scripts kept in `backend/scripts/` for reference.
+- **Dashboard reduce() source priority**: The `item_type='transcript'` branch must NOT overwrite `source='batch'` with `source='extension'` when the same video has both an extension row and a batch row. Guard: `if (acc[videoId].source !== 'batch') { acc[videoId].source = item.source; }`. The `item_type='batch'` branch must explicitly set `acc[videoId].source = 'batch'`. Fixed in commit d195711.
 
 ## Extension State Gotchas
 - **`transcriptLoading` init**: State initializes to `true`. Always call `setTranscriptLoading(false)` in EVERY path that sets transcript — including `chrome.storage.local` restore on mount. If only cleared in the fetch `finally` block, return visits to cached videos will show a stuck spinner.
