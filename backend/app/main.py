@@ -12,7 +12,7 @@ from dotenv import load_dotenv
 import os
 import logging
 
-from app.routes import transcript, summary, chat, auth, saved_items, admin, config
+from app.routes import transcript, summary, chat, auth, saved_items, admin, config, batch
 from app.scheduler import start_scheduler, shutdown_scheduler
 
 # Configure logging
@@ -72,6 +72,7 @@ app.include_router(chat.router, prefix="/api/chat", tags=["Chat"])
 app.include_router(saved_items.router, prefix="/api/saved-items", tags=["Saved Items"])
 app.include_router(admin.router, prefix="/api/admin", tags=["Admin"])
 app.include_router(config.router, tags=["Config"])
+app.include_router(batch.router, prefix="/api/batch", tags=["Batch"])
 
 
 # Startup and shutdown events

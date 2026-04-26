@@ -182,9 +182,9 @@ export async function getSuggestedQuestions(
  */
 export async function saveItem(
   videoId: string,
-  itemType: 'transcript' | 'summary' | 'chat',
+  itemType: 'transcript' | 'summary' | 'chat' | 'batch_transcript' | 'batch_summary',
   content: any,
-  source: 'extension' | 'upload' = 'upload'
+  source: 'extension' | 'upload' | 'batch' = 'upload'
 ): Promise<SaveItemResponse> {
   try {
     const token = await getAuthToken();

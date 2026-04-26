@@ -18,7 +18,7 @@ import { subscribeToSavedItems } from '../utils/supabase';
 interface SavedItem {
   id: string;
   video_id: string;
-  item_type: 'transcript' | 'summary' | 'chat' | 'batch';
+  item_type: 'transcript' | 'summary' | 'chat' | 'batch' | 'batch_transcript' | 'batch_summary';
   content: any;
   created_at: string;
   source: 'extension' | 'upload' | 'batch';
@@ -271,11 +271,27 @@ export function Dashboard(): React.JSX.Element {
             }
           }
 
-          if (item.item_type === 'batch') {
+          if (item.item_type === 'batch' || item.item_type === 'batch_transcript') {
             acc[videoId].item_type = 'batch';
             acc[videoId].source = 'batch';
             // Merge batch-specific content (title, video_ids list)
             acc[videoId].content = { ...acc[videoId].content, ...item.content };
+          }
+
+          if (item.item_type === 'batch_summary') {
+            acc[videoId].item_type = 'batch';
+            acc[videoId].source = 'batch';
+            // Merge summary content same as regular summary
+            const format = item.content?.format;
+            if (format) {
+              if (!acc[videoId].content.formats) acc[videoId].content.formats = {};
+              acc[videoId].content.formats[format] = {
+                summary: item.content.summary,
+                is_structured: item.content.is_structured,
+              };
+            } else {
+              acc[videoId].content = { ...acc[videoId].content, ...item.content };
+            }
           }
 
           if (item.item_type === 'chat') {
@@ -613,7 +629,7 @@ export function Dashboard(): React.JSX.Element {
     // Filter by content type based on what's actually saved
     let filtered = savedItems.filter(item => {
       // Individual batch transcripts are hidden — shown grouped inside BatchCard
-      if (item.source === 'batch' && item.item_type !== 'batch') return false;
+      if (item.source === 'batch' && item.item_type !== 'batch' && item.item_type !== 'batch_transcript') return false;
 
       if (contentFilter === 'all') return true;
 
@@ -1115,7 +1131,7 @@ export function Dashboard(): React.JSX.Element {
                 gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 280px), 1fr))',
               }}>
                 {getDisplayedItems().map((item) =>
-                item.item_type === 'batch' ? (
+                (item.item_type === 'batch' || item.item_type === 'batch_transcript') ? (
                   <BatchCard
                     key={item.video_id}
                     item={item as any}
@@ -1182,7 +1198,7 @@ export function Dashboard(): React.JSX.Element {
             video_id: selectedItem.video_id,
             video_title: selectedItem.content?.videoTitle || selectedItem.content?.groupTitle || `Video ${selectedItem.video_id}`,
             video_thumbnail: selectedItem.content?.videoThumbnail,
-            item_type: selectedItem.item_type as 'transcript' | 'summary' | 'chat',
+            item_type: selectedItem.item_type as 'transcript' | 'summary' | 'chat' | 'batch' | 'batch_transcript' | 'batch_summary',
             content: selectedItem.content,
             created_at: selectedItem.created_at,
             source: selectedItem.source,

@@ -170,8 +170,8 @@ async def _process_batch(
                     {
                         "user_id": user_id,
                         "video_id": batch_video_id,
-                        "item_type": "batch",
-                        "format": "batch",
+                        "item_type": "batch_transcript",
+                        "format": "batch_transcript",
                         "content": {
                             "groupTitle": job["group_title"],
                             "video_ids": video_ids_list,

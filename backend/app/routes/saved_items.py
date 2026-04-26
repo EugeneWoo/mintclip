@@ -18,9 +18,9 @@ router = APIRouter()
 # Request/Response Models
 class SaveItemRequest(BaseModel):
     video_id: str
-    item_type: Literal['summary', 'transcript', 'summary_short', 'summary_topic', 'summary_qa']
+    item_type: Literal['summary', 'transcript', 'summary_short', 'summary_topic', 'summary_qa', 'batch_transcript', 'batch_summary']
     content: Dict[str, Any]  # Flexible JSONB content
-    source: Optional[Literal['extension', 'upload']] = 'extension'  # Track where item came from
+    source: Optional[Literal['extension', 'upload', 'batch']] = 'extension'  # Track where item came from
 
 
 class SaveItemResponse(BaseModel):

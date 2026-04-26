@@ -30,7 +30,7 @@ interface SavedItemData {
   video_id: string;
   video_title: string;
   video_thumbnail?: string;
-  item_type: 'transcript' | 'summary' | 'chat';
+  item_type: 'transcript' | 'summary' | 'chat' | 'batch' | 'batch_transcript' | 'batch_summary';
   content: {
     // Transcript format
     videoTitle?: string;
@@ -775,13 +775,13 @@ export function SavedItemModal({
         } as typeof prev));
 
         // Save to Supabase
-        await saveItem(item.video_id, 'summary', {
+        await saveItem(item.video_id, isBatch ? 'batch_summary' : 'summary', {
           videoTitle: item.video_title || `Video ${item.video_id}`,
           savedAt: new Date().toISOString(),
           format,
           summary: response.summary,
           is_structured: response.is_structured,
-        }, 'upload');
+        }, isBatch ? 'batch' : 'upload');
       } else {
         // Show error text below the Generate button
         console.error('Failed to generate summary:', response.error);

@@ -13,7 +13,7 @@ interface VideoCardProps {
     item_type: 'transcript' | 'summary' | 'chat';
     content: any;
     created_at: string;
-    source: 'extension' | 'upload';
+    source: 'extension' | 'upload' | 'batch';
   };
   onView: (item: any) => void;
   onExport?: (item: any) => void;
@@ -33,7 +33,9 @@ export function VideoCard({ item, onView, onExport, onDelete, isSelected, onSele
   const createdAt = new Date(item.created_at).toLocaleDateString();
 
   // Determine which badges to show
-  const hasTranscript = item.content?.segments && item.content.segments.length > 0;
+  // Batch items store a transcript for chat but hide the Transcript tab in the modal,
+  // so showing a Transcript badge would be misleading — suppress it for source='batch'.
+  const hasTranscript = item.source !== 'batch' && !!(item.content?.segments && item.content.segments.length > 0);
 
   // Check for summary in multiple formats:
   // 1. Direct summary field (simple format)

@@ -181,8 +181,22 @@ export function BatchCard({
           color: 'rgba(255, 255, 255, 0.6)',
           marginBottom: '0.75rem',
           flexShrink: 0,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
         }}>
-          {createdAt}
+          <span>{createdAt}</span>
+          <span style={{
+            padding: "5px 8px",
+            background: "rgba(34, 197, 94, 0.2)",
+            borderRadius: "4px",
+            color: "#22c55e",
+            fontSize: "11px",
+            fontWeight: 500,
+            display: "inline-block",
+          }}>
+            Uploaded
+          </span>
         </div>
 
         {/* Video list (collapsible) */}

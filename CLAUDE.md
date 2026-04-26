@@ -79,11 +79,13 @@ cd extension && npm test -- --ci --forceExit --testPathIgnorePatterns="authentic
 ## Batch Import Feature
 - **Components**: `web-app/src/components/BatchCard.tsx`, `BatchImport.tsx` — multi-video grouped display
 - **Backend**: `backend/app/routes/batch.py` registered at `/api/batch`
-- **Storage**: Only ONE row per batch — the group row (`item_type='batch'`, `source='batch'`, `video_id` = comma-joined IDs e.g. `"abc,def,ghi"`). No per-video transcript rows. Batch is always treated as one unit (group summary + group chat only).
-- **Dashboard reduce()**: Must handle `item_type='batch'` explicitly — sets `acc[videoId].item_type = 'batch'` and merges content. Without this branch, defaults to `item_type='transcript'` and the filter hides the card.
-- **Modal**: `SavedItemModal.tsx` uses `isBatch = item?.source === 'batch'` to hide the Transcript tab for batch items.
-- **Supabase migrations**: `add_batch_source.sql` and `add_batch_item_type.sql` — **already applied** (2026-04-26 via Supabase MCP). Scripts kept in `backend/scripts/` for reference.
-- **Dashboard reduce() source priority**: The `item_type='transcript'` branch must NOT overwrite `source='batch'` with `source='extension'` when the same video has both an extension row and a batch row. Guard: `if (acc[videoId].source !== 'batch') { acc[videoId].source = item.source; }`. The `item_type='batch'` branch must explicitly set `acc[videoId].source = 'batch'`. Fixed in commit d195711.
+- **Storage**: Only ONE row per batch — the group row (`item_type='batch_transcript'`, `source='batch'`, `video_id` = comma-joined IDs e.g. `"abc,def,ghi"`). No per-video transcript rows. Batch is always treated as one unit (group summary + group chat only).
+- **item_type values for batch**: `batch_transcript` (group row from `batch.py`), `batch_summary` (saved when user generates summary in modal). Both have `source='batch'`. The old `item_type='batch'` still accepted by Dashboard reduce() for backwards compat with existing DB rows.
+- **Dashboard reduce()**: Handles `batch_transcript` and `batch` (legacy) the same — sets `acc[videoId].item_type = 'batch'`, `source='batch'`. Handles `batch_summary` by merging into `content.formats[format]`.
+- **Dashboard filter/render**: Filter hides batch-source items where `item_type !== 'batch' && item_type !== 'batch_transcript'`. Render checks `item_type === 'batch' || item_type === 'batch_transcript'` to show BatchCard.
+- **Modal**: `SavedItemModal.tsx` uses `isBatch = item?.source === 'batch'`. `handleGenerateSummary` passes `itemType='batch_summary'` and `source='batch'` when `isBatch`.
+- **Supabase migrations**: `add_batch_source.sql`, `add_batch_item_type.sql`, `add_batch_transcript_summary_item_types` — all **applied** (2026-04-26 via Supabase MCP). Constraint now allows: `chat`, `summary`, `transcript`, `summary_short`, `summary_topic`, `summary_qa`, `batch`, `batch_transcript`, `batch_summary`.
+- **Dashboard reduce() source priority**: The `item_type='transcript'` branch must NOT overwrite `source='batch'` with `source='extension'`. Guard: `if (acc[videoId].source !== 'batch') { acc[videoId].source = item.source; }`. Fixed in commit d195711.
 
 ## Extension State Gotchas
 - **`transcriptLoading` init**: State initializes to `true`. Always call `setTranscriptLoading(false)` in EVERY path that sets transcript — including `chrome.storage.local` restore on mount. If only cleared in the fetch `finally` block, return visits to cached videos will show a stuck spinner.
