@@ -216,12 +216,13 @@ export function Dashboard(): React.JSX.Element {
             acc[videoId].content.segments = item.content.segments;
             acc[videoId].content.text = item.content.text;
             acc[videoId].content.language = item.content.language;
-            // Transcript row is the authoritative source for videoTitle and source
             if (item.content?.videoTitle) {
               acc[videoId].content.videoTitle = item.content.videoTitle;
             }
-            // Preserve the source from the transcript row (e.g. 'batch')
-            acc[videoId].source = item.source;
+            // Don't overwrite 'batch' source with 'extension' if batch row already processed
+            if (acc[videoId].source !== 'batch') {
+              acc[videoId].source = item.source;
+            }
           }
 
           if (item.item_type === 'summary') {
@@ -272,6 +273,7 @@ export function Dashboard(): React.JSX.Element {
 
           if (item.item_type === 'batch') {
             acc[videoId].item_type = 'batch';
+            acc[videoId].source = 'batch';
             // Merge batch-specific content (title, video_ids list)
             acc[videoId].content = { ...acc[videoId].content, ...item.content };
           }
