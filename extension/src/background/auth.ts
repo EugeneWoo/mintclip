@@ -33,6 +33,11 @@ export async function getCurrentUserId(): Promise<string | null> {
   return authState.userId || null;
 }
 
+// Deduplicates concurrent token refresh calls so only one refresh is in flight
+// at a time. A second caller will await the same promise rather than firing a
+// second refresh with an already-rotated refresh token.
+let _refreshInFlight: Promise<string | null> | null = null;
+
 /**
  * Get valid access token, refreshing if expired
  */
@@ -51,25 +56,35 @@ export async function getValidAccessToken(): Promise<string | null> {
   if (isExpiringSoon && authState.refreshToken) {
     console.log('[Auth] Token expired or expiring soon, refreshing...');
 
-    const result = await refreshAccessToken(authState.refreshToken);
-
-    if (result.success && result.tokens) {
-      // Update auth state with new tokens
-      const newExpiresAt = Date.now() + (result.tokens.expiresIn * 1000);
-      await setAuthState({
-        ...authState,
-        accessToken: result.tokens.accessToken,
-        refreshToken: result.tokens.refreshToken,
-        expiresAt: newExpiresAt,
-      });
-      console.log('[Auth] Token refreshed successfully');
-      return result.tokens.accessToken;
-    } else {
-      console.error('[Auth] Token refresh failed:', result.error);
-      // Clear auth state on refresh failure
-      await setAuthState({ isAuthenticated: false });
-      return null;
+    if (_refreshInFlight) {
+      console.log('[Auth] Refresh already in flight, waiting...');
+      return _refreshInFlight;
     }
+
+    _refreshInFlight = (async () => {
+      try {
+        const result = await refreshAccessToken(authState.refreshToken!);
+        if (result.success && result.tokens) {
+          const newExpiresAt = Date.now() + (result.tokens.expiresIn * 1000);
+          await setAuthState({
+            ...authState,
+            accessToken: result.tokens.accessToken,
+            refreshToken: result.tokens.refreshToken,
+            expiresAt: newExpiresAt,
+          });
+          console.log('[Auth] Token refreshed successfully');
+          return result.tokens.accessToken;
+        } else {
+          console.error('[Auth] Token refresh failed:', result.error);
+          await setAuthState({ isAuthenticated: false });
+          return null;
+        }
+      } finally {
+        _refreshInFlight = null;
+      }
+    })();
+
+    return _refreshInFlight;
   }
 
   return authState.accessToken;

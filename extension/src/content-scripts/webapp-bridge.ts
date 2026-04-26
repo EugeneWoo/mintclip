@@ -10,20 +10,12 @@ const VALID_ORIGINS = [
   'http://localhost:3000',
   'http://localhost:5173',
   'http://localhost:5174',
-  'https://mintclip.app', // Production domain
-  'https://*.mintclip.app', // Subdomains
-  'https://mintclip.up.railway.app' // Railway production
+  'https://mintclip.app',
+  'https://mintclip.up.railway.app',
 ];
 
 function isValidOrigin(origin: string): boolean {
-  return VALID_ORIGINS.some(valid => {
-    if (valid.includes('*')) {
-      const pattern = valid.replace('*', '([^.]+)');
-      const regex = new RegExp(`^${pattern}$`);
-      return regex.test(origin);
-    }
-    return origin === valid;
-  });
+  return VALID_ORIGINS.includes(origin);
 }
 
 // Listen for messages from the webapp page
