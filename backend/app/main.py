@@ -2,7 +2,7 @@
 Mintclip Backend API
 FastAPI server for transcript extraction, summarization, and chat
 """
-# redeploy
+# redeploy 2
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
