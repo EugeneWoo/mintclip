@@ -8,7 +8,7 @@ from .conftest import STAGING_URL, EN_VIDEO_ID
 def _get_full_text(base_url: str, auth_headers: dict) -> str:
     resp = httpx.post(
         f"{base_url}/api/transcript/extract",
-        json={"url": f"https://www.youtube.com/watch?v={EN_VIDEO_ID}"},
+        json={"video_url": f"https://www.youtube.com/watch?v={EN_VIDEO_ID}"},
         headers=auth_headers,
         timeout=60,
     )

@@ -13,9 +13,9 @@ BATCH_URLS = [
 
 
 def test_batch_submit_creates_group(auth_headers, base_url):
-    """POST /api/batch/submit → job_id returned, group row created in DB."""
+    """POST /api/batch/process → job_id returned, group row created in DB."""
     resp = httpx.post(
-        f"{base_url}/api/batch/submit",
+        f"{base_url}/api/batch/process",
         json={"urls": BATCH_URLS},
         headers=auth_headers,
         timeout=60,
@@ -23,22 +23,21 @@ def test_batch_submit_creates_group(auth_headers, base_url):
     assert resp.status_code == 200, f"Batch submit failed: {resp.status_code} {resp.text}"
     data = resp.json()
 
-    assert "job_id" in data or "id" in data, f"No job id in response: {data}"
-    job_id = data.get("job_id") or data.get("id")
-    assert job_id
+    assert "job_id" in data, f"No job_id in response: {data}"
+    assert data["job_id"]
 
 
 def test_batch_status_reachable(auth_headers, base_url):
     """POST then GET status — status endpoint responds."""
     submit_resp = httpx.post(
-        f"{base_url}/api/batch/submit",
+        f"{base_url}/api/batch/process",
         json={"urls": BATCH_URLS},
         headers=auth_headers,
         timeout=60,
     )
     assert submit_resp.status_code == 200
     data = submit_resp.json()
-    job_id = data.get("job_id") or data.get("id")
+    job_id = data["job_id"]
 
     # Poll status up to 3 times with short gaps
     for _ in range(3):
@@ -49,7 +48,7 @@ def test_batch_status_reachable(auth_headers, base_url):
         )
         assert status_resp.status_code == 200, f"Status failed: {status_resp.status_code}"
         sdata = status_resp.json()
-        assert "status" in sdata or "job_id" in sdata or "id" in sdata
-        if sdata.get("status") in ("completed", "done", "failed"):
+        assert "status" in sdata and "job_id" in sdata
+        if sdata.get("status") in ("completed", "failed"):
             break
         time.sleep(5)
