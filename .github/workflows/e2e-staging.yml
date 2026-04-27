@@ -12,6 +12,9 @@ jobs:
     # Only run when main CI passed — no point testing a broken deploy
     if: github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
 
     defaults:
       run:
@@ -69,3 +72,17 @@ jobs:
             exit 0
           fi
           pytest tests/e2e/ -v --tb=short -m "not slow"
+
+      - name: Auto-merge staging → main
+        if: success()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cd ${{ github.workspace }}
+          PR=$(gh pr list --base main --head staging --state open --json number --jq '.[0].number')
+          if [ -n "$PR" ] && [ "$PR" != "null" ]; then
+            gh pr merge "$PR" --merge --subject "chore: merge staging → main (e2e passed)"
+            echo "Merged PR #$PR"
+          else
+            echo "No open staging→main PR found — skipping auto-merge"
+          fi
