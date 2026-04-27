@@ -232,7 +232,7 @@ async def delete_all_video_items(
     current_user: dict = Depends(require_auth)
 ):
     """
-    Delete ALL saved items for a video (all item_types)
+    Delete ALL saved items and highlights for a video
 
     Args:
         video_id: Video identifier
@@ -245,7 +245,7 @@ async def delete_all_video_items(
         supabase = get_supabase_admin()
         user_id = current_user["sub"]
 
-        # First, count how many items will be deleted
+        # First, count how many saved_items will be deleted
         existing = supabase.table('saved_items') \
             .select('id', count='exact') \
             .eq('user_id', user_id) \
@@ -254,7 +254,14 @@ async def delete_all_video_items(
 
         count = existing.count if existing.count is not None else 0
 
-        # Delete all items for this video_id and user_id
+        # Delete all highlights for this video_id and user_id first
+        supabase.table("highlights") \
+            .delete() \
+            .eq("video_id", video_id) \
+            .eq("user_id", user_id) \
+            .execute()
+
+        # Delete all saved_items for this video_id and user_id
         result = supabase.table('saved_items') \
             .delete() \
             .eq('user_id', user_id) \

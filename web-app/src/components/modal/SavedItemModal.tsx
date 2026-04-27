@@ -8,6 +8,9 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { generateSummary, saveItem, sendChatMessage, getSuggestedQuestions } from '../../utils/api';
+import { useHighlights } from '../../hooks/useHighlights';
+import { HighlightTooltip } from '../HighlightTooltip';
+import type { Highlight } from '../../utils/highlights';
 
 // Types matching extension format
 type SummaryFormat = 'short' | 'topic' | 'qa';
@@ -144,6 +147,25 @@ export function SavedItemModal({
     qa_is_structured?: boolean;
   }>({});
 
+  // Highlights
+  const { highlights, addHighlight, removeHighlight, operationLoading: _operationLoading, operationError: _operationError } = useHighlights(
+    isOpen ? item?.video_id ?? null : null
+  );
+
+  // Tooltip state for highlight feature
+  const [tooltipState, setTooltipState] = useState<{
+    mode: 'new' | 'existing';
+    position: { top: number; left: number };
+    selectedText?: string;
+    segmentIndex?: number | null;
+    charStart?: number;
+    charEnd?: number;
+    existingHighlightId?: string;
+  } | null>(null);
+  const [highlightSaving, setHighlightSaving] = useState(false);
+  const [highlightRemoving, setHighlightRemoving] = useState(false);
+  const contentContainerRef = useRef<HTMLDivElement>(null);
+
   // Initialize based on item type and content
   useEffect(() => {
     if (item) {
@@ -269,11 +291,173 @@ export function SavedItemModal({
     }
   }, [isInteractive, activeTab, chatMessages.length, suggestedQuestions.length, questionsLoading]);
 
+  // Mouse up / down / keydown handlers for highlight selection
+  useEffect(() => {
+    const isTouchDevice = () => window.matchMedia('(pointer: coarse)').matches;
+
+    const handleMouseUp = () => {
+      if (isTouchDevice()) return;
+      if (activeTab === 'chat') return;
+
+      const selection = window.getSelection();
+      if (!selection || selection.toString().trim().length === 0) return;
+
+      const container = contentContainerRef.current;
+      if (!container) return;
+
+      const range = selection.getRangeAt(0);
+
+      // Ensure selection is within our content container
+      if (!container.contains(range.commonAncestorContainer)) return;
+
+      const rect = range.getBoundingClientRect();
+      const containerRect = container.getBoundingClientRect();
+
+      // Position relative to container
+      const position = {
+        top: rect.top - containerRect.top + container.scrollTop,
+        left: rect.left - containerRect.left + (rect.width / 2),
+      };
+
+      // Find segment index from DOM
+      const segmentEl = range.startContainer.parentElement?.closest('[data-segment-index]') as HTMLElement | null;
+      const segmentIndex = segmentEl ? parseInt(segmentEl.dataset.segmentIndex!) : null;
+
+      const charStart = range.startOffset;
+      const charEnd = range.endOffset;
+      const selectedText = selection.toString();
+
+      setTooltipState({
+        mode: 'new',
+        position,
+        selectedText,
+        segmentIndex,
+        charStart,
+        charEnd,
+      });
+    };
+
+    const handleMouseDown = (e: MouseEvent) => {
+      // Dismiss tooltip if clicking outside it
+      const target = e.target as HTMLElement;
+      if (!target.closest('[data-highlight-tooltip]') && !target.closest('[data-highlight-id]')) {
+        setTooltipState(null);
+      }
+    };
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setTooltipState(null);
+    };
+
+    document.addEventListener('mouseup', handleMouseUp);
+    document.addEventListener('mousedown', handleMouseDown);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.removeEventListener('mousedown', handleMouseDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [activeTab]);
+
   const handleClose = () => {
     setIsAnimating(false);
     setTimeout(() => {
       onClose();
     }, 300);
+  };
+
+  // Save highlight handler
+  const handleSaveHighlight = async () => {
+    if (!tooltipState || !item) return;
+    setHighlightSaving(true);
+    try {
+      await addHighlight({
+        video_id: item.video_id,
+        selected_text: tooltipState.selectedText!,
+        source_type: activeTab as 'transcript' | 'summary',
+        segment_index: tooltipState.segmentIndex ?? undefined,
+        char_start: tooltipState.charStart!,
+        char_end: tooltipState.charEnd!,
+        summary_format: activeTab === 'summary' ? currentFormat : undefined,
+      });
+      setTooltipState(null);
+      window.getSelection()?.removeAllRanges();
+    } catch {
+      // operationError from hook handles display
+    } finally {
+      setHighlightSaving(false);
+    }
+  };
+
+  // Remove highlight handler
+  const handleRemoveHighlight = async () => {
+    if (!tooltipState?.existingHighlightId) return;
+    setHighlightRemoving(true);
+    try {
+      await removeHighlight(tooltipState.existingHighlightId);
+      setTooltipState(null);
+    } catch {
+      // operationError from hook handles display
+    } finally {
+      setHighlightRemoving(false);
+    }
+  };
+
+  // Render text with highlight marks for transcript/summary segments
+  const renderTextWithHighlights = (
+    text: string,
+    segmentIndex: number | null,
+    sourceType: 'transcript' | 'summary',
+    summaryFormat?: string
+  ): React.ReactNode => {
+    const relevant = highlights.filter((h: Highlight) =>
+      h.source_type === sourceType &&
+      h.segment_index === segmentIndex &&
+      (sourceType !== 'summary' || h.summary_format === (summaryFormat ?? null))
+    );
+
+    if (relevant.length === 0) return text;
+
+    // Sort by char_start, handle overlaps by taking first
+    const sorted = [...relevant].sort((a, b) => a.char_start - b.char_start);
+    const nodes: React.ReactNode[] = [];
+    let cursor = 0;
+
+    for (const h of sorted) {
+      if (h.char_start < cursor) continue; // skip overlapping
+      if (h.char_start > cursor) {
+        nodes.push(text.slice(cursor, h.char_start));
+      }
+      nodes.push(
+        <mark
+          key={h.id}
+          data-highlight-id={h.id}
+          style={{ background: 'rgba(250,204,21,0.35)', borderRadius: 2, cursor: 'pointer', color: 'inherit' }}
+          onClick={(e) => {
+            e.stopPropagation();
+            const markEl = e.currentTarget;
+            const containerEl = contentContainerRef.current;
+            if (!containerEl) return;
+            const markRect = markEl.getBoundingClientRect();
+            const containerRect = containerEl.getBoundingClientRect();
+            setTooltipState({
+              mode: 'existing',
+              position: {
+                top: markRect.top - containerRect.top + containerEl.scrollTop,
+                left: markRect.left - containerRect.left + markRect.width / 2,
+              },
+              existingHighlightId: h.id,
+            });
+          }}
+        >
+          {text.slice(h.char_start, h.char_end)}
+        </mark>
+      );
+      cursor = h.char_end;
+    }
+
+    if (cursor < text.length) nodes.push(text.slice(cursor));
+    return nodes;
   };
 
   // Chat: Send message
@@ -1153,15 +1337,48 @@ export function SavedItemModal({
 
               {/* Transcript Scrollable Content */}
               <div
-                ref={transcriptScrollRef}
+                ref={(el) => {
+                  (transcriptScrollRef as React.MutableRefObject<HTMLDivElement | null>).current = el;
+                  (contentContainerRef as React.MutableRefObject<HTMLDivElement | null>).current = el;
+                }}
                 style={{
                   flex: 1,
                   overflowY: 'scroll',
                   padding: '16px',
                   paddingBottom: '80px', // Extra bottom padding for mobile scrolling
                   WebkitOverflowScrolling: 'touch', // Smooth scrolling on iOS
+                  position: 'relative',
                 }}
               >
+                {/* Highlight Tooltip */}
+                {tooltipState && activeTab === 'transcript' && (
+                  <div
+                    data-highlight-tooltip
+                    style={{
+                      position: 'absolute',
+                      zIndex: 9999,
+                      pointerEvents: 'none',
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      overflow: 'visible',
+                    }}
+                  >
+                    <div style={{ pointerEvents: 'auto' }}>
+                      <HighlightTooltip
+                        mode={tooltipState.mode}
+                        position={tooltipState.position}
+                        saving={highlightSaving}
+                        removing={highlightRemoving}
+                        onHighlight={handleSaveHighlight}
+                        onDismiss={() => { setTooltipState(null); window.getSelection()?.removeAllRanges(); }}
+                        onRemove={handleRemoveHighlight}
+                      />
+                    </div>
+                  </div>
+                )}
+
                 {(() => {
                   const grouped = getFilteredTranscript();
                   return grouped && grouped.length > 0 ? (
@@ -1177,6 +1394,7 @@ export function SavedItemModal({
                         return (
                           <div
                             key={index}
+                            data-segment-index={index}
                             style={{
                               marginBottom: '24px',
                               display: 'flex',
@@ -1198,14 +1416,20 @@ export function SavedItemModal({
                             >
                               {segment.timestamp}
                             </span>
-                            <span
-                              style={{
-                                color: 'rgba(255, 255, 255, 0.8)',
-                                fontSize: '15px',
-                                lineHeight: '1.6',
-                              }}
-                              dangerouslySetInnerHTML={{ __html: highlightText(segment.text) }}
-                            />
+                            {searchQuery ? (
+                              <span
+                                style={{
+                                  color: 'rgba(255, 255, 255, 0.8)',
+                                  fontSize: '15px',
+                                  lineHeight: '1.6',
+                                }}
+                                dangerouslySetInnerHTML={{ __html: highlightText(segment.text) }}
+                              />
+                            ) : (
+                              <span style={{ color: 'rgba(255, 255, 255, 0.8)', fontSize: '15px', lineHeight: '1.6' }}>
+                                {renderTextWithHighlights(segment.text, index, 'transcript')}
+                              </span>
+                            )}
                           </div>
                         );
                       })}
@@ -1366,13 +1590,49 @@ export function SavedItemModal({
               </div>
 
               {/* Summary Scrollable Content */}
-              <div style={{
-                flex: 1,
-                overflowY: 'scroll',
-                padding: '16px',
-                paddingBottom: '80px', // Extra bottom padding for mobile scrolling
-                WebkitOverflowScrolling: 'touch', // Smooth scrolling on iOS
-              }}>
+              <div
+                ref={(el) => {
+                  if (activeTab === 'summary') {
+                    (contentContainerRef as React.MutableRefObject<HTMLDivElement | null>).current = el;
+                  }
+                }}
+                style={{
+                  flex: 1,
+                  overflowY: 'scroll',
+                  padding: '16px',
+                  paddingBottom: '80px', // Extra bottom padding for mobile scrolling
+                  WebkitOverflowScrolling: 'touch', // Smooth scrolling on iOS
+                  position: 'relative',
+                }}>
+                {/* Highlight Tooltip */}
+                {tooltipState && activeTab === 'summary' && (
+                  <div
+                    data-highlight-tooltip
+                    style={{
+                      position: 'absolute',
+                      zIndex: 9999,
+                      pointerEvents: 'none',
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      overflow: 'visible',
+                    }}
+                  >
+                    <div style={{ pointerEvents: 'auto' }}>
+                      <HighlightTooltip
+                        mode={tooltipState.mode}
+                        position={tooltipState.position}
+                        saving={highlightSaving}
+                        removing={highlightRemoving}
+                        onHighlight={handleSaveHighlight}
+                        onDismiss={() => { setTooltipState(null); window.getSelection()?.removeAllRanges(); }}
+                        onRemove={handleRemoveHighlight}
+                      />
+                    </div>
+                  </div>
+                )}
+
                 {/* Generate button (upload items only) - Full width like extension */}
                 {isInteractive && !generatedSummaries[currentFormat] && !isSummaryLoading && (
                   <button
