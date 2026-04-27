@@ -1,0 +1,71 @@
+name: E2E Tests (Staging)
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    branches: [staging]
+    types: [completed]
+
+jobs:
+  e2e-staging:
+    name: E2E Tests (Staging)
+    # Only run when main CI passed — no point testing a broken deploy
+    if: github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: staging
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Cache pip dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-e2e-${{ hashFiles('backend/requirements*.txt') }}
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install -r requirements-test.txt
+          pip install httpx
+
+      - name: Wait for Railway staging deploy
+        env:
+          STAGING_BACKEND_URL: ${{ secrets.STAGING_BACKEND_URL }}
+        run: |
+          if [ -z "$STAGING_BACKEND_URL" ]; then
+            echo "STAGING_BACKEND_URL not set — skipping wait"
+            exit 0
+          fi
+          echo "Polling $STAGING_BACKEND_URL/health ..."
+          for i in $(seq 1 24); do
+            if curl -sf "$STAGING_BACKEND_URL/health" > /dev/null 2>&1; then
+              echo "Staging healthy (attempt $i)"
+              exit 0
+            fi
+            echo "Not ready (attempt $i/24) — waiting 15s..."
+            sleep 15
+          done
+          echo "Staging never became healthy after 6 minutes"
+          exit 1
+
+      - name: Run E2E tests
+        env:
+          STAGING_BACKEND_URL: ${{ secrets.STAGING_BACKEND_URL }}
+          TEST_REFRESH_TOKEN: ${{ secrets.TEST_REFRESH_TOKEN }}
+        run: |
+          if [ -z "$STAGING_BACKEND_URL" ] || [ -z "$TEST_REFRESH_TOKEN" ]; then
+            echo "Secrets not configured — skipping e2e tests"
+            exit 0
+          fi
+          pytest tests/e2e/ -v --tb=short -m "not slow"
