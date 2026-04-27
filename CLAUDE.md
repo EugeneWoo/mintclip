@@ -142,6 +142,16 @@ bd close <id>         # Complete work
 6. **Verify** - All changes committed AND pushed
 7. **Hand off** - Provide context for next session
 
+## Push Protocol
+
+**For new features with UI/frontend changes:**
+- Commit locally first
+- Start dev server, show the user what was built
+- Wait for user to test and approve
+- THEN push to remote
+
+**NEVER push unverified UI features.** The session-end push mandate applies to maintenance, config, and bugfix work — not new features awaiting sign-off.
+
 **CRITICAL RULES:**
 - Work is NOT complete until `git push` succeeds
 - NEVER stop before pushing - that leaves work stranded locally

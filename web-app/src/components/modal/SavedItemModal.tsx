@@ -108,6 +108,18 @@ function markdownToHtml(markdown: string): string {
   return html;
 }
 
+function getTextOffsetInScope(container: Node, offset: number, scope: Element): number {
+  let charCount = 0;
+  const walker = document.createTreeWalker(scope, NodeFilter.SHOW_TEXT);
+  let node: Node | null;
+  while ((node = walker.nextNode())) {
+    if (node === container) return charCount + offset;
+    charCount += (node.textContent?.length ?? 0);
+  }
+  return charCount;
+}
+
+
 export function SavedItemModal({
   isOpen,
   onClose,
@@ -157,9 +169,17 @@ export function SavedItemModal({
     mode: 'new' | 'existing';
     position: { top: number; left: number };
     selectedText?: string;
+    // Single-segment (or summary)
     segmentIndex?: number | null;
     charStart?: number;
     charEnd?: number;
+    // Multi-segment transcript selection
+    multiSegment?: {
+      startIndex: number;
+      startChar: number;
+      endIndex: number;
+      endChar: number;
+    };
     existingHighlightId?: string;
   } | null>(null);
   const [highlightSaving, setHighlightSaving] = useState(false);
@@ -305,36 +325,87 @@ export function SavedItemModal({
       const container = contentContainerRef.current;
       if (!container) return;
 
-      const range = selection.getRangeAt(0);
+      const range = selection.getRangeAt(0).cloneRange();
 
       // Ensure selection is within our content container
       if (!container.contains(range.commonAncestorContainer)) return;
 
+      // Find start segment element
+      const startEl = range.startContainer.nodeType === Node.TEXT_NODE
+        ? range.startContainer.parentElement
+        : range.startContainer as Element;
+      const startSegmentEl = startEl?.closest('[data-segment-index]') as HTMLElement | null;
+
+      const endEl = range.endContainer.nodeType === Node.TEXT_NODE
+        ? range.endContainer.parentElement
+        : range.endContainer as Element;
+      const endSegmentEl = endEl?.closest('[data-segment-index]') as HTMLElement | null;
+
+      // Clamp end if it lands inside a timestamp span (timestamps are unselectable via CSS
+      // but range endpoint can still fall there via drag)
+      const endInTimestamp = endEl?.closest('[data-timestamp]');
+      if (endInTimestamp) {
+        range.setEndBefore(endInTimestamp);
+      }
+
+      if (range.toString().trim().length === 0) return;
+
       const rect = range.getBoundingClientRect();
       const containerRect = container.getBoundingClientRect();
 
-      // Position relative to container
       const position = {
         top: rect.top - containerRect.top + container.scrollTop,
         left: rect.left - containerRect.left + (rect.width / 2),
       };
 
-      // Find segment index from DOM
-      const segmentEl = range.startContainer.parentElement?.closest('[data-segment-index]') as HTMLElement | null;
-      const segmentIndex = segmentEl ? parseInt(segmentEl.dataset.segmentIndex!) : null;
+      const selectedText = range.toString();
 
-      const charStart = range.startOffset;
-      const charEnd = range.endOffset;
-      const selectedText = selection.toString();
+      if (startSegmentEl && endSegmentEl && startSegmentEl !== endSegmentEl) {
+        // Multi-segment selection: store start+end info, save one row per segment in handleSaveHighlight
+        const startIndex = parseInt(startSegmentEl.dataset.segmentIndex!);
+        const endIndex = parseInt(endSegmentEl.dataset.segmentIndex!);
+        const startTextSpan = startSegmentEl.querySelector('[data-segment-text]') ?? startSegmentEl;
+        const endTextSpan = endSegmentEl.querySelector('[data-segment-text]') ?? endSegmentEl;
+        const startChar = getTextOffsetInScope(range.startContainer, range.startOffset, startTextSpan as Element);
+        const endChar = getTextOffsetInScope(range.endContainer, range.endOffset, endTextSpan as Element);
 
-      setTooltipState({
-        mode: 'new',
-        position,
-        selectedText,
-        segmentIndex,
-        charStart,
-        charEnd,
-      });
+        setTooltipState({
+          mode: 'new',
+          position,
+          selectedText,
+          multiSegment: { startIndex, startChar, endIndex, endChar },
+        });
+      } else {
+        // Single segment or summary
+        const segmentIndex = startSegmentEl ? parseInt(startSegmentEl.dataset.segmentIndex!) : null;
+        let charStart = 0;
+        let charEnd = 0;
+        if (startSegmentEl) {
+          const textSpan = startSegmentEl.querySelector('[data-segment-text]') ?? startSegmentEl;
+          charStart = getTextOffsetInScope(range.startContainer, range.startOffset, textSpan as Element);
+          charEnd = getTextOffsetInScope(range.endContainer, range.endOffset, textSpan as Element);
+        } else if (activeTab === 'summary') {
+          // Summary: each rendered line div has data-char-start = its offset in the full summary string
+          const toEl = (n: Node) => (n.nodeType === Node.TEXT_NODE ? n.parentElement : n as Element);
+          const startLineEl = toEl(range.startContainer)?.closest('[data-char-start]') as HTMLElement | null;
+          const endLineEl = toEl(range.endContainer)?.closest('[data-char-start]') as HTMLElement | null;
+          if (startLineEl && endLineEl) {
+            charStart = parseInt(startLineEl.dataset.charStart!) +
+              getTextOffsetInScope(range.startContainer, range.startOffset, startLineEl);
+            charEnd = parseInt(endLineEl.dataset.charStart!) +
+              getTextOffsetInScope(range.endContainer, range.endOffset, endLineEl);
+          }
+        }
+
+        setTooltipState({
+          mode: 'new',
+          position,
+          selectedText,
+          segmentIndex,
+          charStart,
+          charEnd,
+        });
+      }
     };
 
     const handleMouseDown = (e: MouseEvent) => {
@@ -371,15 +442,37 @@ export function SavedItemModal({
     if (!tooltipState || !item) return;
     setHighlightSaving(true);
     try {
-      await addHighlight({
-        video_id: item.video_id,
-        selected_text: tooltipState.selectedText!,
-        source_type: activeTab as 'transcript' | 'summary',
-        segment_index: tooltipState.segmentIndex ?? undefined,
-        char_start: tooltipState.charStart!,
-        char_end: tooltipState.charEnd!,
-        summary_format: activeTab === 'summary' ? currentFormat : undefined,
-      });
+      if (tooltipState.multiSegment) {
+        // Multi-segment: save one row per segment spanned
+        const { startIndex, startChar, endIndex, endChar } = tooltipState.multiSegment;
+        const segments = getFilteredTranscript();
+        const saves = [];
+        for (let i = startIndex; i <= endIndex; i++) {
+          const seg = segments[i];
+          if (!seg) continue;
+          const segCharStart = i === startIndex ? startChar : 0;
+          const segCharEnd = i === endIndex ? endChar : seg.text.length;
+          saves.push(addHighlight({
+            video_id: item.video_id,
+            selected_text: seg.text.slice(segCharStart, segCharEnd),
+            source_type: 'transcript',
+            segment_index: i,
+            char_start: segCharStart,
+            char_end: segCharEnd,
+          }));
+        }
+        await Promise.all(saves);
+      } else {
+        await addHighlight({
+          video_id: item.video_id,
+          selected_text: tooltipState.selectedText!,
+          source_type: activeTab as 'transcript' | 'summary',
+          segment_index: tooltipState.segmentIndex ?? undefined,
+          char_start: tooltipState.charStart!,
+          char_end: tooltipState.charEnd!,
+          summary_format: activeTab === 'summary' ? currentFormat : undefined,
+        });
+      }
       setTooltipState(null);
       window.getSelection()?.removeAllRanges();
     } catch {
@@ -692,7 +785,7 @@ export function SavedItemModal({
   };
 
   // Render summary with markdown, clickable timestamps, and headers
-  const renderSummary = (text: string) => {
+  const renderSummary = (text: string, summaryHighlights: Highlight[] = []) => {
     // Debug log to check if text is complete
     console.log('[SavedItemModal] Rendering summary:', {
       length: text.length,
@@ -701,11 +794,60 @@ export function SavedItemModal({
       lastChars: text.slice(-50)
     });
 
+    // Apply highlights to a text slice given its global offset in the full summary string
+    const applyHighlightsToLine = (lineText: string, globalStart: number): React.ReactNode => {
+      const relevant = summaryHighlights.filter(h =>
+        h.char_end > globalStart && h.char_start < globalStart + lineText.length
+      );
+      if (relevant.length === 0) return lineText;
+      const sorted = [...relevant].sort((a, b) => a.char_start - b.char_start);
+      const nodes: React.ReactNode[] = [];
+      let cursor = 0;
+      for (const h of sorted) {
+        const localStart = Math.max(0, h.char_start - globalStart);
+        const localEnd = Math.min(lineText.length, h.char_end - globalStart);
+        if (localEnd <= localStart) continue;
+        if (localStart > cursor) nodes.push(lineText.slice(cursor, localStart));
+        nodes.push(
+          <mark
+            key={h.id}
+            data-highlight-id={h.id}
+            style={{ background: 'rgba(250,204,21,0.35)', borderRadius: 2, cursor: 'pointer', color: 'inherit' }}
+            onClick={(e) => {
+              e.stopPropagation();
+              const markEl = e.currentTarget;
+              const containerEl = contentContainerRef.current;
+              if (!containerEl) return;
+              const markRect = markEl.getBoundingClientRect();
+              const containerRect = containerEl.getBoundingClientRect();
+              setTooltipState({
+                mode: 'existing',
+                position: {
+                  top: markRect.top - containerRect.top + containerEl.scrollTop,
+                  left: markRect.left - containerRect.left + markRect.width / 2,
+                },
+                existingHighlightId: h.id,
+              });
+            }}
+          >
+            {lineText.slice(localStart, localEnd)}
+          </mark>
+        );
+        cursor = localEnd;
+      }
+      if (cursor < lineText.length) nodes.push(lineText.slice(cursor));
+      return nodes;
+    };
+
     const lines = text.split('\n');
     const elements: React.ReactNode[] = [];
     const isStructured = getIsStructured();
+    let charOffset = 0;
 
     lines.forEach((line, index) => {
+      const lineCharStart = charOffset;
+      charOffset += line.length + 1; // +1 for \n
+
       if (!line.trim()) {
         elements.push(<div key={index} style={{ height: '8px' }} />);
         return;
@@ -801,55 +943,31 @@ export function SavedItemModal({
         if (line.startsWith('###')) {
           const headingText = line.replace(/^###\s*/, '');
           elements.push(
-            <div
-              key={index}
-              style={{
-                fontWeight: 700,
-                fontSize: '16px',
-                marginTop: index > 0 ? '20px' : '0',
-                marginBottom: '10px',
-                color: '#fff',
-              }}
-            >
+            <div key={index} data-char-start={lineCharStart} style={{ fontWeight: 700, fontSize: '16px', marginTop: index > 0 ? '20px' : '0', marginBottom: '10px', color: '#fff' }}>
               {headingText}
             </div>
           );
         } else if (line.startsWith('##')) {
           const headingText = line.replace(/^##\s*/, '');
           elements.push(
-            <div
-              key={index}
-              style={{
-                fontWeight: 700,
-                fontSize: '17px',
-                marginTop: index > 0 ? '22px' : '0',
-                marginBottom: '12px',
-                color: '#fff',
-              }}
-            >
+            <div key={index} data-char-start={lineCharStart} style={{ fontWeight: 700, fontSize: '17px', marginTop: index > 0 ? '22px' : '0', marginBottom: '12px', color: '#fff' }}>
               {headingText}
             </div>
           );
         } else if (line.startsWith('#')) {
           const headingText = line.replace(/^#\s*/, '');
           elements.push(
-            <div
-              key={index}
-              style={{
-                fontWeight: 700,
-                fontSize: '18px',
-                marginTop: index > 0 ? '24px' : '0',
-                marginBottom: '14px',
-                color: '#fff',
-              }}
-            >
+            <div key={index} data-char-start={lineCharStart} style={{ fontWeight: 700, fontSize: '18px', marginTop: index > 0 ? '24px' : '0', marginBottom: '14px', color: '#fff' }}>
               {headingText}
             </div>
           );
         } else {
+          const hasHighlight = summaryHighlights.some(h =>
+            h.char_end > lineCharStart && h.char_start < lineCharStart + line.length
+          );
           elements.push(
-            <div key={index} style={{ marginBottom: '10px', lineHeight: '1.6' }}>
-              {renderLineWithLinks(line)}
+            <div key={index} data-char-start={lineCharStart} style={{ marginBottom: '10px', lineHeight: '1.6' }}>
+              {hasHighlight ? applyHighlightsToLine(line, lineCharStart) : renderLineWithLinks(line)}
             </div>
           );
         }
@@ -858,69 +976,48 @@ export function SavedItemModal({
         if (line.startsWith('###')) {
           const headingText = line.replace(/^###\s*/, '');
           elements.push(
-            <div
-              key={index}
-              style={{
-                fontWeight: 700,
-                fontSize: '16px',
-                marginTop: index > 0 ? '16px' : '0',
-                marginBottom: '8px',
-                color: '#fff',
-              }}
-            >
+            <div key={index} data-char-start={lineCharStart} style={{ fontWeight: 700, fontSize: '16px', marginTop: index > 0 ? '16px' : '0', marginBottom: '8px', color: '#fff' }}>
               {headingText}
             </div>
           );
         } else if (line.startsWith('##')) {
           const headingText = line.replace(/^##\s*/, '');
           elements.push(
-            <div
-              key={index}
-              style={{
-                fontWeight: 700,
-                fontSize: '16px',
-                marginTop: index > 0 ? '18px' : '0',
-                marginBottom: '10px',
-                color: '#fff',
-              }}
-            >
+            <div key={index} data-char-start={lineCharStart} style={{ fontWeight: 700, fontSize: '16px', marginTop: index > 0 ? '18px' : '0', marginBottom: '10px', color: '#fff' }}>
               {headingText}
             </div>
           );
         } else if (line.startsWith('#')) {
           const headingText = line.replace(/^#\s*/, '');
           elements.push(
-            <div
-              key={index}
-              style={{
-                fontWeight: 700,
-                fontSize: '18px',
-                marginTop: index > 0 ? '20px' : '0',
-                marginBottom: '12px',
-                color: '#fff',
-              }}
-            >
+            <div key={index} data-char-start={lineCharStart} style={{ fontWeight: 700, fontSize: '18px', marginTop: index > 0 ? '20px' : '0', marginBottom: '12px', color: '#fff' }}>
               {headingText}
             </div>
           );
         } else {
-          const parts = line.split(/(\*\*.+?\*\*)/g);
-          const rendered = parts.map((part, i) => {
-            if (part.startsWith('**') && part.endsWith('**')) {
-              return (
-                <strong key={i} style={{ fontWeight: 700, color: '#fff' }}>
-                  {part.slice(2, -2)}
-                </strong>
-              );
-            }
-            return part;
-          });
-
-          elements.push(
-            <div key={index} style={{ marginBottom: '8px', lineHeight: '1.6' }}>
-              {rendered}
-            </div>
+          const hasHighlight = summaryHighlights.some(h =>
+            h.char_end > lineCharStart && h.char_start < lineCharStart + line.length
           );
+          if (hasHighlight) {
+            elements.push(
+              <div key={index} data-char-start={lineCharStart} style={{ marginBottom: '8px', lineHeight: '1.6' }}>
+                {applyHighlightsToLine(line, lineCharStart)}
+              </div>
+            );
+          } else {
+            const parts = line.split(/(\*\*.+?\*\*)/g);
+            const rendered = parts.map((part, i) => {
+              if (part.startsWith('**') && part.endsWith('**')) {
+                return <strong key={i} style={{ fontWeight: 700, color: '#fff' }}>{part.slice(2, -2)}</strong>;
+              }
+              return part;
+            });
+            elements.push(
+              <div key={index} data-char-start={lineCharStart} style={{ marginBottom: '8px', lineHeight: '1.6' }}>
+                {rendered}
+              </div>
+            );
+          }
         }
       }
     });
@@ -1403,6 +1500,7 @@ export function SavedItemModal({
                             }}
                           >
                             <span
+                              data-timestamp
                               style={{
                                 color: '#3ea6ff',
                                 fontSize: '13px',
@@ -1412,12 +1510,14 @@ export function SavedItemModal({
                                 borderRadius: '2px',
                                 padding: '1px 3px',
                                 flexShrink: 0,
+                                userSelect: 'none',
                               }}
                             >
                               {segment.timestamp}
                             </span>
                             {searchQuery ? (
                               <span
+                                data-segment-text
                                 style={{
                                   color: 'rgba(255, 255, 255, 0.8)',
                                   fontSize: '15px',
@@ -1426,7 +1526,7 @@ export function SavedItemModal({
                                 dangerouslySetInnerHTML={{ __html: highlightText(segment.text) }}
                               />
                             ) : (
-                              <span style={{ color: 'rgba(255, 255, 255, 0.8)', fontSize: '15px', lineHeight: '1.6' }}>
+                              <span data-segment-text style={{ color: 'rgba(255, 255, 255, 0.8)', fontSize: '15px', lineHeight: '1.6' }}>
                                 {renderTextWithHighlights(segment.text, index, 'transcript')}
                               </span>
                             )}
@@ -1703,7 +1803,10 @@ export function SavedItemModal({
                       color: 'rgba(255, 255, 255, 0.8)',
                       fontSize: '14px',
                     }}>
-                      {renderSummary(getCurrentSummary()!)}
+                      {renderSummary(
+  getCurrentSummary()!,
+  highlights.filter(h => h.source_type === 'summary' && h.summary_format === currentFormat)
+)}
                     </div>
                     {/* Debug info - shows if summary appears incomplete */}
                     {(() => {
