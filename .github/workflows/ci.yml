@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, staging]
   pull_request:
-    branches: [main]
+    branches: [main, staging]
 
 jobs:
   # ─────────────────────────────────────────────────────────────
@@ -181,3 +181,4 @@ jobs:
 
       - name: Run Jest tests
         run: npx jest --ci --coverage --forceExit
+
