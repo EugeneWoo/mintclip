@@ -224,4 +224,8 @@ jobs:
           STAGING_BACKEND_URL: ${{ secrets.STAGING_BACKEND_URL }}
           TEST_REFRESH_TOKEN: ${{ secrets.TEST_REFRESH_TOKEN }}
         run: |
+          if [ -z "$STAGING_BACKEND_URL" ] || [ -z "$TEST_REFRESH_TOKEN" ]; then
+            echo "Secrets not configured — skipping e2e tests"
+            exit 0
+          fi
           pytest tests/e2e/ -v --tb=short -m "not slow"
