@@ -1,6 +1,6 @@
 """
 Highlights API Routes
-Endpoints for saving, retrieving, and deleting text highlights from transcripts and summaries
+Endpoints for saving, retrieving, and deleting text highlights from transcripts and summaries.
 """
 
 from fastapi import APIRouter, HTTPException, Depends
