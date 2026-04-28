@@ -42,6 +42,16 @@ mintclip/
 - Contextual Q&A chat about video content
 - Suggested questions based on transcript
 
+### Highlights
+- Select any text in transcripts or summaries to create a highlight
+- Highlights persist across sessions and are linked to timestamps
+- View and manage all highlights from the saved item modal
+
+### Batch Processing
+- Import up to 5 YouTube URLs at once
+- Generates a combined summary across all videos in the batch
+- Chat with the combined content of the entire batch as a group
+
 ## 🛠️ Tech Stack
 
 **Backend:**
@@ -135,4 +145,4 @@ This project uses Agent OS for structured development workflows. See the [agent-
 
 ---
 
-**Status**: ✅ Active Development | **Last Updated**: March 2026
+**Status**: ✅ Active Development | **Last Updated**: April 2026

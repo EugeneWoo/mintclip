@@ -40,14 +40,26 @@ cd web-app && npm run dev         # port 5173
 ```
 Requires: `GEMINI_API_KEY`, Supabase credentials (see `backend/.env.example`)
 
+## Deploy Pipeline
+
+```
+push staging → CI (unit tests) → Railway staging deploys → E2E Tests (Staging) fires
+             → e2e passes → PR auto-merged to main → Railway prod deploys
+```
+
+**You only need to open the PR** (`gh pr create` or GitHub UI). Everything after is automatic.
+
+After finishing any implementation or fix: push to `staging`, open PR, done.
+
 ## CI / Testing
-Auto-runs on push/PR to `main`, path-filtered per area.
+Unit tests run on push/PR to `main` or `staging`, path-filtered per area.
 
 | Job | Trigger | What it checks |
 |-----|---------|----------------|
 | Backend | `backend/**` | pytest (Python 3.11 + 3.12) |
 | Extension | `extension/**` | Jest — 49 tests (~60s in CI) |
 | Web App | `web-app/**` | TypeScript + ESLint + Jest |
+| E2E | staging CI passes | pytest `backend/tests/e2e/` → real staging backend |
 
 Extension tests (`extension/__tests__/`):
 - `manifest-validation.test.ts` — `host_permissions` covers all production URLs from `config.ts` (catches v0.1.4 auth outage class of bug)
