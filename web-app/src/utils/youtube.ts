@@ -22,9 +22,9 @@ export function getYouTubeThumbnail(videoId: string, quality: 'max' | 'hq' | 'mq
  */
 export function extractVideoId(url: string): string | null {
   const patterns = [
-    /(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\n?#]+)/,
-    /youtube\.com\/embed\/([^&\n?#]+)/,
-    /youtube\.com\/v\/([^&\n?#]+)/,
+    /(?:(?:music\.)?youtube\.com\/watch\?v=|youtu\.be\/)([^&\n?#]+)/,
+    /(?:music\.)?youtube\.com\/embed\/([^&\n?#]+)/,
+    /(?:music\.)?youtube\.com\/v\/([^&\n?#]+)/,
   ];
 
   for (const pattern of patterns) {

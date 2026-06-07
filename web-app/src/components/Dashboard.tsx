@@ -334,7 +334,7 @@ export function Dashboard(): React.JSX.Element {
   };
 
   const isValidYouTubeUrl = (url: string): boolean => {
-    const pattern = /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/.+/;
+    const pattern = /^(https?:\/\/)?(www\.|music\.)?(youtube\.com|youtu\.be)\/.+/;
     return pattern.test(url);
   };
 
@@ -343,9 +343,18 @@ export function Dashboard(): React.JSX.Element {
   };
 
   const extractVideoId = (url: string): string | null => {
-    const regExp = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*/;
-    const match = url.match(regExp);
-    return (match && match[7].length === 11) ? match[7] : null;
+    try {
+      const parsed = new URL(url);
+      const v = parsed.searchParams.get('v');
+      if (v && v.length === 11) return v;
+      const pathMatch = parsed.pathname.match(/\/(embed|v|shorts)\/([^/?#]{11})/);
+      if (pathMatch) return pathMatch[2];
+      if (parsed.hostname === 'youtu.be') {
+        const id = parsed.pathname.slice(1, 12);
+        if (id.length === 11) return id;
+      }
+    } catch {}
+    return null;
   };
 
   const handleExtract = async () => {

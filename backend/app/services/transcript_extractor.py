@@ -79,7 +79,7 @@ class TranscriptExtractor:
         - VIDEO_ID (direct ID)
         """
         patterns = [
-            r'(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/shorts\/)([a-zA-Z0-9_-]{11})',
+            r'(?:(?:music\.)?youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/shorts\/)([a-zA-Z0-9_-]{11})',
             r'^([a-zA-Z0-9_-]{11})$'  # Direct video ID
         ]
 

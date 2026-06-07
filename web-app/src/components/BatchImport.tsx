@@ -19,7 +19,7 @@ interface VideoResult {
 const MAX_URLS = 5;
 
 function isValidYouTubeUrl(url: string): boolean {
-  return /youtube\.com|youtu\.be/.test(url);
+  return /(?:music\.)?youtube\.com|youtu\.be/.test(url);
 }
 
 function isShortsUrl(url: string): boolean {
