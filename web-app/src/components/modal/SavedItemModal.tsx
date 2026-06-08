@@ -1056,13 +1056,16 @@ export function SavedItemModal({
         } as typeof prev));
 
         // Save to Supabase
-        await saveItem(item.video_id, isBatch ? 'batch_summary' : 'summary', {
+        const saveResponse = await saveItem(item.video_id, isBatch ? 'batch_summary' : 'summary', {
           videoTitle: item.video_title || `Video ${item.video_id}`,
           savedAt: new Date().toISOString(),
           format,
           summary: response.summary,
           is_structured: response.is_structured,
         }, isBatch ? 'batch' : 'upload');
+        if (!saveResponse.success) {
+          setSummaryError(saveResponse.error || 'Summary generated but failed to save.');
+        }
       } else {
         // Show error text below the Generate button
         console.error('Failed to generate summary:', response.error);
