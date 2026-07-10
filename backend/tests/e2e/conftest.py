@@ -29,17 +29,35 @@ def base_url() -> str:
 
 
 @pytest.fixture(scope="session")
-def access_token() -> str:
-    """Exchange stored refresh token for a fresh access token."""
-    resp = httpx.post(
-        f"{STAGING_URL}/api/auth/refresh",
-        json={"refresh_token": TEST_REFRESH_TOKEN},
-        timeout=30,
-    )
-    assert resp.status_code == 200, f"Token refresh failed: {resp.status_code} {resp.text}"
-    data = resp.json()
-    assert "access_token" in data, f"No access_token in refresh response: {data}"
-    return data["access_token"]
+def maybe_access_token() -> "str | None":
+    """Try to exchange the stored refresh token; return None if it has expired.
+
+    Does NOT skip — lets token-free tests (e.g. the Google-audience security
+    checks) still run and give real regression signal when TEST_REFRESH_TOKEN
+    is stale. The refresh token rotates every 30 days.
+    """
+    try:
+        resp = httpx.post(
+            f"{STAGING_URL}/api/auth/refresh",
+            json={"refresh_token": TEST_REFRESH_TOKEN},
+            timeout=30,
+        )
+    except Exception:
+        return None
+    if resp.status_code != 200:
+        return None
+    return resp.json().get("access_token")
+
+
+@pytest.fixture(scope="session")
+def access_token(maybe_access_token) -> str:
+    """A valid access token, or skip token-dependent tests if the secret expired."""
+    if not maybe_access_token:
+        pytest.skip(
+            "TEST_REFRESH_TOKEN expired — refresh the GitHub secret to re-enable "
+            "auth-dependent e2e tests"
+        )
+    return maybe_access_token
 
 
 @pytest.fixture(scope="session")
@@ -76,16 +94,25 @@ def _saved_video_ids(base_url: str, auth_headers: dict) -> set[str]:
 
 
 @pytest.fixture(scope="session", autouse=True)
-def cleanup_test_videos(base_url: str, auth_headers: dict):
-    """Delete only video IDs that CI created — skip any the user had saved before."""
-    pre_existing = _saved_video_ids(base_url, auth_headers) & set(_TEST_VIDEO_IDS)
+def cleanup_test_videos(base_url: str, maybe_access_token):
+    """Delete only video IDs that CI created — skip any the user had saved before.
+
+    Uses maybe_access_token so an expired refresh token does NOT cascade a skip
+    onto every test via this autouse fixture. When there is no token, cleanup is
+    a no-op (token-free tests still ran, wrote nothing that needs cleanup).
+    """
+    if not maybe_access_token:
+        yield
+        return
+    headers = {"Authorization": f"Bearer {maybe_access_token}"}
+    pre_existing = _saved_video_ids(base_url, headers) & set(_TEST_VIDEO_IDS)
     yield
     to_delete = set(_TEST_VIDEO_IDS) - pre_existing
     for video_id in to_delete:
         try:
             httpx.delete(
                 f"{base_url}/api/saved-items/video/{video_id}",
-                headers=auth_headers,
+                headers=headers,
                 timeout=15,
             )
         except Exception:
