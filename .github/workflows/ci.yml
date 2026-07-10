@@ -76,8 +76,9 @@ jobs:
 
       - name: Run tests
         env:
-          # JWT config — local crypto only, no external service needed
-          JWT_SECRET: test-jwt-secret-for-ci-only
+          # JWT config — local crypto only, no external service needed.
+          # Must be >=32 chars: auth_service.py fails fast on a weak signing key.
+          JWT_SECRET: test-jwt-secret-for-ci-only-32chars
           JWT_ALGORITHM: HS256
           JWT_ACCESS_TOKEN_EXPIRE_HOURS: "1"
           JWT_REFRESH_TOKEN_EXPIRE_DAYS: "30"
