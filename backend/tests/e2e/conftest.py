@@ -3,9 +3,12 @@ E2E test fixtures — hit real staging backend with real credentials.
 
 Required env vars (set as GitHub secrets):
   STAGING_BACKEND_URL   e.g. https://mintclip-staging.up.railway.app
-  TEST_REFRESH_TOKEN    extract from staging webapp local storage
 
-All tests are skipped if either var is missing.
+Auth (either works; login is preferred — it never expires):
+  TEST_ACCOUNT_EMAIL + TEST_ACCOUNT_PASSWORD   dedicated CI account, self-minted
+  TEST_REFRESH_TOKEN                            legacy fallback (rotates every 30 days)
+
+All tests are skipped if the backend URL or all auth credentials are missing.
 """
 
 import os
@@ -13,12 +16,17 @@ import pytest
 import httpx
 
 STAGING_URL = os.environ.get("STAGING_BACKEND_URL", "").rstrip("/")
+TEST_ACCOUNT_EMAIL = os.environ.get("TEST_ACCOUNT_EMAIL", "")
+TEST_ACCOUNT_PASSWORD = os.environ.get("TEST_ACCOUNT_PASSWORD", "")
 TEST_REFRESH_TOKEN = os.environ.get("TEST_REFRESH_TOKEN", "")
 
-# Skip entire module when secrets not present
-if not STAGING_URL or not TEST_REFRESH_TOKEN:
+_HAS_AUTH = bool((TEST_ACCOUNT_EMAIL and TEST_ACCOUNT_PASSWORD) or TEST_REFRESH_TOKEN)
+
+# Skip entire module when the backend URL or all auth credentials are missing.
+if not STAGING_URL or not _HAS_AUTH:
     pytest.skip(
-        "STAGING_BACKEND_URL and TEST_REFRESH_TOKEN required for e2e tests",
+        "STAGING_BACKEND_URL and (TEST_ACCOUNT_EMAIL+PASSWORD or TEST_REFRESH_TOKEN) "
+        "required for e2e tests",
         allow_module_level=True,
     )
 
@@ -30,23 +38,42 @@ def base_url() -> str:
 
 @pytest.fixture(scope="session")
 def maybe_access_token() -> "str | None":
-    """Try to exchange the stored refresh token; return None if it has expired.
+    """Mint an access token for the CI account. Returns None if auth fails.
 
-    Does NOT skip — lets token-free tests (e.g. the Google-audience security
-    checks) still run and give real regression signal when TEST_REFRESH_TOKEN
-    is stale. The refresh token rotates every 30 days.
+    Prefers email/password login (a dedicated CI account whose password does not
+    expire, so no monthly secret rotation). Falls back to the legacy refresh
+    token. Never skips — token-free tests (e.g. the Google-audience security
+    checks) still run and give real regression signal even when auth is stale.
     """
-    try:
-        resp = httpx.post(
-            f"{STAGING_URL}/api/auth/refresh",
-            json={"refresh_token": TEST_REFRESH_TOKEN},
-            timeout=30,
-        )
-    except Exception:
-        return None
-    if resp.status_code != 200:
-        return None
-    return resp.json().get("access_token")
+    # Preferred: self-mint via login (no expiry to manage).
+    if TEST_ACCOUNT_EMAIL and TEST_ACCOUNT_PASSWORD:
+        try:
+            resp = httpx.post(
+                f"{STAGING_URL}/api/auth/login",
+                json={"email": TEST_ACCOUNT_EMAIL, "password": TEST_ACCOUNT_PASSWORD},
+                timeout=30,
+            )
+            if resp.status_code == 200:
+                tokens = resp.json().get("tokens") or {}
+                if tokens.get("access_token"):
+                    return tokens["access_token"]
+        except Exception:
+            pass
+
+    # Fallback: legacy refresh token (rotates every 30 days).
+    if TEST_REFRESH_TOKEN:
+        try:
+            resp = httpx.post(
+                f"{STAGING_URL}/api/auth/refresh",
+                json={"refresh_token": TEST_REFRESH_TOKEN},
+                timeout=30,
+            )
+            if resp.status_code == 200:
+                return resp.json().get("access_token")
+        except Exception:
+            pass
+
+    return None
 
 
 @pytest.fixture(scope="session")
