@@ -51,3 +51,42 @@ def auth_headers(access_token: str) -> dict:
 # Short, stable, well-known videos unlikely to be deleted
 EN_VIDEO_ID = "jNQXAC9IVRw"        # "Me at the zoo" — first YouTube video, 19s, English
 NON_EN_VIDEO_ID = "9bZkp7q19f0"    # PSY Gangnam Style — has Korean captions
+
+# All video IDs that E2E tests may write to the DB — cleaned up after session
+_TEST_VIDEO_IDS = [
+    EN_VIDEO_ID,
+    NON_EN_VIDEO_ID,
+    "dQw4w9WgXcQ",  # Rick Astley — used in batch tests
+]
+
+
+def _saved_video_ids(base_url: str, auth_headers: dict) -> set[str]:
+    """Return set of video_ids already in the user's saved items."""
+    try:
+        resp = httpx.get(
+            f"{base_url}/api/saved-items/list",
+            headers=auth_headers,
+            timeout=15,
+        )
+        if resp.status_code == 200:
+            return {item["video_id"] for item in resp.json().get("items", [])}
+    except Exception:
+        pass
+    return set()
+
+
+@pytest.fixture(scope="session", autouse=True)
+def cleanup_test_videos(base_url: str, auth_headers: dict):
+    """Delete only video IDs that CI created — skip any the user had saved before."""
+    pre_existing = _saved_video_ids(base_url, auth_headers) & set(_TEST_VIDEO_IDS)
+    yield
+    to_delete = set(_TEST_VIDEO_IDS) - pre_existing
+    for video_id in to_delete:
+        try:
+            httpx.delete(
+                f"{base_url}/api/saved-items/video/{video_id}",
+                headers=auth_headers,
+                timeout=15,
+            )
+        except Exception:
+            pass  # best-effort; don't fail the suite on cleanup errors

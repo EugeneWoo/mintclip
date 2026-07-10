@@ -16,11 +16,12 @@ import os
 # ── Env setup BEFORE any app imports ────────────────────────────────────────
 # This ensures supabase_client.py initializes with SUPABASE_AVAILABLE=False
 # and cache.py uses SimpleCache (no REDIS_URL).
-os.environ.setdefault("JWT_SECRET", "test-jwt-secret-for-ci-only")
+os.environ.setdefault("JWT_SECRET", "test-jwt-secret-for-ci-only-32chars")
 os.environ.setdefault("JWT_ALGORITHM", "HS256")
 os.environ.setdefault("JWT_ACCESS_TOKEN_EXPIRE_HOURS", "1")
 os.environ.setdefault("JWT_REFRESH_TOKEN_EXPIRE_DAYS", "30")
 os.environ.setdefault("LOG_LEVEL", "WARNING")
+os.environ.setdefault("GOOGLE_ALLOWED_CLIENT_IDS", "test-client-id.apps.googleusercontent.com")
 
 # Set external service credentials to empty strings BEFORE any module import.
 # dotenv.load_dotenv() (called inside supabase_client.py, auth_service.py, etc.)
@@ -65,7 +66,7 @@ def reset_cache():
 
 # ── JWT helpers ───────────────────────────────────────────────────────────────
 
-JWT_SECRET = "test-jwt-secret-for-ci-only"
+JWT_SECRET = "test-jwt-secret-for-ci-only-32chars"
 JWT_ALGORITHM = "HS256"
 
 TEST_USER_ID = "11111111-1111-1111-1111-111111111111"
