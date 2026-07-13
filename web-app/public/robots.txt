@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /dashboard
+Disallow: /notifications
+Disallow: /auth/
+
+Sitemap: https://mintclip.app/sitemap.xml
