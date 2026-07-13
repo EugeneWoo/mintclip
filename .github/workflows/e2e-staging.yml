@@ -65,10 +65,18 @@ jobs:
       - name: Run E2E tests
         env:
           STAGING_BACKEND_URL: ${{ secrets.STAGING_BACKEND_URL }}
+          # Preferred: dedicated CI account, self-minted via login (no expiry to manage).
+          TEST_ACCOUNT_EMAIL: ${{ secrets.TEST_ACCOUNT_EMAIL }}
+          TEST_ACCOUNT_PASSWORD: ${{ secrets.TEST_ACCOUNT_PASSWORD }}
+          # Legacy fallback (rotates every 30 days) — kept for backward compat.
           TEST_REFRESH_TOKEN: ${{ secrets.TEST_REFRESH_TOKEN }}
         run: |
-          if [ -z "$STAGING_BACKEND_URL" ] || [ -z "$TEST_REFRESH_TOKEN" ]; then
-            echo "Secrets not configured — skipping e2e tests"
+          if [ -z "$STAGING_BACKEND_URL" ]; then
+            echo "STAGING_BACKEND_URL not configured — skipping e2e tests"
+            exit 0
+          fi
+          if [ -z "$TEST_ACCOUNT_EMAIL" ] && [ -z "$TEST_REFRESH_TOKEN" ]; then
+            echo "No auth credentials configured — skipping e2e tests"
             exit 0
           fi
           pytest tests/e2e/ -v --tb=short -m "not slow"

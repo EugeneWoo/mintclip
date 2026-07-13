@@ -20,7 +20,12 @@ load_dotenv()
 logger = logging.getLogger(__name__)
 
 # JWT Configuration
-JWT_SECRET = os.getenv("JWT_SECRET", "change-this-in-production")
+JWT_SECRET = os.getenv("JWT_SECRET")
+if not JWT_SECRET or len(JWT_SECRET) < 32:
+    raise RuntimeError(
+        "JWT_SECRET must be set and at least 32 characters. "
+        "Refusing to start with a missing or weak signing key."
+    )
 JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
 JWT_ACCESS_TOKEN_EXPIRE_HOURS = int(os.getenv("JWT_ACCESS_TOKEN_EXPIRE_HOURS", "1"))
 JWT_REFRESH_TOKEN_EXPIRE_DAYS = int(os.getenv("JWT_REFRESH_TOKEN_EXPIRE_DAYS", "30"))
@@ -166,8 +171,50 @@ class AuthService:
             if proxy_url:
                 logger.info("Using Webshare proxy for Google API call")
 
+            async def _verify_token_audience(client: httpx.AsyncClient) -> Optional[dict]:
+                """
+                Verify the access token's audience via Google's tokeninfo endpoint.
+                Returns the tokeninfo dict if the token was issued to one of our own
+                OAuth clients, otherwise None. This blocks token-substitution: an
+                access token minted for any *other* Google app must be rejected.
+                """
+                allowed = [
+                    c.strip()
+                    for c in os.getenv("GOOGLE_ALLOWED_CLIENT_IDS", "").split(",")
+                    if c.strip()
+                ]
+                if not allowed:
+                    logger.error("GOOGLE_ALLOWED_CLIENT_IDS not set — rejecting Google auth (fail closed)")
+                    return None
+
+                r = await client.get(
+                    f"https://www.googleapis.com/oauth2/v3/tokeninfo?access_token={google_token}",
+                    timeout=10.0
+                )
+                if r.status_code != 200:
+                    logger.error(f"tokeninfo failed: {r.status_code} {r.text}")
+                    return None
+
+                info = r.json()
+                # Google returns the token's client under `aud` (and `azp` for some flows).
+                token_aud = info.get("aud")
+                token_azp = info.get("azp")
+                if token_aud not in allowed and token_azp not in allowed:
+                    logger.error(
+                        f"Google token audience mismatch (aud={token_aud}, azp={token_azp}) — rejecting"
+                    )
+                    return None
+                return info
+
             async def _fetch_google_user(client: httpx.AsyncClient) -> Optional[dict]:
-                """Fetch user info from Google, returns dict or None."""
+                """
+                Validate the token audience, then fetch user profile.
+                Audience check happens FIRST — a token for another app never reaches userinfo.
+                """
+                token_info = await _verify_token_audience(client)
+                if token_info is None:
+                    return None
+
                 r = await client.get(
                     "https://www.googleapis.com/oauth2/v3/userinfo",
                     headers={"Authorization": f"Bearer {google_token}"},
@@ -175,15 +222,10 @@ class AuthService:
                 )
                 if r.status_code == 200:
                     return r.json()
-                logger.warning(f"userinfo returned {r.status_code}, trying tokeninfo fallback")
-                r = await client.get(
-                    f"https://www.googleapis.com/oauth2/v3/tokeninfo?access_token={google_token}",
-                    timeout=10.0
-                )
-                if r.status_code != 200:
-                    logger.error(f"tokeninfo also failed: {r.status_code} {r.text}")
-                    return None
-                return r.json()
+                # userinfo failed but audience is valid — fall back to tokeninfo identity
+                # (tokeninfo includes `sub` and `email` for validated tokens).
+                logger.warning(f"userinfo returned {r.status_code}, using tokeninfo identity")
+                return token_info
 
             google_user = None
 

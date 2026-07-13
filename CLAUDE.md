@@ -59,7 +59,7 @@ Unit tests run on push/PR to `main` or `staging`, path-filtered per area.
 | Backend | `backend/**` | pytest (Python 3.11 + 3.12) |
 | Extension | `extension/**` | Jest — 49 tests (~60s in CI) |
 | Web App | `web-app/**` | TypeScript + ESLint + Jest |
-| E2E | staging CI passes | pytest `backend/tests/e2e/` → real staging backend |
+| E2E | staging CI passes | pytest `backend/tests/e2e/` → real staging backend, auto-cleans DB after |
 
 Extension tests (`extension/__tests__/`):
 - `manifest-validation.test.ts` — `host_permissions` covers all production URLs from `config.ts` (catches v0.1.4 auth outage class of bug)
@@ -69,6 +69,14 @@ Extension tests (`extension/__tests__/`):
 ```bash
 cd extension && npm test -- --ci --forceExit --testPathIgnorePatterns="authentication.test" "ui-components.test"
 ```
+
+## E2E Auth & DB Cleanup
+- **Auth (self-mint, no chore)**: `e2e/conftest.py` logs in via `POST /api/auth/login` with `TEST_ACCOUNT_EMAIL`/`TEST_ACCOUNT_PASSWORD` (dedicated CI account `ci-e2e-test@mintclip.app`, password never expires). Legacy `TEST_REFRESH_TOKEN` kept as fallback only. No recurring manual token refresh.
+- **Staging + prod share ONE Supabase** (`xiirdwohhzjaxkxxfwas`) — E2E writes hit the same DB as real users; cleanup isolates by user_id.
+- `conftest.py` `cleanup_test_videos` fixture (session-scoped, autouse) deletes test video items after every E2E run
+- Test video IDs: `jNQXAC9IVRw` (Me at the zoo), `9bZkp7q19f0` (Gangnam Style), `dQw4w9WgXcQ` (Rick Astley)
+- **Safe by design**: snapshots which test IDs already exist in saved items BEFORE tests run → only deletes IDs that weren't pre-existing. User's personal saves of those videos are preserved.
+- Delete endpoint used: `DELETE /api/saved-items/video/{video_id}` (removes all item_types for that video)
 
 ## Extension Submission Checklist (CWS)
 1. `host_permissions` must include all URLs in `extension/src/config.ts` production config — CI catches this automatically
@@ -87,6 +95,11 @@ cd extension && npm test -- --ci --forceExit --testPathIgnorePatterns="authentic
 ## Web App Auth Gotchas
 - **`exchange_google_code()` proxy**: `auth.py` `exchange_google_code()` must use the Webshare proxy just like `verify_google_token()`. Without it, web app OAuth hangs indefinitely on Railway (same root cause — Railway EU West can't reach `googleapis.com` directly).
 - **React Strict Mode double-invocation**: In dev, React 18 Strict Mode calls `useEffect` twice, firing two concurrent `POST /api/auth/google/code` requests with the same code. The second request gets 400 (code already used) and redirects to `/?auth_error=true`. Fix: `useRef` guard in `AuthCallback.tsx` ensures `handleCallback()` runs only once.
+
+## Auth Security (non-negotiable)
+- **Google token audience**: `verify_google_token()` validates the access token's `aud`/`azp` against `GOOGLE_ALLOWED_CLIENT_IDS` (comma-list) via Google `tokeninfo`, fails closed if unset. Blocks OAuth token-substitution. **Extension and web-app use DIFFERENT client IDs** (`184rhn…` vs `krofb2…`, same GCP project) — `GOOGLE_ALLOWED_CLIENT_IDS` MUST list BOTH on the backend service (staging + prod), or one login flow 401s. Not covered by E2E — verify a real Google sign-in manually after deploy.
+- **JWT_SECRET fail-fast**: `auth_service.py` raises `RuntimeError` at import if `JWT_SECRET` unset or <32 chars (no default). Backend won't boot on a weak/missing key. `ci.yml` + `tests/conftest.py` use a 35-char test secret.
+- **markdownToHtml XSS**: any `markdownToHtml` feeding `dangerouslySetInnerHTML` MUST `escapeHtml()` input first and strip `javascript:`/`data:` link schemes. Both `web-app/src/components/modal/SavedItemModal.tsx` and `extension/src/content/components/ChatTab.tsx` are hardened — keep them in sync.
 
 ## Batch Import Feature
 - **Components**: `web-app/src/components/BatchCard.tsx`, `BatchImport.tsx` — multi-video grouped display

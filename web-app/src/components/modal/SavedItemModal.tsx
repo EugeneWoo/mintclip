@@ -79,8 +79,19 @@ type TabType = 'transcript' | 'summary' | 'chat';
  * Convert markdown to HTML for chat message display
  * Handles basic markdown: bold, italic, lists, code blocks, links
  */
-function markdownToHtml(markdown: string): string {
-  let html = markdown;
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+export function markdownToHtml(markdown: string): string {
+  // Escape all raw text first so backend/LLM/transcript content cannot inject HTML.
+  // The regex substitutions below add our own controlled tags on top of safe text.
+  let html = escapeHtml(markdown);
 
   // Code blocks (triple backticks)
   html = html.replace(/```(\w*)\n([\s\S]*?)```/g, '<pre style="background: rgba(0,0,0,0.3); padding: 8px; border-radius: 6px; overflow-x: auto; margin: 8px 0;"><code>$2</code></pre>');
@@ -91,8 +102,14 @@ function markdownToHtml(markdown: string): string {
   // Bold
   html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
 
-  // Links
-  html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" style="color: #667eea; text-decoration: underline;" target="_blank" rel="noopener noreferrer">$1</a>');
+  // Links — strip unsafe schemes. After escapeHtml() a "javascript:" href is still
+  // executable as an attribute value, so reject javascript:/data: explicitly.
+  html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_match: string, label: string, href: string) => {
+    const decodedHref = href.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'");
+    const lower = decodedHref.trim().toLowerCase();
+    const safeHref = lower.startsWith('javascript:') || lower.startsWith('data:') ? '#' : href;
+    return `<a href="${safeHref}" style="color: #667eea; text-decoration: underline;" target="_blank" rel="noopener noreferrer">${label}</a>`;
+  });
 
   // Bullet lists
   html = html.replace(/^\- (.+)$/gm, '<li style="margin-left: 20px;">$1</li>');

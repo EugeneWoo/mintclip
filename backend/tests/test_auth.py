@@ -178,7 +178,7 @@ class TestTokenRefresh:
         resp = client.post("/api/auth/refresh", json={"refresh_token": refresh_token})
         assert resp.status_code == 200
         new_token = resp.json()["access_token"]
-        payload = pyjwt.decode(new_token, "test-jwt-secret-for-ci-only", algorithms=["HS256"])
+        payload = pyjwt.decode(new_token, "test-jwt-secret-for-ci-only-32chars", algorithms=["HS256"])
         assert payload["sub"] == TEST_USER_ID
         assert payload["type"] == "access"
 
