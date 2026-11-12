@@ -32,7 +32,7 @@ class SummaryResponse(BaseModel):
 
 
 @router.post("/generate", response_model=SummaryResponse)
-async def generate_summary(request: SummaryRequest, current_user: dict = Depends(optional_auth)):
+def generate_summary(request: SummaryRequest, current_user: dict = Depends(optional_auth)):
     """
     Generate AI summary using Grok with clickable timestamps
 
