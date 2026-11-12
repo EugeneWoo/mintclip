@@ -17,7 +17,7 @@ from app.services.cache import (
 )
 from app.services.pinecone_embeddings import get_or_compute_embeddings
 from app.services.transcript_extractor import TranscriptExtractor
-from app.services.gemini_client import get_gemini_client
+from app.services.grok_client import get_grok_client
 from app.services.supabase_client import get_supabase_admin
 import os
 
@@ -61,7 +61,7 @@ async def _process_batch(
     is_premium: bool
 ):
     """Background task: extract transcript for each video, save to Supabase."""
-    gemini = get_gemini_client()
+    grok = get_grok_client()
     supabase = get_supabase_admin()
     max_items = int(os.getenv("FREE_TIER_MAX_SAVED_ITEMS", "25"))
 
@@ -135,7 +135,7 @@ async def _process_batch(
     job = get_job_status(job_id)
     if job:
         titles_list = ", ".join(r.get("title", "") for r in job["results"] if r.get("title"))
-        group_title = gemini.generate_content(
+        group_title = grok.generate_content(
             f'Give a short 4-8 word title describing a collection of videos about: {titles_list}. Return only the title, no quotes.',
             temperature=0.7,
             max_tokens=30

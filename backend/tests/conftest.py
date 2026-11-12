@@ -5,8 +5,8 @@ Mocking strategy:
 - Supabase: Disabled via empty env vars (is_supabase_available() returns False at module load).
   For tests needing Supabase success paths, patch app.routes.<module>.get_supabase_admin
   and app.services.supabase_client.is_supabase_available with mocker.patch().
-- Gemini: GEMINI_API_KEY not set → GeminiClient.model is None → all methods return None.
-  For tests needing Gemini output, patch app.routes.<module>.get_gemini_client.
+- Grok: GROK_API_KEY not set → GrokClient.model is None → all methods return None.
+  For tests needing Grok output, patch app.routes.<module>.get_grok_client.
 - Redis: No REDIS_URL → SimpleCache used automatically. Zero infrastructure needed.
 - JWT: Real crypto — tokens signed with JWT_SECRET env var. No mocking needed for auth.
 """
@@ -26,9 +26,9 @@ os.environ.setdefault("GOOGLE_ALLOWED_CLIENT_IDS", "test-client-id.apps.googleus
 # Set external service credentials to empty strings BEFORE any module import.
 # dotenv.load_dotenv() (called inside supabase_client.py, auth_service.py, etc.)
 # does NOT override already-set env vars — so these empty values stick,
-# ensuring SUPABASE_AVAILABLE=False, GeminiClient.model=None, SimpleCache used.
+# ensuring SUPABASE_AVAILABLE=False, GrokClient.model=None, SimpleCache used.
 for _key in ["SUPABASE_URL", "SUPABASE_ANON_KEY", "SUPABASE_SERVICE_ROLE_KEY",
-             "GEMINI_API_KEY", "REDIS_URL", "PINECONE_API_KEY"]:
+             "GROK_API_KEY", "REDIS_URL", "PINECONE_API_KEY"]:
     os.environ[_key] = ""
 
 # ── Now import app (module-level code runs here) ─────────────────────────────
@@ -199,15 +199,15 @@ def make_supabase_mock(
     return mock_client
 
 
-# ── Gemini mock factory ───────────────────────────────────────────────────────
+# ── Grok mock factory ───────────────────────────────────────────────────────
 
-def make_gemini_mock(
+def make_grok_mock(
     summary: str = "Mock summary content.",
     questions: list = None,
     chat_response: str = "Mock chat answer.",
     translation: str = "Translated English text.",
 ):
-    """Build a mock GeminiClient with canned responses."""
+    """Build a mock GrokClient with canned responses."""
     mock = MagicMock()
     mock.generate_summary = MagicMock(return_value=summary)
     mock.generate_questions = MagicMock(return_value=questions or [

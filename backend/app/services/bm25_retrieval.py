@@ -199,7 +199,7 @@ def retrieve_relevant_chunks_with_transcript(
 ) -> Optional[str]:
     """
     Retrieve relevant chunks without requiring pre-built index.
-    Used by gemini_client.py for on-the-fly retrieval.
+    Used by grok_client.py for on-the-fly retrieval.
 
     Args:
         transcript: Full transcript text

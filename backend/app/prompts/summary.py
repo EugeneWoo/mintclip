@@ -163,7 +163,7 @@ def get_summary_prompt(format: str, transcript: str) -> str:
         transcript: The full video transcript
 
     Returns:
-        Formatted prompt ready for Gemini
+        Formatted prompt ready for Grok
     """
     try:
         prompt_template = SUMMARY_PROMPTS[format]

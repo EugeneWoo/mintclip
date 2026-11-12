@@ -1,6 +1,6 @@
 """
 Summary API Routes
-Endpoints for generating AI summaries using Gemini 1.5 Flash
+Endpoints for generating AI summaries using Grok
 """
 
 from fastapi import APIRouter, HTTPException, Depends
@@ -8,7 +8,7 @@ from pydantic import BaseModel
 from typing import Optional
 
 from app.services.cache import get_cache, TTL_SUMMARY
-from app.services.gemini_client import get_gemini_client
+from app.services.grok_client import get_grok_client
 from app.middleware.auth import require_auth, optional_auth
 
 router = APIRouter()
@@ -34,7 +34,7 @@ class SummaryResponse(BaseModel):
 @router.post("/generate", response_model=SummaryResponse)
 async def generate_summary(request: SummaryRequest, current_user: dict = Depends(optional_auth)):
     """
-    Generate AI summary using Gemini 2.0 Flash with clickable timestamps
+    Generate AI summary using Grok with clickable timestamps
 
     Three formats available:
     - Short: Exactly 3 sections covering the most important high-level themes (quick overview)
@@ -79,7 +79,7 @@ async def generate_summary(request: SummaryRequest, current_user: dict = Depends
                 is_structured=is_structured
             )
 
-        gemini_client = get_gemini_client()
+        grok_client = get_grok_client()
         transcript_text = request.transcript
         is_structured = False
 
@@ -123,13 +123,13 @@ async def generate_summary(request: SummaryRequest, current_user: dict = Depends
                 transcript_text = cached_translation
                 # Keep is_structured flag from above
             else:
-                # Translate using Gemini
-                translated = gemini_client.translate_to_english(request.transcript)
+                # Translate using Grok
+                translated = grok_client.translate_to_english(request.transcript)
 
                 if not translated:
                     return SummaryResponse(
                         success=False,
-                        error=f"Failed to translate transcript from {request.language} to English. Gemini may not be available.",
+                        error=f"Failed to translate transcript from {request.language} to English. Grok may not be available.",
                         format=request.format,
                         is_structured=False
                     )
@@ -139,8 +139,8 @@ async def generate_summary(request: SummaryRequest, current_user: dict = Depends
                 cache.set(translation_cache_key, translated, TTL_SUMMARY)
                 print(f"Translation cached for {request.language} transcript")
 
-        # Generate summary with Gemini
-        summary = gemini_client.generate_summary(
+        # Generate summary with Grok
+        summary = grok_client.generate_summary(
             transcript=transcript_text,
             format=request.format
         )
@@ -148,7 +148,7 @@ async def generate_summary(request: SummaryRequest, current_user: dict = Depends
         if not summary:
             return SummaryResponse(
                 success=False,
-                error="Failed to generate summary. Gemini may not be available.",
+                error="Failed to generate summary. Grok may not be available.",
                 format=request.format,
                 is_structured=False
             )

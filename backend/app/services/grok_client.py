@@ -1,60 +1,46 @@
 """
-Gemini AI Client Service
-Shared client for all Gemini API calls (summaries, questions, chat)
+Grok (xAI) Client Service
+Shared client for all LLM calls (summaries, questions, chat, translation).
 
-NOTE: Currently using fallback mode due to Python 3.14 incompatibility with google-generativeai.
-To enable Gemini:
-1. Use Python 3.11 or 3.12, OR
-2. Wait for google-generativeai to support Python 3.14
+Uses xAI's OpenAI-compatible REST API via httpx (no extra SDK dependency).
+Env vars:
+  GROK_API_KEY            required
+  GROK_MODEL              default "grok-4.3"
+  GROK_REASONING_EFFORT   default "none" (skips hidden reasoning tokens: faster,
+                          cheaper, and max_tokens maps to visible output)
 """
 
 import os
 import json
 from typing import Optional, List
 
-# Feature flag for Gemini availability
-GEMINI_AVAILABLE = False
+import httpx
 
-# Try to import google.generativeai, but gracefully handle Python 3.14 incompatibility
-_genai = None
-try:
-    import google.generativeai as genai
-    _genai = genai
-    GEMINI_AVAILABLE = True
-except (ImportError, TypeError) as e:
-    print("=" * 80)
-    print("WARNING: google.generativeai not available")
-    print(f"Reason: {e}")
-    print("Using fallback questions only. To enable Gemini:")
-    print("  1. Use Python 3.11 or 3.12 (currently using 3.14)")
-    print("  2. Or wait for protobuf/google-generativeai Python 3.14 support")
-    print("=" * 80)
-    GEMINI_AVAILABLE = False
+XAI_BASE_URL = "https://api.x.ai/v1"
+DEFAULT_MODEL = "grok-4.3"
+REQUEST_TIMEOUT_SECONDS = 120.0
 
 
-class GeminiClient:
-    """Wrapper for Google Gemini API with consistent error handling"""
+class GrokClient:
+    """Wrapper for the xAI Grok API with consistent error handling"""
 
     def __init__(self):
-        self.model = None
+        self.api_key = os.getenv("GROK_API_KEY")
+        self.model = os.getenv("GROK_MODEL", DEFAULT_MODEL)
+        self.reasoning_effort = os.getenv("GROK_REASONING_EFFORT", "none")
+        self._http: Optional[httpx.Client] = None
 
-        if not GEMINI_AVAILABLE:
-            print("Gemini client not available (Python 3.14 incompatibility)")
-            return
-
-        api_key = os.getenv("GEMINI_API_KEY")
-        if not api_key:
-            print("WARNING: GEMINI_API_KEY not set, Gemini features will not work")
-            return
-
-        try:
-            _genai.configure(api_key=api_key)
-            # Use Gemini 2.5 Flash Lite for speed and cost efficiency (switch to 'gemini-2.5-flash' for complex workflows)
-            self.model = _genai.GenerativeModel('gemini-2.5-flash-lite')
-            print("Gemini client initialized successfully with gemini-2.5-flash-lite")
-        except Exception as e:
-            print(f"Failed to initialize Gemini client: {e}")
+        if not self.api_key:
+            print("WARNING: GROK_API_KEY not set, Grok features will not work")
             self.model = None
+            return
+
+        self._http = httpx.Client(
+            base_url=XAI_BASE_URL,
+            headers={"Authorization": f"Bearer {self.api_key}"},
+            timeout=REQUEST_TIMEOUT_SECONDS,
+        )
+        print(f"Grok client initialized successfully with {self.model}")
 
     def generate_content(
         self,
@@ -63,7 +49,7 @@ class GeminiClient:
         max_tokens: int = 1024,
     ) -> Optional[str]:
         """
-        Generate content using Gemini (synchronous)
+        Generate content using Grok (synchronous)
 
         Args:
             prompt: The input prompt
@@ -73,29 +59,35 @@ class GeminiClient:
         Returns:
             Generated text or None if error
         """
-        if not self.model:
-            print("Gemini model not initialized")
+        if not self.model or not self._http:
+            print("Grok model not initialized")
             return None
 
         try:
-            if not GEMINI_AVAILABLE:
+            payload = {
+                "model": self.model,
+                "messages": [{"role": "user", "content": prompt}],
+                "temperature": temperature,
+                "max_tokens": max_tokens,
+            }
+            if self.reasoning_effort and self.reasoning_effort != "default":
+                payload["reasoning_effort"] = self.reasoning_effort
+
+            response = self._http.post("/chat/completions", json=payload)
+            if response.status_code != 200:
+                print(f"Grok API error: {response.status_code} {response.text[:500]}")
                 return None
 
-            response = self.model.generate_content(
-                prompt,
-                generation_config=_genai.types.GenerationConfig(
-                    temperature=temperature,
-                    max_output_tokens=max_tokens,
-                )
-            )
+            data = response.json()
+            choice = data["choices"][0]
+            text = (choice.get("message") or {}).get("content")
+            if choice.get("finish_reason") == "length":
+                print(f"WARNING: Grok response truncated at max_tokens={max_tokens}")
 
-            if response.text:
-                return response.text.strip()
-
-            return None
+            return text.strip() if text and text.strip() else None
 
         except Exception as e:
-            print(f"Gemini API error: {e}")
+            print(f"Grok API error: {e}")
             return None
 
     def generate_questions(self, transcript_preview: str) -> Optional[List[str]]:
@@ -122,7 +114,7 @@ class GeminiClient:
                 return FALLBACK_QUESTIONS
 
             # Parse JSON array from response
-            # Gemini might wrap it in markdown code blocks, so clean it
+            # The model might wrap it in markdown code blocks, so clean it
             cleaned = response_text.strip()
             if cleaned.startswith("```json"):
                 cleaned = cleaned[7:]
@@ -253,7 +245,7 @@ class GeminiClient:
                 print(f"⚠ Embeddings unavailable, falling back to full transcript...")
 
             # Step 2: Full transcript fallback
-            print(f"Sending full transcript to Gemini ({len(transcript)} chars)")
+            print(f"Sending full transcript to Grok ({len(transcript)} chars)")
             prompt = build_chat_prompt(transcript, question, chat_history)
             full_response = self.generate_content(
                 prompt=prompt,
@@ -271,7 +263,7 @@ class GeminiClient:
 
     def translate_to_english(self, text: str) -> Optional[str]:
         """
-        Translate non-English text to English using Gemini.
+        Translate non-English text to English using Grok.
 
         Args:
             text: Text to translate (any language)
@@ -327,7 +319,7 @@ Text to translate:
             return full_transcript
 
         try:
-            # Use Gemini to find relevant passages via semantic matching
+            # Use Grok to find relevant passages via semantic matching
             retrieval_prompt = f"""You are a semantic search engine. Given a transcript and a question,
 identify the MOST RELEVANT passages that would help answer the question.
 
@@ -374,12 +366,12 @@ RELEVANT PASSAGES:"""
 
 
 # Global client instance
-_gemini_client: Optional[GeminiClient] = None
+_grok_client: Optional[GrokClient] = None
 
 
-def get_gemini_client() -> GeminiClient:
-    """Get or create global Gemini client instance"""
-    global _gemini_client
-    if _gemini_client is None:
-        _gemini_client = GeminiClient()
-    return _gemini_client
+def get_grok_client() -> GrokClient:
+    """Get or create global Grok client instance"""
+    global _grok_client
+    if _grok_client is None:
+        _grok_client = GrokClient()
+    return _grok_client

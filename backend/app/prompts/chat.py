@@ -40,11 +40,11 @@ def build_chat_prompt(transcript: str, question: str, chat_history: list = None)
         chat_history: List of previous messages [{"role": "user"/"assistant", "content": "..."}]
 
     Returns:
-        Formatted prompt for Gemini
+        Formatted prompt for Grok
 
     Note:
         Transcript truncation is now handled at the service level via semantic retrieval
-        (see gemini_client.retrieve_relevant_context), which intelligently selects
+        (see grok_client.retrieve_relevant_context), which intelligently selects
         relevant passages from anywhere in the video instead of arbitrary truncation.
     """
     # Build conversation history

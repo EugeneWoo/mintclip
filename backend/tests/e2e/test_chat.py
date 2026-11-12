@@ -1,4 +1,4 @@
-"""E2E: chat — real Pinecone retrieval + Gemini response."""
+"""E2E: chat — real Pinecone retrieval + Grok response."""
 
 import httpx
 import pytest
@@ -17,7 +17,7 @@ def _get_full_text(base_url: str, auth_headers: dict) -> str:
 
 
 def test_chat_message_returns_answer(auth_headers, base_url):
-    """Real Gemini chat response for a question about the video."""
+    """Real Grok chat response for a question about the video."""
     full_text = _get_full_text(base_url, auth_headers)
     resp = httpx.post(
         f"{base_url}/api/chat/message",

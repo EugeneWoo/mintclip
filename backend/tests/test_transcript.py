@@ -4,7 +4,7 @@ test_transcript.py - Tests for /api/transcript/* endpoints
 Strategy:
 - TranscriptExtractor methods are patched per-test with AsyncMock.
 - Translation cache tests use the real SimpleCache (reset by autouse fixture).
-- Gemini is patched for translation success paths.
+- Grok is patched for translation success paths.
 """
 
 import pytest
@@ -14,7 +14,7 @@ from tests.conftest import (
     MOCK_TRANSCRIPT_RESPONSE,
     MOCK_TRANSCRIPT_SEGMENTS,
     MOCK_TRANSCRIPT_FULL_TEXT,
-    make_gemini_mock,
+    make_grok_mock,
     VIDEO_ID,
 )
 TRANSLATION_CACHE_KEY = f"transcript_translation:{VIDEO_ID}:fr"
@@ -209,12 +209,12 @@ class TestTranslateEndpoint:
         assert data["cached"] is True
         assert data["language"] == "en"
 
-    def test_translate_calls_gemini_and_caches_result(self, client):
-        """When cache is empty, calls Gemini and stores result in cache."""
-        mock_gemini = make_gemini_mock(translation="Hello everyone from France.")
+    def test_translate_calls_grok_and_caches_result(self, client):
+        """When cache is empty, calls Grok and stores result in cache."""
+        mock_grok = make_grok_mock(translation="Hello everyone from France.")
 
-        # Gemini is imported inside the function, so patch at the service module level
-        with patch("app.services.gemini_client.get_gemini_client", return_value=mock_gemini):
+        # Grok is imported inside the function, so patch at the service module level
+        with patch("app.services.grok_client.get_grok_client", return_value=mock_grok):
             resp = client.post("/api/transcript/translate", json={
                 "video_id": "new_video_id_for_translate",
                 "transcript": [{"text": "Bonjour tout le monde.", "start_seconds": 0}],
@@ -226,11 +226,11 @@ class TestTranslateEndpoint:
         assert data["success"] is True
 
     def test_translate_rejects_when_translation_matches_source(self, client):
-        """When Gemini returns the same text unchanged, the result should not be cached."""
+        """When Grok returns the same text unchanged, the result should not be cached."""
         original_text = "Bonjour tout le monde."
-        mock_gemini = make_gemini_mock(translation=original_text)  # Same as source
+        mock_grok = make_grok_mock(translation=original_text)  # Same as source
 
-        with patch("app.services.gemini_client.get_gemini_client", return_value=mock_gemini):
+        with patch("app.services.grok_client.get_grok_client", return_value=mock_grok):
             resp = client.post("/api/transcript/translate", json={
                 "video_id": "same_text_video_id",
                 "transcript": [{"text": original_text, "start_seconds": 0}],

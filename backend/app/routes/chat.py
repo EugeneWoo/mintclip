@@ -9,7 +9,7 @@ from typing import List, Optional, Dict
 import json
 
 from app.services.cache import get_cache, TTL_SUGGESTED_QUESTIONS, TTL_CHAT_MESSAGE
-from app.services.gemini_client import get_gemini_client
+from app.services.grok_client import get_grok_client
 from app.prompts.suggested_questions import FALLBACK_QUESTIONS
 from app.middleware.auth import require_auth, optional_auth
 
@@ -53,7 +53,7 @@ class ChatMessageResponse(BaseModel):
 @router.post("/suggested-questions", response_model=SuggestedQuestionsResponse)
 async def generate_suggested_questions(request: SuggestedQuestionsRequest, current_user: dict = Depends(optional_auth)):
     """
-    Generate 3 dynamic suggested questions using Gemini with few-shot prompting
+    Generate 3 dynamic suggested questions using Grok with few-shot prompting
 
     The questions are:
     - Specific to the video content
@@ -81,7 +81,7 @@ async def generate_suggested_questions(request: SuggestedQuestionsRequest, curre
                 cached=True
             )
 
-        # Use first 5000 chars for efficiency (Gemini context limits + cost)
+        # Use first 5000 chars for efficiency (Grok context limits + cost)
         transcript_preview = request.transcript[:5000] if request.transcript else ""
 
         if not transcript_preview.strip():
@@ -92,7 +92,7 @@ async def generate_suggested_questions(request: SuggestedQuestionsRequest, curre
                 cached=False
             )
 
-        gemini_client = get_gemini_client()
+        grok_client = get_grok_client()
 
         # Translate to English if not already in English
         if request.language and request.language != 'en':
@@ -108,8 +108,8 @@ async def generate_suggested_questions(request: SuggestedQuestionsRequest, curre
                 # Use first 5000 chars of translation
                 transcript_preview = cached_translation[:5000]
             else:
-                # Translate preview using Gemini
-                translated = gemini_client.translate_to_english(transcript_preview)
+                # Translate preview using Grok
+                translated = grok_client.translate_to_english(transcript_preview)
 
                 if translated:
                     transcript_preview = translated
@@ -122,8 +122,8 @@ async def generate_suggested_questions(request: SuggestedQuestionsRequest, curre
                         error=f"Failed to translate from {request.language}"
                     )
 
-        # Generate questions with Gemini (synchronous call)
-        questions = gemini_client.generate_questions(transcript_preview)
+        # Generate questions with Grok (synchronous call)
+        questions = grok_client.generate_questions(transcript_preview)
 
         if not questions:
             # Generation failed, use fallback
@@ -154,7 +154,7 @@ async def send_message(request: ChatMessageRequest, current_user: dict = Depends
     """
     Send a chat message and get AI response about the video
 
-    Uses Gemini 2.0 Flash for conversational Q&A with:
+    Uses Grok for conversational Q&A with:
     - Transcript context
     - Chat history (last 6 messages)
     - Timestamp citations when relevant
@@ -178,7 +178,7 @@ async def send_message(request: ChatMessageRequest, current_user: dict = Depends
             raise HTTPException(status_code=400, detail="Transcript is required")
 
         cache = get_cache()
-        gemini_client = get_gemini_client()
+        grok_client = get_grok_client()
         transcript_text = request.transcript
 
         # Create cache key based on video_id, question, and language
@@ -211,13 +211,13 @@ async def send_message(request: ChatMessageRequest, current_user: dict = Depends
                 print(f"Using cached translation for {request.language} transcript")
                 transcript_text = cached_translation
             else:
-                # Translate using Gemini
-                translated = gemini_client.translate_to_english(request.transcript)
+                # Translate using Grok
+                translated = grok_client.translate_to_english(request.transcript)
 
                 if not translated:
                     return ChatMessageResponse(
                         success=False,
-                        error=f"Failed to translate transcript from {request.language} to English. Gemini may not be available."
+                        error=f"Failed to translate transcript from {request.language} to English. Grok may not be available."
                     )
 
                 transcript_text = translated
@@ -225,8 +225,8 @@ async def send_message(request: ChatMessageRequest, current_user: dict = Depends
                 cache.set(translation_cache_key, translated, TTL_SUMMARY)
                 print(f"Translation cached for {request.language} transcript")
 
-        # Generate response with Gemini
-        response_text = gemini_client.generate_chat_response(
+        # Generate response with Grok
+        response_text = grok_client.generate_chat_response(
             transcript=transcript_text,
             question=request.question,
             video_id=request.video_id,
@@ -236,7 +236,7 @@ async def send_message(request: ChatMessageRequest, current_user: dict = Depends
         if not response_text:
             return ChatMessageResponse(
                 success=False,
-                error="Failed to generate response. Gemini may not be available."
+                error="Failed to generate response. Grok may not be available."
             )
 
         # Cache the response for 24 hours
