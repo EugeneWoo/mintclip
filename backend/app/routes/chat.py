@@ -51,7 +51,7 @@ class ChatMessageResponse(BaseModel):
 
 
 @router.post("/suggested-questions", response_model=SuggestedQuestionsResponse)
-async def generate_suggested_questions(request: SuggestedQuestionsRequest, current_user: dict = Depends(optional_auth)):
+def generate_suggested_questions(request: SuggestedQuestionsRequest, current_user: dict = Depends(optional_auth)):
     """
     Generate 3 dynamic suggested questions using Grok with few-shot prompting
 
@@ -150,7 +150,7 @@ async def generate_suggested_questions(request: SuggestedQuestionsRequest, curre
 
 
 @router.post("/message", response_model=ChatMessageResponse)
-async def send_message(request: ChatMessageRequest, current_user: dict = Depends(optional_auth)):
+def send_message(request: ChatMessageRequest, current_user: dict = Depends(optional_auth)):
     """
     Send a chat message and get AI response about the video
 
