@@ -2,7 +2,7 @@
 test_summary.py - Tests for /api/summary/generate
 
 Strategy:
-- Patch app.routes.summary.get_gemini_client per-test.
+- Patch app.routes.summary.get_grok_client per-test.
 - Cache (SimpleCache) is reset between tests by autouse fixture.
 """
 
@@ -10,7 +10,7 @@ import json
 import pytest
 from unittest.mock import patch
 
-from tests.conftest import make_gemini_mock, MOCK_TRANSCRIPT_SEGMENTS, VIDEO_ID
+from tests.conftest import make_grok_mock, MOCK_TRANSCRIPT_SEGMENTS, VIDEO_ID
 
 
 TRANSCRIPT_TEXT = "Hello and welcome. Today we discuss Python. Let us begin."
@@ -27,8 +27,8 @@ class TestSummaryValidation:
         assert resp.status_code == 400
 
     def test_empty_transcript_returns_error(self, client, auth_headers):
-        mock_gemini = make_gemini_mock(summary=None)
-        with patch("app.routes.summary.get_gemini_client", return_value=mock_gemini):
+        mock_grok = make_grok_mock(summary=None)
+        with patch("app.routes.summary.get_grok_client", return_value=mock_grok):
             resp = client.post("/api/summary/generate", json={
                 "video_id": VIDEO_ID,
                 "transcript": "",
@@ -41,8 +41,8 @@ class TestSummaryValidation:
 
 class TestSummaryFormats:
     def test_short_format_returns_summary(self, client, auth_headers):
-        mock_gemini = make_gemini_mock(summary="Short summary content.")
-        with patch("app.routes.summary.get_gemini_client", return_value=mock_gemini):
+        mock_grok = make_grok_mock(summary="Short summary content.")
+        with patch("app.routes.summary.get_grok_client", return_value=mock_grok):
             resp = client.post("/api/summary/generate", json={
                 "video_id": VIDEO_ID,
                 "transcript": TRANSCRIPT_TEXT,
@@ -55,8 +55,8 @@ class TestSummaryFormats:
         assert data["format"] == "short"
 
     def test_topic_format_returns_summary(self, client, auth_headers):
-        mock_gemini = make_gemini_mock(summary="Topic summary content.")
-        with patch("app.routes.summary.get_gemini_client", return_value=mock_gemini):
+        mock_grok = make_grok_mock(summary="Topic summary content.")
+        with patch("app.routes.summary.get_grok_client", return_value=mock_grok):
             resp = client.post("/api/summary/generate", json={
                 "video_id": VIDEO_ID,
                 "transcript": TRANSCRIPT_TEXT,
@@ -68,8 +68,8 @@ class TestSummaryFormats:
         assert data["format"] == "topic"
 
     def test_qa_format_returns_summary(self, client, auth_headers):
-        mock_gemini = make_gemini_mock(summary="Q&A summary content.")
-        with patch("app.routes.summary.get_gemini_client", return_value=mock_gemini):
+        mock_grok = make_grok_mock(summary="Q&A summary content.")
+        with patch("app.routes.summary.get_grok_client", return_value=mock_grok):
             resp = client.post("/api/summary/generate", json={
                 "video_id": VIDEO_ID,
                 "transcript": TRANSCRIPT_TEXT,
@@ -80,10 +80,10 @@ class TestSummaryFormats:
         assert data["success"] is True
         assert data["format"] == "qa"
 
-    def test_gemini_unavailable_returns_error_response(self, client, auth_headers):
-        """When Gemini returns None, summary endpoint returns error."""
-        mock_gemini = make_gemini_mock(summary=None)
-        with patch("app.routes.summary.get_gemini_client", return_value=mock_gemini):
+    def test_grok_unavailable_returns_error_response(self, client, auth_headers):
+        """When Grok returns None, summary endpoint returns error."""
+        mock_grok = make_grok_mock(summary=None)
+        with patch("app.routes.summary.get_grok_client", return_value=mock_grok):
             resp = client.post("/api/summary/generate", json={
                 "video_id": VIDEO_ID,
                 "transcript": TRANSCRIPT_TEXT,
@@ -104,10 +104,10 @@ class TestSummaryCaching:
             call_count += 1
             return "Generated summary."
 
-        mock_gemini = make_gemini_mock()
-        mock_gemini.generate_summary = mock_generate_summary
+        mock_grok = make_grok_mock()
+        mock_grok.generate_summary = mock_generate_summary
 
-        with patch("app.routes.summary.get_gemini_client", return_value=mock_gemini):
+        with patch("app.routes.summary.get_grok_client", return_value=mock_grok):
             resp1 = client.post("/api/summary/generate", json={
                 "video_id": "cache_test_video",
                 "transcript": TRANSCRIPT_TEXT,
@@ -122,7 +122,7 @@ class TestSummaryCaching:
         assert resp1.status_code == 200
         assert resp2.status_code == 200
         assert resp2.json().get("cached") is True
-        # Gemini was only called once
+        # Grok was only called once
         assert call_count == 1
 
     def test_different_formats_have_independent_cache_keys(self, client, auth_headers):
@@ -134,10 +134,10 @@ class TestSummaryCaching:
             call_count[fmt] = call_count.get(fmt, 0) + 1
             return f"{fmt} summary content."
 
-        mock_gemini = make_gemini_mock()
-        mock_gemini.generate_summary = mock_generate
+        mock_grok = make_grok_mock()
+        mock_grok.generate_summary = mock_generate
 
-        with patch("app.routes.summary.get_gemini_client", return_value=mock_gemini):
+        with patch("app.routes.summary.get_grok_client", return_value=mock_grok):
             client.post("/api/summary/generate", json={
                 "video_id": "format_test",
                 "transcript": TRANSCRIPT_TEXT,

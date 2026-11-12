@@ -1,6 +1,6 @@
 """
 Few-Shot Prompt Template for Suggested Questions
-Teaches Gemini to generate contextual, engaging questions for video content
+Teaches Grok to generate contextual, engaging questions for video content
 """
 
 SYSTEM_PROMPT = """You are an expert at generating engaging questions for video content.

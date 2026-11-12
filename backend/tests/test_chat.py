@@ -2,14 +2,14 @@
 test_chat.py - Tests for /api/chat/* endpoints (suggested questions + messages)
 
 Strategy:
-- Patch app.routes.chat.get_gemini_client per-test.
+- Patch app.routes.chat.get_grok_client per-test.
 - Cache (SimpleCache) reset between tests by autouse fixture.
 """
 
 import pytest
 from unittest.mock import patch
 
-from tests.conftest import make_gemini_mock, VIDEO_ID
+from tests.conftest import make_grok_mock, VIDEO_ID
 
 TRANSCRIPT_TEXT = "Hello and welcome. Today we discuss Python. Let us begin."
 
@@ -19,12 +19,12 @@ TRANSCRIPT_TEXT = "Hello and welcome. Today we discuss Python. Let us begin."
 class TestSuggestedQuestions:
     def test_generates_three_questions(self, client, auth_headers):
         """Returns 3 contextual questions."""
-        mock_gemini = make_gemini_mock(questions=[
+        mock_grok = make_grok_mock(questions=[
             "What is Python?",
             "Who is the speaker?",
             "What are the key takeaways?",
         ])
-        with patch("app.routes.chat.get_gemini_client", return_value=mock_gemini):
+        with patch("app.routes.chat.get_grok_client", return_value=mock_grok):
             resp = client.post("/api/chat/suggested-questions", json={
                 "video_id": VIDEO_ID,
                 "transcript": TRANSCRIPT_TEXT,
@@ -36,7 +36,7 @@ class TestSuggestedQuestions:
         assert len(data["questions"]) == 3
 
     def test_questions_cached_on_second_call(self, client, auth_headers):
-        """Second call for same video returns cached=True without calling Gemini again."""
+        """Second call for same video returns cached=True without calling Grok again."""
         call_count = 0
 
         def mock_gen_questions(transcript, *args, **kwargs):
@@ -44,10 +44,10 @@ class TestSuggestedQuestions:
             call_count += 1
             return ["Q1?", "Q2?", "Q3?"]
 
-        mock_gemini = make_gemini_mock()
-        mock_gemini.generate_questions = mock_gen_questions
+        mock_grok = make_grok_mock()
+        mock_grok.generate_questions = mock_gen_questions
 
-        with patch("app.routes.chat.get_gemini_client", return_value=mock_gemini):
+        with patch("app.routes.chat.get_grok_client", return_value=mock_grok):
             resp1 = client.post("/api/chat/suggested-questions", json={
                 "video_id": "cache_test_vid",
                 "transcript": TRANSCRIPT_TEXT,
@@ -62,12 +62,12 @@ class TestSuggestedQuestions:
         assert resp2.json().get("cached") is True
         assert call_count == 1
 
-    def test_fallback_questions_on_gemini_failure(self, client, auth_headers):
-        """When Gemini returns None, fallback questions are returned."""
-        mock_gemini = make_gemini_mock()
-        mock_gemini.generate_questions = lambda *a, **kw: None
+    def test_fallback_questions_on_grok_failure(self, client, auth_headers):
+        """When Grok returns None, fallback questions are returned."""
+        mock_grok = make_grok_mock()
+        mock_grok.generate_questions = lambda *a, **kw: None
 
-        with patch("app.routes.chat.get_gemini_client", return_value=mock_gemini):
+        with patch("app.routes.chat.get_grok_client", return_value=mock_grok):
             resp = client.post("/api/chat/suggested-questions", json={
                 "video_id": VIDEO_ID,
                 "transcript": TRANSCRIPT_TEXT,
@@ -80,8 +80,8 @@ class TestSuggestedQuestions:
 
     def test_empty_transcript_still_returns_questions(self, client, auth_headers):
         """Even with empty transcript, returns fallback or generated questions."""
-        mock_gemini = make_gemini_mock()
-        with patch("app.routes.chat.get_gemini_client", return_value=mock_gemini):
+        mock_grok = make_grok_mock()
+        with patch("app.routes.chat.get_grok_client", return_value=mock_grok):
             resp = client.post("/api/chat/suggested-questions", json={
                 "video_id": VIDEO_ID,
                 "transcript": "",
@@ -106,8 +106,8 @@ class TestChatMessage:
 
     def test_successful_chat_response(self, client, auth_headers):
         """Returns AI-generated chat response."""
-        mock_gemini = make_gemini_mock(chat_response="Python is a programming language.")
-        with patch("app.routes.chat.get_gemini_client", return_value=mock_gemini):
+        mock_grok = make_grok_mock(chat_response="Python is a programming language.")
+        with patch("app.routes.chat.get_grok_client", return_value=mock_grok):
             resp = client.post("/api/chat/message", json={
                 "video_id": VIDEO_ID,
                 "transcript": TRANSCRIPT_TEXT,
@@ -128,10 +128,10 @@ class TestChatMessage:
             call_count += 1
             return "Cached answer."
 
-        mock_gemini = make_gemini_mock()
-        mock_gemini.generate_chat_response = mock_chat
+        mock_grok = make_grok_mock()
+        mock_grok.generate_chat_response = mock_chat
 
-        with patch("app.routes.chat.get_gemini_client", return_value=mock_gemini):
+        with patch("app.routes.chat.get_grok_client", return_value=mock_grok):
             resp1 = client.post("/api/chat/message", json={
                 "video_id": "chat_cache_vid",
                 "transcript": TRANSCRIPT_TEXT,
@@ -157,10 +157,10 @@ class TestChatMessage:
             call_count += 1
             return f"Answer to: {question}"
 
-        mock_gemini = make_gemini_mock()
-        mock_gemini.generate_chat_response = mock_chat
+        mock_grok = make_grok_mock()
+        mock_grok.generate_chat_response = mock_chat
 
-        with patch("app.routes.chat.get_gemini_client", return_value=mock_gemini):
+        with patch("app.routes.chat.get_grok_client", return_value=mock_grok):
             client.post("/api/chat/message", json={
                 "video_id": "diff_q_vid",
                 "transcript": TRANSCRIPT_TEXT,
@@ -172,14 +172,14 @@ class TestChatMessage:
                 "question": "Who invented Python?",
             }, headers=auth_headers)
 
-        assert call_count == 2  # Both questions called Gemini
+        assert call_count == 2  # Both questions called Grok
 
-    def test_gemini_unavailable_returns_error(self, client, auth_headers):
-        """When Gemini returns None, chat endpoint returns error."""
-        mock_gemini = make_gemini_mock()
-        mock_gemini.generate_chat_response = lambda *a, **kw: None
+    def test_grok_unavailable_returns_error(self, client, auth_headers):
+        """When Grok returns None, chat endpoint returns error."""
+        mock_grok = make_grok_mock()
+        mock_grok.generate_chat_response = lambda *a, **kw: None
 
-        with patch("app.routes.chat.get_gemini_client", return_value=mock_gemini):
+        with patch("app.routes.chat.get_grok_client", return_value=mock_grok):
             resp = client.post("/api/chat/message", json={
                 "video_id": VIDEO_ID,
                 "transcript": TRANSCRIPT_TEXT,
@@ -191,8 +191,8 @@ class TestChatMessage:
 
     def test_chat_with_history(self, client, auth_headers):
         """Chat message accepts optional chat_history without error."""
-        mock_gemini = make_gemini_mock(chat_response="Answer with context.")
-        with patch("app.routes.chat.get_gemini_client", return_value=mock_gemini):
+        mock_grok = make_grok_mock(chat_response="Answer with context.")
+        with patch("app.routes.chat.get_grok_client", return_value=mock_grok):
             resp = client.post("/api/chat/message", json={
                 "video_id": VIDEO_ID,
                 "transcript": TRANSCRIPT_TEXT,

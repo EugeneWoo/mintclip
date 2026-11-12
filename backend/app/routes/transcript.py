@@ -163,7 +163,7 @@ async def extract_transcript(request: TranscriptRequest, current_user: dict = De
     if result.get('language') and result['language'] != 'en':
         try:
             import asyncio
-            from app.services.gemini_client import get_gemini_client
+            from app.services.grok_client import get_grok_client
             from app.services.cache import get_cache, TTL_SUMMARY
 
             cache = get_cache()
@@ -176,13 +176,13 @@ async def extract_transcript(request: TranscriptRequest, current_user: dict = De
                 # Translate in background (non-blocking)
                 async def translate_in_background():
                     try:
-                        gemini_client = get_gemini_client()
+                        grok_client = get_grok_client()
                         transcript_text = ' '.join([seg.get('text', '') for seg in result['transcript']])
-                        translated_text = gemini_client.translate_to_english(transcript_text)
+                        translated_text = grok_client.translate_to_english(transcript_text)
 
                         if translated_text:
                             # Validate translation is actually different from source
-                            # Gemini sometimes returns the original text unchanged when overwhelmed
+                            # Grok sometimes returns the original text unchanged when overwhelmed
                             source_sample = transcript_text[:200].lower().strip()
                             translated_sample = translated_text[:200].lower().strip()
                             if translated_sample == source_sample:
@@ -353,7 +353,7 @@ class TranslateRequest(BaseModel):
 @router.post("/translate")
 async def translate_transcript(request: TranslateRequest):
     """
-    Translate transcript segments to English using Gemini
+    Translate transcript segments to English using Grok
 
     Takes transcript in original language and returns AI-translated English version
     while preserving timestamps and segment structure.
@@ -365,7 +365,7 @@ async def translate_transcript(request: TranslateRequest):
         Translated transcript in same format as original
     """
     try:
-        from app.services.gemini_client import get_gemini_client
+        from app.services.grok_client import get_grok_client
         from app.services.cache import get_cache, TTL_SUMMARY
 
         cache = get_cache()
@@ -384,31 +384,31 @@ async def translate_transcript(request: TranslateRequest):
                 'is_generated': True  # AI-translated
             }
 
-        # Translate using Gemini
-        gemini_client = get_gemini_client()
+        # Translate using Grok
+        grok_client = get_grok_client()
 
         # Combine transcript text for translation (preserve structure)
         transcript_text = ' '.join([seg.get('text', '') for seg in request.transcript])
 
         logger.info(f"Translating transcript for {request.video_id} from {request.source_language} to English")
-        translated_text = gemini_client.translate_to_english(transcript_text)
+        translated_text = grok_client.translate_to_english(transcript_text)
 
         if not translated_text:
             return {
                 'success': False,
-                'error': 'Failed to translate transcript. Gemini may not be available.',
+                'error': 'Failed to translate transcript. Grok may not be available.',
                 'video_id': request.video_id
             }
 
         # Validate translation is actually different from source
-        # Gemini sometimes returns the original text unchanged when overwhelmed.
+        # Grok sometimes returns the original text unchanged when overwhelmed.
         # Compare full texts (not just a prefix sample) to avoid false positives
         # when the transcript starts with English content that passes through unchanged.
         if translated_text.strip().lower() == transcript_text.strip().lower():
             logger.warning(f"Translation returned same text as source for {request.video_id} - not caching")
             return {
                 'success': False,
-                'error': 'Translation failed: Gemini returned the original text unchanged.',
+                'error': 'Translation failed: Grok returned the original text unchanged.',
                 'video_id': request.video_id
             }
 

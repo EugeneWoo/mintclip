@@ -86,8 +86,8 @@ jobs:
           SUPABASE_URL: ""
           SUPABASE_ANON_KEY: ""
           SUPABASE_SERVICE_ROLE_KEY: ""
-          # Gemini absent → GeminiClient.model stays None → methods return None
-          GEMINI_API_KEY: ""
+          # Grok absent → GrokClient.model stays None → methods return None
+          GROK_API_KEY: ""
           # No REDIS_URL → cache falls back to SimpleCache automatically
           LOG_LEVEL: WARNING
           ENVIRONMENT: test

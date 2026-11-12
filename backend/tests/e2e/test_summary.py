@@ -20,7 +20,7 @@ def _get_transcript_text(base_url: str, auth_headers: dict) -> str:
 
 @pytest.mark.parametrize("fmt", ["short", "topic", "qa"])
 def test_summary_all_formats(auth_headers, base_url, fmt):
-    """Real Gemini call for each summary format — returns non-empty string."""
+    """Real Grok call for each summary format — returns non-empty string."""
     transcript_text = _get_transcript_text(base_url, auth_headers)
     resp = httpx.post(
         f"{base_url}/api/summary/generate",

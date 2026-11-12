@@ -131,7 +131,7 @@ async def retrieve_with_fallback_and_response(
     question: str,
     video_id: str,
     chat_history: list = None,
-    gemini_client = None
+    grok_client = None
 ) -> Optional[str]:
     """
     Complete pipeline: retrieve context + generate response with smart fallback
@@ -144,14 +144,14 @@ async def retrieve_with_fallback_and_response(
         question: User's question
         video_id: Video identifier
         chat_history: Previous messages
-        gemini_client: GeminiClient instance
+        grok_client: GrokClient instance
 
     Returns:
         Generated response, or None if failed
     """
-    if not gemini_client:
-        from app.services.gemini_client import get_gemini_client
-        gemini_client = get_gemini_client()
+    if not grok_client:
+        from app.services.grok_client import get_grok_client
+        grok_client = get_grok_client()
 
     from app.prompts.chat import build_chat_prompt
     from app.services.bm25_retrieval import retrieve_relevant_chunks_with_transcript as bm25_retrieve
@@ -175,7 +175,7 @@ async def retrieve_with_fallback_and_response(
             # Generate response with BM25 context
             print(f"[2/3] Generating response with BM25 context...")
             prompt = build_chat_prompt(bm25_context, question, chat_history)
-            response_text = gemini_client.generate_content(
+            response_text = grok_client.generate_content(
                 prompt=prompt,
                 temperature=0.7,
                 max_tokens=500,
@@ -203,7 +203,7 @@ async def retrieve_with_fallback_and_response(
             # Generate response with embeddings context
             print(f"[3/3] Generating response with embeddings context...")
             prompt = build_chat_prompt(embeddings_context, question, chat_history)
-            response_text = gemini_client.generate_content(
+            response_text = grok_client.generate_content(
                 prompt=prompt,
                 temperature=0.7,
                 max_tokens=500,

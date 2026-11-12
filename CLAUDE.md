@@ -8,14 +8,14 @@
 ## Architecture
 Chrome Extension (MV3) + FastAPI backend + React/TypeScript web app
 - Extension: Vite, service worker, content script, Shadow DOM UI
-- Backend: Async Python, uvicorn, youtube-transcript-api, Gemini 2.5-flash-lite
+- Backend: Async Python, uvicorn, youtube-transcript-api, Grok (xAI, grok-4.3, reasoning_effort=none)
 - Web App: React 18 + Vite, Supabase Realtime for cross-device sync
 
 ## Key Files
 
 **Extension**: `extension/src/background/messageHandler.ts`, `auth.ts`, `content/components/YouTubeSidebar.tsx`, `popup/index.tsx`
 
-**Backend**: `backend/app/routes/auth.py`, `saved_items.py`, `transcript.py`, `middleware/auth.py`, `services/gemini_client.py`
+**Backend**: `backend/app/routes/auth.py`, `saved_items.py`, `transcript.py`, `middleware/auth.py`, `services/grok_client.py`
 
 **Web App**: `web-app/src/components/Dashboard.tsx`, `utils/supabase.ts`, `utils/auth.ts`
 
@@ -38,7 +38,7 @@ cd extension && npm run build     # prod build → Railway
 # Web App
 cd web-app && npm run dev         # port 5173
 ```
-Requires: `GEMINI_API_KEY`, Supabase credentials (see `backend/.env.example`)
+Requires: `GROK_API_KEY`, Supabase credentials (see `backend/.env.example`)
 
 ## Deploy Pipeline
 
@@ -90,7 +90,7 @@ cd extension && npm test -- --ci --forceExit --testPathIgnorePatterns="authentic
 - Every `httpx.AsyncClient()` that calls an external API must pass `proxies=proxy_url`. Pattern: `proxy_url = f"http://{ws_user}:{ws_pass}@p.webshare.io:80" if ws_user and ws_pass else None`. Use `proxies=` not `proxy=` (httpx version compatibility).
 - Affected endpoints (both fixed): `auth_service.py` `verify_google_token()` and `auth.py` `exchange_google_code()`.
 - If Google OAuth login hangs (~49s → HTTP 499), check that `WS_USER`/`WS_PASS` are set in Railway variables.
-- **`GEMINI_API_KEY`** must be kept valid in Railway variables. If summaries/chat/translation silently fail with HTTP 200, check Railway logs for `Gemini API error: 400 API key not valid` — rotate the key in Google AI Studio.
+- **`GROK_API_KEY`** must be kept valid in Railway variables (prod + staging). Optional: `GROK_MODEL` (default `grok-4.3`), `GROK_REASONING_EFFORT` (default `none`). If summaries/chat/translation silently fail with HTTP 200, check Railway logs for `Grok API error:` (401 = bad key, 429 = out of credits/rate limit) and top up / rotate in the xAI console (console.x.ai). Switched from Gemini 2026-11-12 after Gemini prepaid credits ran out.
 
 ## Web App Auth Gotchas
 - **`exchange_google_code()` proxy**: `auth.py` `exchange_google_code()` must use the Webshare proxy just like `verify_google_token()`. Without it, web app OAuth hangs indefinitely on Railway (same root cause — Railway EU West can't reach `googleapis.com` directly).

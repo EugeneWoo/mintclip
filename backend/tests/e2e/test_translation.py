@@ -1,4 +1,4 @@
-"""E2E: transcript translation — non-EN video → English via Gemini."""
+"""E2E: transcript translation — non-EN video → English via Grok."""
 
 import httpx
 import pytest
