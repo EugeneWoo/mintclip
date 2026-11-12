@@ -6,6 +6,11 @@ on:
     branches: [staging]
     types: [completed]
 
+# Never run two E2E jobs at once: they share one staging backend + DB.
+concurrency:
+  group: e2e-staging
+  cancel-in-progress: false
+
 jobs:
   e2e-staging:
     name: E2E Tests (Staging)
@@ -89,8 +94,13 @@ jobs:
           cd ${{ github.workspace }}
           PR=$(gh pr list --base main --head staging --state open --json number --jq '.[0].number')
           if [ -n "$PR" ] && [ "$PR" != "null" ]; then
-            gh pr merge "$PR" --merge --subject "chore: merge staging → main (e2e passed)"
-            echo "Merged PR #$PR"
+            if gh pr merge "$PR" --merge --subject "chore: merge staging → main (e2e passed)"; then
+              echo "Merged PR #$PR"
+            elif [ "$(gh pr view "$PR" --json state --jq .state)" = "MERGED" ]; then
+              echo "PR #$PR was already merged by a concurrent run — nothing to do"
+            else
+              echo "Failed to merge PR #$PR" && exit 1
+            fi
           else
             echo "No open staging→main PR found — skipping auto-merge"
           fi

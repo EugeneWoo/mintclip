@@ -1,10 +1,14 @@
 name: CI
 
+# One CI run per commit: commits go to staging (push), and staging→main is
+# auto-merged only after E2E passes, so re-testing on main or on the
+# staging→main PR would just repeat the same tests.
+# pull_request→staging still covers any feature branch PR into staging.
 on:
   push:
-    branches: [main, staging]
+    branches: [staging]
   pull_request:
-    branches: [main, staging]
+    branches: [staging]
 
 jobs:
   # ─────────────────────────────────────────────────────────────
