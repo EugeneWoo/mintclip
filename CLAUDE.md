@@ -58,7 +58,7 @@ Unit tests run on push/PR to `main` or `staging`, path-filtered per area.
 |-----|---------|----------------|
 | Backend | `backend/**` | pytest (Python 3.11 + 3.12) |
 | Extension | `extension/**` | Jest — 49 tests (~60s in CI) |
-| Web App | `web-app/**` | TypeScript + ESLint + Jest |
+| Web App | `web-app/**` | TypeScript + ESLint + Jest + Playwright (browser, backend mocked) |
 | E2E | staging CI passes | pytest `backend/tests/e2e/` → real staging backend, auto-cleans DB after |
 
 Extension tests (`extension/__tests__/`):
@@ -67,7 +67,12 @@ Extension tests (`extension/__tests__/`):
 - `auth-token-management.test.ts` — `getValidAccessToken()` auto-refresh logic
 
 ```bash
-cd extension && npm test -- --ci --forceExit --testPathIgnorePatterns="authentication.test" "ui-components.test"
+cd extension && npm test -- --ci --forceExit
+```
+
+Web app browser tests (`web-app/e2e/`, Playwright): run against the local Vite dev server with all `localhost:8000` calls stubbed in `e2e/fixtures.ts` — no backend/Supabase/Google login needed. Covers landing, auth redirects, legal pages, dashboard list + transcript modal.
+```bash
+cd web-app && npm run test:e2e      # headless; test:e2e:ui for the debugger UI
 ```
 
 ## E2E Auth & DB Cleanup

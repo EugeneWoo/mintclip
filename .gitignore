@@ -94,3 +94,7 @@ ci_test_plan.md
 .dolt/
 *.db
 .beads-credential-key
+
+# Playwright
+web-app/test-results/
+web-app/playwright-report/
