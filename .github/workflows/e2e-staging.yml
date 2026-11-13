@@ -61,8 +61,14 @@ jobs:
           fi
           # Railway only redeploys when backend/** changes, so the running build must
           # contain the newest commit that touched backend/ (not necessarily HEAD).
-          NEED=$(git log -1 --format=%H "$HEAD_SHA" -- backend)
-          echo "Need staging to be running a build that includes ${NEED:-<no backend commit>}"
+          # The job runs inside backend/, so use a repo-root pathspec (a plain "backend"
+          # would resolve to backend/backend and match nothing).
+          NEED=$(git log -1 --format=%H "$HEAD_SHA" -- ':(top)backend')
+          if [ -z "$NEED" ]; then
+            echo "::error::Could not find the newest backend/ commit from $HEAD_SHA"
+            exit 1
+          fi
+          echo "Need staging to be running a build that includes $NEED"
           for i in $(seq 1 40); do
             RUNNING=$(curl -sf "$STAGING_BACKEND_URL/health" | python3 -c "import sys,json; print(json.load(sys.stdin).get('commit') or '')" 2>/dev/null || true)
             if [ -n "$RUNNING" ] && git cat-file -e "$RUNNING^{commit}" 2>/dev/null && git merge-base --is-ancestor "$NEED" "$RUNNING"; then
