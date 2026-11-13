@@ -108,6 +108,9 @@ async def health():
     """Detailed health check"""
     return {
         "status": "healthy",
+        # Which commit is deployed (set by Railway). E2E waits on this to know
+        # the new build is live before testing; null for local runs.
+        "commit": os.getenv("RAILWAY_GIT_COMMIT_SHA"),
         "services": {
             "api": "running",
             "transcript_extraction": "available",

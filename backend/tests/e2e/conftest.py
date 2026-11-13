@@ -80,10 +80,15 @@ def maybe_access_token() -> "str | None":
 def access_token(maybe_access_token) -> str:
     """A valid access token, or skip token-dependent tests if the secret expired."""
     if not maybe_access_token:
-        pytest.skip(
-            "TEST_REFRESH_TOKEN expired — refresh the GitHub secret to re-enable "
-            "auth-dependent e2e tests"
+        msg = (
+            "Could not authenticate the E2E account (check TEST_ACCOUNT_EMAIL / "
+            "TEST_ACCOUNT_PASSWORD secrets and that the account exists in the "
+            "staging Supabase project)"
         )
+        if os.environ.get("CI"):
+            # A skipped authenticated suite looks green and would auto-merge untested code.
+            pytest.fail(msg)
+        pytest.skip(msg)
     return maybe_access_token
 
 
