@@ -77,7 +77,10 @@ cd web-app && npm run test:e2e      # headless; test:e2e:ui for the debugger UI
 
 ## E2E Auth & DB Cleanup
 - **Auth (self-mint, no chore)**: `e2e/conftest.py` logs in via `POST /api/auth/login` with `TEST_ACCOUNT_EMAIL`/`TEST_ACCOUNT_PASSWORD` (dedicated CI account `ci-e2e-test@mintclip.app`, password never expires). Legacy `TEST_REFRESH_TOKEN` kept as fallback only. No recurring manual token refresh.
-- **Staging + prod share ONE Supabase** (`xiirdwohhzjaxkxxfwas`) — E2E writes hit the same DB as real users; cleanup isolates by user_id.
+- **Staging and prod use SEPARATE Supabase projects** (since 2026-11-13): prod `xiirdwohhzjaxkxxfwas`, staging `mintclip-staging` = `ppmzrtemppfrnnglehba` (both eu-central-1). E2E writes only touch staging. Schema source of truth for a fresh project: `backend/scripts/staging_schema.sql` (mirror of prod; re-run safe).
+- **Supabase API keys**: backend reads `SUPABASE_PUBLISHABLE_KEY` / `SUPABASE_SECRET_KEY` (`sb_publishable_…`/`sb_secret_…`), falling back to legacy `SUPABASE_ANON_KEY` / `SUPABASE_SERVICE_ROLE_KEY`. Legacy JWT keys are retired by Supabase in early 2027 — staging already uses the new keys; **prod still on legacy, migrate before 2027**. Needs `supabase>=2.20` (pinned 2.34.1, with `httpx<0.28`, `pyjwt>=2.15.1`, `websockets>=13`).
+- **E2E account lives in staging's auth**: `ci-e2e-test@mintclip.app` in project `mintclip-staging`; GitHub `TEST_ACCOUNT_EMAIL`/`TEST_ACCOUNT_PASSWORD` must be the STAGING account (local copy: `STAGING_TEST_ACCOUNT_*` in `backend/.env`). `TEST_REFRESH_TOKEN` is a stale prod-DB token — do not rely on it.
+- Local `backend/.env` keeps staging creds under a `STAGING_` prefix (`STAGING_SUPABASE_REF/…_PUBLISHABLE_KEY/…_SECRET_KEY/…_DB_PASSWORD`); the backend itself never reads `STAGING_*` — Railway staging env holds the plain `SUPABASE_*` names with staging values.
 - `conftest.py` `cleanup_test_videos` fixture (session-scoped, autouse) deletes test video items after every E2E run
 - Test video IDs: `jNQXAC9IVRw` (Me at the zoo), `9bZkp7q19f0` (Gangnam Style), `dQw4w9WgXcQ` (Rick Astley)
 - **Safe by design**: snapshots which test IDs already exist in saved items BEFORE tests run → only deletes IDs that weren't pre-existing. User's personal saves of those videos are preserved.
