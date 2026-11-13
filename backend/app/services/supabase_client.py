@@ -15,8 +15,11 @@ logger = logging.getLogger(__name__)
 
 # Supabase configuration
 SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_ANON_KEY = os.getenv("SUPABASE_ANON_KEY")
-SUPABASE_SERVICE_ROLE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+# New-style keys (sb_publishable_... / sb_secret_...) are preferred. The legacy JWT
+# names are still read as a fallback so an environment can migrate independently.
+# Legacy anon/service_role keys are retired by Supabase in early 2027.
+SUPABASE_PUBLISHABLE_KEY = os.getenv("SUPABASE_PUBLISHABLE_KEY") or os.getenv("SUPABASE_ANON_KEY")
+SUPABASE_SECRET_KEY = os.getenv("SUPABASE_SECRET_KEY") or os.getenv("SUPABASE_SERVICE_ROLE_KEY")
 
 # Flag to track if Supabase is available
 SUPABASE_AVAILABLE = False
@@ -25,24 +28,19 @@ supabase_admin = None
 
 try:
     from supabase import Client
-    from supabase.lib.client_options import ClientOptions
-    import httpx
 
-    if SUPABASE_URL and SUPABASE_ANON_KEY:
-        # Create httpx client without proxy argument to avoid compatibility issues
-        # supabase 2.x has issues with newer httpx versions
-
+    if SUPABASE_URL and SUPABASE_PUBLISHABLE_KEY:
         # Public client for user-facing operations (respects RLS)
-        supabase_client = Client(SUPABASE_URL, SUPABASE_ANON_KEY)
+        supabase_client = Client(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY)
         SUPABASE_AVAILABLE = True
         logger.info("Supabase client initialized successfully")
 
         # Admin client for server-side operations (bypasses RLS)
-        if SUPABASE_SERVICE_ROLE_KEY:
-            supabase_admin = Client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
+        if SUPABASE_SECRET_KEY:
+            supabase_admin = Client(SUPABASE_URL, SUPABASE_SECRET_KEY)
             logger.info("Supabase admin client initialized")
         else:
-            logger.warning("SUPABASE_SERVICE_ROLE_KEY not set - admin operations unavailable")
+            logger.warning("SUPABASE_SECRET_KEY not set - admin operations unavailable")
     else:
         logger.warning("Supabase credentials not configured - database features disabled")
 

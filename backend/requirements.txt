@@ -16,17 +16,19 @@ python-dotenv==1.0.0
 python-multipart==0.0.6
 
 # HTTP client for API calls (updated for deepgram-sdk 3.2.0 compatibility)
-httpx>=0.25.2
+httpx>=0.27,<0.28  # <0.28: backend uses proxies= (removed in 0.28) and starlette TestClient
 
 # Authentication
-pyjwt==2.8.0
+pyjwt>=2.15.1,<3  # supabase-auth 2.34 requires >=2.15.1
 
 # Email validation
 pydantic[email]>=2.0.0
 
-# Supabase client with pinned gotrue to fix proxy error
-supabase==2.4.0
-gotrue==1.3.0
+# Supabase client. >=2.20 is required for the new publishable/secret API keys
+# (sb_publishable_... / sb_secret_...); legacy JWT anon/service_role keys retire early 2027.
+supabase==2.34.1
+# realtime (pulled in by supabase) imports websockets.asyncio (added in 13) but declares >=11
+websockets>=13,<16
 
 # Pinecone embeddings (free tier for semantic search)
 # Note: Package renamed from pinecone-client to pinecone

@@ -6,7 +6,7 @@ Provides Supabase public credentials for Realtime subscriptions
 import logging
 from fastapi import APIRouter
 
-from app.services.supabase_client import SUPABASE_URL, SUPABASE_ANON_KEY, is_supabase_available
+from app.services.supabase_client import SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, is_supabase_available
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -35,5 +35,5 @@ async def get_supabase_config():
         "success": True,
         "realtime_available": True,
         "supabase_url": SUPABASE_URL,
-        "supabase_anon_key": SUPABASE_ANON_KEY,
+        "supabase_anon_key": SUPABASE_PUBLISHABLE_KEY,  # field name kept for web-app/extension compatibility
     }
