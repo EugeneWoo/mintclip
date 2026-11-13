@@ -59,7 +59,7 @@ Unit tests run on push/PR to `main` or `staging`, path-filtered per area.
 | Backend | `backend/**` | pytest (Python 3.11 + 3.12) |
 | Extension | `extension/**` | Jest — 49 tests (~60s in CI) |
 | Web App | `web-app/**` | TypeScript + ESLint + Jest + Playwright (browser, backend mocked) |
-| E2E | staging CI passes | pytest `backend/tests/e2e/` → real staging backend, auto-cleans DB after |
+| E2E | staging CI passes | pytest `backend/tests/e2e/` → real staging backend + staging Supabase, auto-cleans DB after |
 
 Extension tests (`extension/__tests__/`):
 - `manifest-validation.test.ts` — `host_permissions` covers all production URLs from `config.ts` (catches v0.1.4 auth outage class of bug)
@@ -79,7 +79,8 @@ cd web-app && npm run test:e2e      # headless; test:e2e:ui for the debugger UI
 - **Auth (self-mint, no chore)**: `e2e/conftest.py` logs in via `POST /api/auth/login` with `TEST_ACCOUNT_EMAIL`/`TEST_ACCOUNT_PASSWORD` (dedicated CI account `ci-e2e-test@mintclip.app`, password never expires). Legacy `TEST_REFRESH_TOKEN` kept as fallback only. No recurring manual token refresh.
 - **Staging and prod use SEPARATE Supabase projects** (since 2026-11-13): prod `xiirdwohhzjaxkxxfwas`, staging `mintclip-staging` = `ppmzrtemppfrnnglehba` (both eu-central-1). E2E writes only touch staging. Schema source of truth for a fresh project: `backend/scripts/staging_schema.sql` (mirror of prod; re-run safe).
 - **Supabase API keys**: backend reads `SUPABASE_PUBLISHABLE_KEY` / `SUPABASE_SECRET_KEY` (`sb_publishable_…`/`sb_secret_…`), falling back to legacy `SUPABASE_ANON_KEY` / `SUPABASE_SERVICE_ROLE_KEY`. Legacy JWT keys are retired by Supabase in early 2027 — staging already uses the new keys; **prod still on legacy, migrate before 2027**. Needs `supabase>=2.20` (pinned 2.34.1, with `httpx<0.28`, `pyjwt>=2.15.1`, `websockets>=13`).
-- **E2E account lives in staging's auth**: `ci-e2e-test@mintclip.app` in project `mintclip-staging`; GitHub `TEST_ACCOUNT_EMAIL`/`TEST_ACCOUNT_PASSWORD` must be the STAGING account (local copy: `STAGING_TEST_ACCOUNT_*` in `backend/.env`). `TEST_REFRESH_TOKEN` is a stale prod-DB token — do not rely on it.
+- **E2E gate is fail-closed**: `e2e-staging.yml` runs the tests on the exact CI-passed commit, and first waits until staging's `GET /health` reports a `commit` (Railway's `RAILWAY_GIT_COMMIT_SHA`) that includes the newest `backend/` commit — so E2E never tests the previous build. Missing secrets, an unreachable staging, or a failed E2E login now FAIL the job (they used to skip → green → auto-merge). Only `test_translation` may skip (English-only test video).
+- **E2E account lives in staging's auth**: `ci-e2e-test@mintclip.app` in project `mintclip-staging`; GitHub `TEST_ACCOUNT_EMAIL`/`TEST_ACCOUNT_PASSWORD` must be the STAGING account (local copy: `STAGING_TEST_ACCOUNT_*` in `backend/.env`). `TEST_REFRESH_TOKEN` is a stale prod-DB token no longer used by the workflow (delete the secret).
 - Local `backend/.env` keeps staging creds under a `STAGING_` prefix (`STAGING_SUPABASE_REF/…_PUBLISHABLE_KEY/…_SECRET_KEY/…_DB_PASSWORD`); the backend itself never reads `STAGING_*` — Railway staging env holds the plain `SUPABASE_*` names with staging values.
 - `conftest.py` `cleanup_test_videos` fixture (session-scoped, autouse) deletes test video items after every E2E run
 - Test video IDs: `jNQXAC9IVRw` (Me at the zoo), `9bZkp7q19f0` (Gangnam Style), `dQw4w9WgXcQ` (Rick Astley)
