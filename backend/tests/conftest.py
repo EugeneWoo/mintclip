@@ -28,6 +28,7 @@ os.environ.setdefault("GOOGLE_ALLOWED_CLIENT_IDS", "test-client-id.apps.googleus
 # does NOT override already-set env vars — so these empty values stick,
 # ensuring SUPABASE_AVAILABLE=False, GrokClient.model=None, SimpleCache used.
 for _key in ["SUPABASE_URL", "SUPABASE_ANON_KEY", "SUPABASE_SERVICE_ROLE_KEY",
+             "SUPABASE_PUBLISHABLE_KEY", "SUPABASE_SECRET_KEY",
              "GROK_API_KEY", "REDIS_URL", "PINECONE_API_KEY"]:
     os.environ[_key] = ""
 
