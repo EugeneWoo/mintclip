@@ -137,9 +137,19 @@ def cleanup_test_videos(base_url: str, maybe_access_token):
         yield
         return
     headers = {"Authorization": f"Bearer {maybe_access_token}"}
-    pre_existing = _saved_video_ids(base_url, headers) & set(_TEST_VIDEO_IDS)
+    allowed = set(_TEST_VIDEO_IDS)
+    # Everything saved before the run (single ids AND comma-joined batch group ids) is
+    # left alone, so a user's personal saves of these videos survive.
+    pre_existing = _saved_video_ids(base_url, headers)
     yield
-    to_delete = set(_TEST_VIDEO_IDS) - pre_existing
+    # Batch rows store ALL their videos comma-joined in one video_id ("abc,def"), so an
+    # exact-id delete of single videos never matched them and they piled up. Delete any
+    # saved id made up solely of test videos that did not exist before the run.
+    created = _saved_video_ids(base_url, headers) - pre_existing
+    to_delete = {
+        vid for vid in created | allowed
+        if vid not in pre_existing and set(vid.split(",")) <= allowed
+    }
     for video_id in to_delete:
         try:
             httpx.delete(
